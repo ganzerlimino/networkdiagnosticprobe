@@ -1,2 +1,125 @@
-# networkdiagnosticprobe
-A simple Network Diagnostic Probe with Raspberry and a small screen
+# Network Diagnostic Probe (NDP)
+
+Dispositivo portatile di diagnostica di rete basato su **Raspberry Pi 3**, pensato per rispondere rapidamente alla domanda: *cosa c'è dall'altra parte del cavo?*
+
+Collegando il probe a una porta switch, NDP mostra informazioni L2 (LLDP/CDP) e L3 (IP, gateway, DNS) senza bisogno di laptop o console.
+
+## Stato del progetto
+
+**v0.1 — Core engine** (questo repository):
+
+- Collector per link Ethernet, IP stack, LLDP/CDP e metriche di sistema
+- Motore di polling con cache neighbor
+- Output console e JSON (`ndp --once --json`)
+- Script di installazione per Raspberry Pi OS Lite
+- Unit file systemd per avvio automatico
+
+Prossime milestone: UI Pygame sul display Joy-it, Web UI FastAPI, immagine SD pronta al flash.
+
+## Hardware di riferimento
+
+| Componente | Modello |
+|------------|---------|
+| SBC | Raspberry Pi 3 Model B/B+ |
+| Display | Joy-it RB-TFT3.2 (3 pulsanti GPIO) |
+| Rete | Ethernet RJ45 integrata |
+| Alimentazione | Powerbank USB 5V |
+
+Il Pi 3 è scelto per il **basso costo**. Un boot di 60–90 secondi è accettabile per uno strumento da campo, non per un dispositivo consumer.
+
+## Architettura software
+
+```
+ndp-core (polling)
+    ├── collectors/link.py    → operstate, speed, duplex, MAC
+    ├── collectors/ip.py      → iproute2 JSON
+    ├── collectors/lldp.py    → lldpctl JSON
+    └── collectors/system.py  → hostname, uptime, temperatura
+
+ndp.service (systemd) → avvio automatico all'accensione
+```
+
+La UI locale (Pygame) e la Web UI (FastAPI) saranno client dello stesso stato condiviso.
+
+## Installazione rapida su Raspberry Pi
+
+Su Raspberry Pi OS Lite (64-bit), con rete disponibile:
+
+```bash
+git clone https://github.com/networkdiagnosticprobe/networkdiagnosticprobe.git
+cd networkdiagnosticprobe
+sudo ./scripts/install.sh
+```
+
+Lo script:
+
+1. Installa `lldpd`, `iproute2`, `ethtool`
+2. Crea un virtualenv in `/opt/ndp`
+3. Copia la configurazione in `/etc/ndp/config.yaml`
+4. Abilita e avvia `lldpd` e `ndp`
+
+### Verifica
+
+```bash
+sudo systemctl status ndp
+ndp --once
+ndp --once --json
+```
+
+## Sviluppo locale (PC o Pi)
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+pytest
+ndp --once
+```
+
+Su un PC senza `lldpd` o senza interfaccia `eth0`, i collector gestiscono l'assenza dei dati senza crash.
+
+## Configurazione
+
+File predefinito: `/etc/ndp/config.yaml` (altrimenti viene usato il bundled `ndp/config/default.yaml`).
+
+```yaml
+interface: eth0
+poll_interval_link_up: 1
+poll_interval_link_down: 5
+
+console:
+  enabled: true
+  refresh_seconds: 5
+
+ui:
+  enabled: false   # Pygame display — prossima fase
+
+web:
+  enabled: false   # FastAPI — prossima fase
+```
+
+## Immagine SD pronta al flash
+
+Obiettivo release: scaricare un'immagine, flasharla con [Raspberry Pi Imager](https://www.raspberrypi.com/software/), inserire la SD e usare il probe.
+
+Per ora:
+
+1. Flash di Raspberry Pi OS Lite (64-bit)
+2. Esecuzione di `scripts/install.sh` al primo avvio
+
+La fase successiva automatizzerà questi passi con una stage **pi-gen** dedicata (`image/pi-gen/`). Vedi `scripts/build-sd-image.sh` per il piano di build.
+
+## Roadmap
+
+| Fase | Contenuto | Stato |
+|------|-----------|-------|
+| 0 | PoC hardware (display + lldpd) | Da validare su Pi reale |
+| 1 | Core engine Python | ✅ v0.1 |
+| 2 | UI Pygame su framebuffer | Prossima |
+| 3 | Immagine SD custom (pi-gen) | Prossima |
+| 4 | Web UI + hotspot Wi-Fi | Pianificata |
+| 5 | Case 3D | Pianificata |
+
+## Licenza
+
+MIT — vedi [LICENSE](LICENSE).
