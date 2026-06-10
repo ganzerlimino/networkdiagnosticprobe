@@ -1,0 +1,39 @@
+{
+  "lldp": {
+    "interface": [
+      {
+        "name": "eth0",
+        "via": "LLDP",
+        "rid": "1",
+        "age": "0:00:12",
+        "chassis": [
+          {
+            "id": {
+              "type": "mac",
+              "value": "00:11:22:33:44:55"
+            },
+            "name": {
+              "value": "sw-core-01"
+            },
+            "descr": {
+              "value": "Aruba CX Switch"
+            }
+          }
+        ],
+        "port": [
+          {
+            "id": {
+              "type": "ifname",
+              "value": "1/1/24"
+            },
+            "vlan": {
+              "id": {
+                "value": "120"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

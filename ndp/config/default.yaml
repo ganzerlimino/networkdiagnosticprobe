@@ -1,0 +1,30 @@
+# Default NDP configuration. Copy to /etc/ndp/config.yaml to override.
+
+interface: eth0
+
+poll_interval_link_up: 1
+poll_interval_link_down: 5
+
+lldp:
+  cache_ttl_seconds: 30
+
+ui:
+  enabled: false
+  brightness: 80
+  screensaver_timeout: 300
+
+console:
+  enabled: true
+  refresh_seconds: 5
+
+web:
+  enabled: false
+  host: "0.0.0.0"
+  port: 8080
+
+wifi_hotspot:
+  enabled: false
+  ssid_prefix: "NDP"
+
+logging:
+  level: INFO
