@@ -25,6 +25,9 @@ class NdpConfig:
     web_host: str = "0.0.0.0"
     web_port: int = 8080
     log_level: str = "INFO"
+    discovery_disconnect_wait_seconds: float = 8.0
+    discovery_flush_arp: bool = True
+    discovery_verify_replug: bool = True
 
     @classmethod
     def from_mapping(cls, data: dict[str, Any]) -> NdpConfig:
@@ -33,6 +36,7 @@ class NdpConfig:
         console = data.get("console", {})
         web = data.get("web", {})
         logging_cfg = data.get("logging", {})
+        discovery = data.get("discovery", {})
         return cls(
             interface=str(data.get("interface", "eth0")),
             poll_interval_link_up=float(data.get("poll_interval_link_up", 1)),
@@ -45,6 +49,11 @@ class NdpConfig:
             web_host=str(web.get("host", "0.0.0.0")),
             web_port=int(web.get("port", 8080)),
             log_level=str(logging_cfg.get("level", "INFO")).upper(),
+            discovery_disconnect_wait_seconds=float(
+                discovery.get("disconnect_wait_seconds", 8)
+            ),
+            discovery_flush_arp=bool(discovery.get("flush_arp_before_second_scan", True)),
+            discovery_verify_replug=bool(discovery.get("verify_replug", True)),
         )
 
 

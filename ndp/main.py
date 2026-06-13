@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 
 from ndp import __version__
+from ndp.cli.discover import add_discover_subparser, run_discover_command
 from ndp.console import render_status
 from ndp.core.config import load_config
 from ndp.core.engine import ProbeEngine
@@ -94,13 +95,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--once",
         action="store_true",
-        help="Collect status once and exit",
+        help="Collect probe status once and exit",
     )
     parser.add_argument(
         "--json",
         action="store_true",
-        help="Emit JSON output (use with --once)",
+        help="Emit JSON output (with --once or discover)",
     )
+
+    subparsers = parser.add_subparsers(dest="command")
+    add_discover_subparser(subparsers)
     return parser
 
 
@@ -108,8 +112,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    if args.command == "discover":
+        return run_discover_command(args, args.config)
+
     if args.once:
         return run_once(args.config, args.json)
+
+    if args.command is not None:
+        parser.error(f"Unknown command: {args.command}")
+
     return run_service(args.config)
 
 

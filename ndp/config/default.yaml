@@ -26,5 +26,10 @@ wifi_hotspot:
   enabled: false
   ssid_prefix: "NDP"
 
+discovery:
+  disconnect_wait_seconds: 8
+  flush_arp_before_second_scan: true
+  verify_replug: true
+
 logging:
   level: INFO

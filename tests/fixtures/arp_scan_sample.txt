@@ -1,0 +1,5 @@
+Interface: eth0, type: EN10MB, MAC: b8:27:eb:00:00:01, IPv4: 192.168.1.50
+Starting arp-scan 1.10.0 with 256 hosts
+192.168.1.1	aa:bb:cc:dd:ee:01	Router Corp
+192.168.1.45	bb:cc:dd:ee:ff:02	Camera Inc
+192.168.1.78	cc:dd:ee:ff:00:03

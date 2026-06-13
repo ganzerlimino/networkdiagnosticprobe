@@ -20,7 +20,8 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   python3-pip \
   lldpd \
   iproute2 \
-  ethtool
+  ethtool \
+  arp-scan
 
 echo "==> Preparing install directory at ${NDP_ROOT}"
 install -d -m 0755 "${NDP_ROOT}"
@@ -55,3 +56,4 @@ echo "NDP installed successfully."
 echo "  Service : systemctl status ndp"
 echo "  One-shot: ${NDP_ROOT}/venv/bin/ndp --once"
 echo "  JSON    : ${NDP_ROOT}/venv/bin/ndp --once --json"
+echo "  Up/Down : ${NDP_ROOT}/venv/bin/ndp discover updown"
