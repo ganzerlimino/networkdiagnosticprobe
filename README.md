@@ -165,7 +165,7 @@ La fase successiva automatizzerà questi passi con una stage **pi-gen** dedicata
 | 0 | PoC hardware (display + lldpd) | Da validare su Pi reale |
 | 1 | Core engine Python | ✅ v0.1 |
 | 1b | Discovery Up/Down wizard | ✅ v0.2 |
-| 2 | UI Pygame su framebuffer | Prossima |
+| 2 | UI Pygame su framebuffer | ✅ v0.3 (beta) |
 | 3 | Immagine SD custom (pi-gen) | Prossima |
 | 4 | Web UI + hotspot Wi-Fi | Pianificata |
 | 5 | Case 3D | Pianificata |

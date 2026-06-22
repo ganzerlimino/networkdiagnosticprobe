@@ -50,6 +50,12 @@ def run_service(config_path: Path | None) -> int:
     config = load_config(config_path)
     _configure_logging(config.log_level)
 
+    if config.ui_enabled:
+        from ndp.ui.app import run_ui
+
+        logger.info("NDP %s UI mode on %s", __version__, config.ui_framebuffer)
+        return run_ui(config)
+
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
 

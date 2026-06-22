@@ -21,7 +21,11 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   lldpd \
   iproute2 \
   ethtool \
-  arp-scan
+  arp-scan \
+  python3-lgpio \
+  python3-pygame \
+  fonts-dejavu-core \
+  libsdl2-2.0-0
 
 echo "==> Preparing install directory at ${NDP_ROOT}"
 install -d -m 0755 "${NDP_ROOT}"
@@ -35,7 +39,7 @@ rsync -a --delete \
 echo "==> Creating Python virtual environment"
 python3 -m venv "${NDP_ROOT}/venv"
 "${NDP_ROOT}/venv/bin/pip" install --upgrade pip
-"${NDP_ROOT}/venv/bin/pip" install "${NDP_ROOT}"
+"${NDP_ROOT}/venv/bin/pip" install "${NDP_ROOT}[ui]"
 
 echo "==> Installing configuration"
 install -d -m 0755 "${NDP_CONFIG_DIR}"

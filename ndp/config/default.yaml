@@ -10,8 +10,16 @@ lldp:
 
 ui:
   enabled: false
-  brightness: 80
-  screensaver_timeout: 300
+  framebuffer: "/dev/fb1"
+  width: 320
+  height: 240
+  sdl_driver: "fbcon"
+  font_size: 18
+  fps: 10
+  button_previous: 23
+  button_select: 24
+  button_next: 25
+  button_debounce_seconds: 0.2
 
 console:
   enabled: true
