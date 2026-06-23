@@ -15,6 +15,10 @@ ui:
   height: 240
   sdl_driver: "fbcon"
   backend: "auto"   # auto | raw | sdl  (Lite/Bookworm: auto uses raw /dev/fb1)
+  backlight_gpio: 18
+  backlight_enabled: true
+  rgb565_bgr: false
+  rgb565_swap_bytes: false
   font_size: 18
   fps: 10
   button_previous: 23

@@ -24,6 +24,10 @@ class NdpConfig:
     ui_height: int = 240
     ui_sdl_driver: str = "fbcon"
     ui_backend: str = "auto"
+    ui_backlight_gpio: int = 18
+    ui_backlight_enabled: bool = True
+    ui_rgb565_bgr: bool = False
+    ui_rgb565_swap_bytes: bool = False
     ui_font_size: int = 18
     ui_fps: int = 10
     ui_button_previous: int = 23
@@ -59,6 +63,10 @@ class NdpConfig:
             ui_height=int(ui.get("height", 240)),
             ui_sdl_driver=str(ui.get("sdl_driver", "fbcon")),
             ui_backend=str(ui.get("backend", "auto")),
+            ui_backlight_gpio=int(ui.get("backlight_gpio", 18)),
+            ui_backlight_enabled=bool(ui.get("backlight_enabled", True)),
+            ui_rgb565_bgr=bool(ui.get("rgb565_bgr", False)),
+            ui_rgb565_swap_bytes=bool(ui.get("rgb565_swap_bytes", False)),
             ui_font_size=int(ui.get("font_size", 18)),
             ui_fps=int(ui.get("fps", 10)),
             ui_button_previous=int(ui.get("button_previous", 23)),

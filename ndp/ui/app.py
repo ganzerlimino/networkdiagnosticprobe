@@ -12,6 +12,7 @@ from ndp.core.config import NdpConfig
 from ndp.core.engine import ProbeEngine
 from ndp.core.state import ProbeState
 from ndp.ui.buttons import ButtonAction, ButtonMapping, PhysicalButtons
+from ndp.ui.backlight import enable_backlight
 from ndp.ui.framebuffer import RawFramebuffer
 from ndp.ui.screens import ScreenId, lines_for_screen, next_screen
 
@@ -75,7 +76,13 @@ def _init_display(config: NdpConfig) -> tuple[pygame.Surface, RawFramebuffer | N
     pygame.init()
     pygame.font.init()
     surface = pygame.Surface((config.ui_width, config.ui_height))
-    raw_fb = RawFramebuffer(config.ui_framebuffer, config.ui_width, config.ui_height)
+    raw_fb = RawFramebuffer(
+        config.ui_framebuffer,
+        config.ui_width,
+        config.ui_height,
+        bgr=config.ui_rgb565_bgr,
+        swap_bytes=config.ui_rgb565_swap_bytes,
+    )
     logger.info(
         "UI using offscreen pygame + raw framebuffer %s (%sx%s, stride=%s)",
         config.ui_framebuffer,
@@ -115,6 +122,7 @@ class ProbeUI:
             time.sleep(self.engine.poll_interval())
 
     def _on_button(self, action: ButtonAction) -> None:
+        previous = self._screen
         if action == ButtonAction.PREVIOUS:
             self._screen = next_screen(self._screen, -1)
         elif action == ButtonAction.NEXT:
@@ -124,8 +132,14 @@ class ProbeUI:
             with self._lock:
                 self._state = self.engine.refresh()
 
+        if self._screen != previous:
+            logger.info("UI screen -> %s", self._screen.name)
+
     def run(self) -> int:
         import pygame
+
+        if self.config.ui_backlight_enabled:
+            enable_backlight(self.config.ui_backlight_gpio)
 
         screen, raw_fb = _init_display(self.config)
 
