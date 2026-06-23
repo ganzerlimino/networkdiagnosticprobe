@@ -36,10 +36,13 @@ rsync -a --delete \
   --exclude 'tests' \
   "${REPO_DIR}/" "${NDP_ROOT}/"
 
-echo "==> Creating Python virtual environment"
-python3 -m venv "${NDP_ROOT}/venv"
+echo "==> Creating Python virtual environment (with system GPIO/pygame packages)"
+python3 -m venv --system-site-packages "${NDP_ROOT}/venv"
 "${NDP_ROOT}/venv/bin/pip" install --upgrade pip
 "${NDP_ROOT}/venv/bin/pip" install "${NDP_ROOT}[ui]"
+
+echo "==> Verifying Python dependencies"
+"${NDP_ROOT}/venv/bin/python" -c "import lgpio, pygame; print('lgpio and pygame OK')"
 
 echo "==> Installing configuration"
 install -d -m 0755 "${NDP_CONFIG_DIR}"

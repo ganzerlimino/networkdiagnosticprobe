@@ -49,7 +49,11 @@ class PhysicalButtons:
 
     def open(self) -> None:
         if lgpio is None:
-            raise RuntimeError("python3-lgpio is required for physical buttons")
+            raise RuntimeError(
+                "python3-lgpio is required for physical buttons. "
+                "Install with: sudo apt install python3-lgpio && "
+                "recreate venv: sudo python3 -m venv --system-site-packages /opt/ndp/venv"
+            )
 
         for pin in self._pin_to_action:
             subprocess.run(
