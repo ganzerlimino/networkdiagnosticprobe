@@ -28,6 +28,8 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   libsdl2-2.0-0
 
 echo "==> Preparing install directory at ${NDP_ROOT}"
+systemctl stop ndp.service 2>/dev/null || true
+
 install -d -m 0755 "${NDP_ROOT}"
 rsync -a --delete \
   --exclude '.git' \
@@ -43,6 +45,11 @@ python3 -m venv --system-site-packages "${NDP_ROOT}/venv"
 
 echo "==> Verifying Python dependencies"
 "${NDP_ROOT}/venv/bin/python" -c "import lgpio, pygame; print('lgpio and pygame OK')"
+
+if [[ ! -x "${NDP_ROOT}/venv/bin/ndp" ]]; then
+  echo "ERROR: ${NDP_ROOT}/venv/bin/ndp missing after install" >&2
+  exit 1
+fi
 
 echo "==> Installing configuration"
 install -d -m 0755 "${NDP_CONFIG_DIR}"
