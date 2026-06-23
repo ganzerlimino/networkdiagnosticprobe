@@ -12,6 +12,7 @@ from ndp.core.config import NdpConfig
 from ndp.core.engine import ProbeEngine
 from ndp.core.state import ProbeState
 from ndp.ui.buttons import ButtonAction, ButtonMapping, PhysicalButtons
+from ndp.ui.framebuffer import RawFramebuffer
 from ndp.ui.screens import ScreenId, lines_for_screen, next_screen
 
 if TYPE_CHECKING:
@@ -24,14 +25,14 @@ COLOR_HEADER = (24, 36, 64)
 COLOR_TEXT = (235, 240, 255)
 COLOR_MUTED = (140, 155, 180)
 COLOR_ACCENT = (80, 200, 120)
-COLOR_WARN = (240, 190, 60)
 
 
-def _configure_framebuffer(config: NdpConfig) -> None:
-    os.environ.setdefault("SDL_VIDEODRIVER", config.ui_sdl_driver)
-    os.environ.setdefault("SDL_FBDEV", config.ui_framebuffer)
+def _configure_pygame_env(config: NdpConfig, use_dummy: bool) -> None:
+    driver = "dummy" if use_dummy else config.ui_sdl_driver
+    os.environ["SDL_VIDEODRIVER"] = driver
+    os.environ["SDL_FBDEV"] = config.ui_framebuffer
     os.environ["SDL_MOUSE"] = "0"
-    os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
+    os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 
 
 def _load_font(size: int) -> pygame.font.Font:
@@ -42,6 +43,49 @@ def _load_font(size: int) -> pygame.font.Font:
         if path:
             return pygame.font.Font(path, size)
     return pygame.font.Font(None, size)
+
+
+def _init_display(config: NdpConfig) -> tuple[pygame.Surface, RawFramebuffer | None]:
+    """Return pygame surface and optional raw framebuffer for blitting."""
+    import pygame
+
+    errors: list[str] = []
+
+    if config.ui_backend != "raw":
+        _configure_pygame_env(config, use_dummy=False)
+        try:
+            if pygame.get_init():
+                pygame.quit()
+            pygame.init()
+            pygame.font.init()
+            screen = pygame.display.set_mode(
+                (config.ui_width, config.ui_height),
+                pygame.FULLSCREEN,
+            )
+            pygame.mouse.set_visible(False)
+            logger.info("UI using SDL driver %s", os.environ.get("SDL_VIDEODRIVER"))
+            return screen, None
+        except pygame.error as exc:
+            errors.append(f"sdl:{exc}")
+            pygame.quit()
+
+    _configure_pygame_env(config, use_dummy=True)
+    if pygame.get_init():
+        pygame.quit()
+    pygame.init()
+    pygame.font.init()
+    surface = pygame.Surface((config.ui_width, config.ui_height))
+    raw_fb = RawFramebuffer(config.ui_framebuffer, config.ui_width, config.ui_height)
+    logger.info(
+        "UI using offscreen pygame + raw framebuffer %s (%sx%s, stride=%s)",
+        config.ui_framebuffer,
+        raw_fb.width,
+        raw_fb.height,
+        raw_fb.line_length,
+    )
+    if errors:
+        logger.warning("SDL display unavailable (%s); raw fallback active", "; ".join(errors))
+    return surface, raw_fb
 
 
 class ProbeUI:
@@ -81,17 +125,9 @@ class ProbeUI:
                 self._state = self.engine.refresh()
 
     def run(self) -> int:
-        _configure_framebuffer(self.config)
-
         import pygame
 
-        pygame.init()
-        pygame.font.init()
-        screen = pygame.display.set_mode(
-            (self.config.ui_width, self.config.ui_height),
-            pygame.FULLSCREEN,
-        )
-        pygame.mouse.set_visible(False)
+        screen, raw_fb = _init_display(self.config)
 
         title_font = _load_font(self.config.ui_font_size + 4)
         body_font = _load_font(self.config.ui_font_size)
@@ -100,24 +136,33 @@ class ProbeUI:
         worker = threading.Thread(target=self._engine_loop, daemon=True)
         worker.start()
 
-        with self._buttons:
-            clock = pygame.time.Clock()
-            while not self._stop.is_set():
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        self._stop.set()
+        try:
+            with self._buttons:
+                clock = pygame.time.Clock()
+                while not self._stop.is_set():
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            self._stop.set()
 
-                self._buttons.poll(self._on_button)
+                    self._buttons.poll(self._on_button)
 
-                with self._lock:
-                    state = self._state
-                    current = self._screen
+                    with self._lock:
+                        state = self._state
+                        current = self._screen
 
-                self._draw(screen, title_font, body_font, hint_font, current, state)
-                pygame.display.flip()
-                clock.tick(self.config.ui_fps)
+                    self._draw(screen, title_font, body_font, hint_font, current, state)
 
-        pygame.quit()
+                    if raw_fb is not None:
+                        raw_fb.blit_surface(screen)
+                    else:
+                        pygame.display.flip()
+
+                    clock.tick(self.config.ui_fps)
+        finally:
+            if raw_fb is not None:
+                raw_fb.close()
+            pygame.quit()
+
         return 0
 
     def stop(self) -> None:
