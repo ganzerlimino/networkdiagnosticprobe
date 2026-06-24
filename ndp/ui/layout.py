@@ -19,6 +19,15 @@ def content_x_offset(hint_edge: str, margin: int) -> int:
     return margin if hint_edge == "left" else 0
 
 
+def hint_y_positions(height: int, y_offset: int) -> tuple[int, int, int]:
+    """Vertical positions for prev / select / next side-button hints."""
+    return (
+        52 + y_offset,
+        height // 2 - 10 + y_offset,
+        height - 72 + y_offset,
+    )
+
+
 def draw_button_hints(
     surface: pygame.Surface,
     font: pygame.font.Font,
@@ -27,35 +36,25 @@ def draw_button_hints(
     width: int,
     height: int,
     color: tuple[int, int, int],
-    margin: int = 48,
+    margin: int = 32,
+    y_offset: int = 24,
 ) -> None:
-    """Draw button legend aligned with the physical side buttons."""
-    labels = [
-        ("◀", "23"),
-        ("○", "24"),
-        ("▶", "25"),
-    ]
+    """Draw button legend (icons only) aligned with the physical side buttons."""
+    icons = ("◀", "○", "▶")
+    y_positions = hint_y_positions(height, y_offset)
 
     if edge == "right":
-        x_icon = width - margin + 8
-        y_positions = (52, height // 2 - 10, height - 72)
-        for (icon, gpio), y in zip(labels, y_positions):
-            icon_surface = font.render(icon, True, color)
-            gpio_surface = font.render(gpio, True, color)
-            surface.blit(icon_surface, (x_icon, y))
-            surface.blit(gpio_surface, (x_icon + 18, y + 2))
+        x_icon = width - margin + max(4, (margin - 16) // 2)
+        for icon, y in zip(icons, y_positions):
+            surface.blit(font.render(icon, True, color), (x_icon, y))
         return
 
     if edge == "left":
-        x_icon = 8
-        y_positions = (52, height // 2 - 10, height - 72)
-        for (icon, gpio), y in zip(labels, y_positions):
-            icon_surface = font.render(icon, True, color)
-            gpio_surface = font.render(gpio, True, color)
-            surface.blit(icon_surface, (x_icon, y))
-            surface.blit(gpio_surface, (x_icon + 18, y + 2))
+        x_icon = max(4, (margin - 16) // 2)
+        for icon, y in zip(icons, y_positions):
+            surface.blit(font.render(icon, True, color), (x_icon, y))
         return
 
     # bottom (legacy)
-    hint = font.render("< 23    O 24    25 >", True, color)
+    hint = font.render("<  ○  >", True, color)
     surface.blit(hint, (10, height - hint.get_height() - 6))

@@ -228,6 +228,7 @@ class ProbeUI:
             height=self.config.ui_height,
             color=COLOR_MUTED,
             margin=margin,
+            y_offset=self.config.ui_hint_y_offset,
         )
 
     def _screen_dots(self, active: ScreenId) -> str:
