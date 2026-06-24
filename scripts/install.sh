@@ -41,7 +41,7 @@ rsync -a --delete \
 echo "==> Creating Python virtual environment (with system GPIO/pygame packages)"
 python3 -m venv --system-site-packages "${NDP_ROOT}/venv"
 "${NDP_ROOT}/venv/bin/pip" install --upgrade pip
-"${NDP_ROOT}/venv/bin/pip" install "${NDP_ROOT}[ui]"
+"${NDP_ROOT}/venv/bin/pip" install "${NDP_ROOT}[ui,web]"
 
 echo "==> Verifying Python dependencies"
 "${NDP_ROOT}/venv/bin/python" -c "import lgpio, pygame; print('lgpio and pygame OK')"

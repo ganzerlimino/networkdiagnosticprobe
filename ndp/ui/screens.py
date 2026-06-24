@@ -12,6 +12,7 @@ class ScreenId(Enum):
     SWITCH = 1
     NETWORK = 2
     SYSTEM = 3
+    DISCOVER = 4
 
 
 SCREEN_TITLES = {
@@ -19,6 +20,7 @@ SCREEN_TITLES = {
     ScreenId.SWITCH: "Switch",
     ScreenId.NETWORK: "Network",
     ScreenId.SYSTEM: "System",
+    ScreenId.DISCOVER: "Discover",
 }
 
 

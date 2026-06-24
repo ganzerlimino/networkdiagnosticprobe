@@ -71,6 +71,26 @@ def render_diff(diff: ScanDiff) -> str:
     return "\n".join(lines)
 
 
+def compact_diff_lines(diff: ScanDiff) -> list[str]:
+    if not diff.offline_hosts:
+        return ["Nessun device", "scomparso", "Ripeti scan"]
+    if diff.probable_match:
+        host = diff.probable_match
+        vendor = f" {host.vendor}" if host.vendor else ""
+        return [
+            "MATCH:",
+            f"IP  {host.ip}",
+            f"MAC {host.mac}",
+            vendor.strip()[:28],
+        ]
+    lines = [f"Offline: {diff.offline_count}"]
+    for host in diff.offline_hosts[:2]:
+        lines.append(f"{host.ip} {host.mac[:8]}")
+    if diff.offline_count > 2:
+        lines.append("...")
+    return lines
+
+
 def render_updown_result(result: UpDownResult) -> str:
     sections = [
         render_diff(result.diff),

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +38,12 @@ class NdpConfig:
     ui_content_margin_side: int = 28
     ui_content_text_gap: int = 0
     ui_hint_y_offset: int = 24
+    ui_splash_enabled: bool = True
+    ui_splash_message: str = "Network Diagnostic Probe"
+    ui_splash_min_seconds: float = 1.5
+    ui_warmup_on_start: bool = True
+    ui_button_poll_hz: int = 50
+    ui_line_spacing: int = 6
     console_enabled: bool = True
     console_refresh_seconds: float = 5.0
     web_enabled: bool = False
@@ -47,6 +53,7 @@ class NdpConfig:
     discovery_disconnect_wait_seconds: float = 8.0
     discovery_flush_arp: bool = True
     discovery_verify_replug: bool = True
+    source_path: Path | None = field(default=None, repr=False)
 
     @classmethod
     def from_mapping(cls, data: dict[str, Any]) -> NdpConfig:
@@ -81,6 +88,12 @@ class NdpConfig:
             ui_content_margin_side=int(ui.get("content_margin_side", 28)),
             ui_content_text_gap=int(ui.get("content_text_gap", 0)),
             ui_hint_y_offset=int(ui.get("hint_y_offset", 24)),
+            ui_splash_enabled=bool(ui.get("splash_enabled", True)),
+            ui_splash_message=str(ui.get("splash_message", "Network Diagnostic Probe")),
+            ui_splash_min_seconds=float(ui.get("splash_min_seconds", 1.5)),
+            ui_warmup_on_start=bool(ui.get("warmup_on_start", True)),
+            ui_button_poll_hz=int(ui.get("button_poll_hz", 50)),
+            ui_line_spacing=int(ui.get("line_spacing", 6)),
             console_enabled=bool(console.get("enabled", True)),
             console_refresh_seconds=float(console.get("refresh_seconds", 5)),
             web_enabled=bool(web.get("enabled", False)),
@@ -100,8 +113,12 @@ def load_config(path: Path | None = None) -> NdpConfig:
     if config_path.is_file():
         with config_path.open(encoding="utf-8") as handle:
             data = yaml.safe_load(handle) or {}
-        return NdpConfig.from_mapping(data)
+        config = NdpConfig.from_mapping(data)
+        config.source_path = config_path
+        return config
 
     with BUNDLED_CONFIG_PATH.open(encoding="utf-8") as handle:
         data = yaml.safe_load(handle) or {}
-    return NdpConfig.from_mapping(data)
+    config = NdpConfig.from_mapping(data)
+    config.source_path = config_path if path is not None else BUNDLED_CONFIG_PATH
+    return config

@@ -6,7 +6,20 @@ Collegando il probe a una porta switch, NDP mostra informazioni L2 (LLDP/CDP) e 
 
 ## Stato del progetto
 
-**v0.2 — Discovery Up/Down**
+**v0.4 — UI discovery + web config**
+
+- Splash screen e warmup all'avvio (tasti attivi solo quando pronto)
+- Schermata **Discover** con wizard Up/Down sul display TFT
+- Server HTTP per stato probe e modifica `config.yaml` (`web.enabled: true`)
+- Parametri UI documentati in `ndp/config/default.yaml`
+
+**v0.3 — UI Pygame (Joy-it RB-TFT3.2)**
+
+- 5 schermate: Home, Switch, Network, System, Discover
+- Output framebuffer raw su `/dev/fb1` (Pi OS Lite)
+- Legenda tasti laterale, font e spaziatura configurabili
+
+**v0.2 — Discovery Up/Down (CLI)**
 
 - Wizard guidato per trovare un dispositivo scollegandolo e confrontando due scansioni
 - ARP scan attivo (`arp-scan`) con fallback su tabella kernel
@@ -21,7 +34,7 @@ Collegando il probe a una porta switch, NDP mostra informazioni L2 (LLDP/CDP) e 
 - Script di installazione per Raspberry Pi OS Lite
 - Unit file systemd per avvio automatico
 
-Prossime milestone: UI Pygame sul display Joy-it, Web UI FastAPI, immagine SD pronta al flash.
+Prossime milestone: immagine SD pronta al flash, hotspot Wi-Fi per accesso remoto.
 
 ## Hardware di riferimento
 
@@ -124,28 +137,31 @@ Su un PC senza `lldpd` o senza interfaccia `eth0`, i collector gestiscono l'asse
 
 ## Configurazione
 
-File predefinito: `/etc/ndp/config.yaml` (altrimenti viene usato il bundled `ndp/config/default.yaml`).
+File predefinito: `/etc/ndp/config.yaml` — ogni chiave è commentata nel template `ndp/config/default.yaml`.
 
 ```yaml
-interface: eth0
-poll_interval_link_up: 1
-poll_interval_link_down: 5
-
-console:
-  enabled: true
-  refresh_seconds: 5
-
 ui:
-  enabled: false   # Pygame display — prossima fase
+  enabled: true
+  font_size: 14
+  splash_enabled: true
+  button_poll_hz: 50
 
 web:
-  enabled: false   # FastAPI — prossima fase
+  enabled: true    # http://<ip-pi>:8080/ per modificare il YAML
 
 discovery:
   disconnect_wait_seconds: 8
-  flush_arp_before_second_scan: true
-  verify_replug: true
 ```
+
+## Web UI configurazione
+
+Con `web.enabled: true` apri `http://<ip-della-pi>:8080/` da browser sulla stessa rete:
+
+- visualizza lo stato probe (JSON)
+- modifica e salva `/etc/ndp/config.yaml`
+- riavvia il servizio per applicare: `sudo systemctl restart ndp`
+
+Il Wi-Fi hotspot è previsto in una fase successiva; per ora usa Ethernet o la rete Wi-Fi già configurata sulla Pi.
 
 ## Immagine SD pronta al flash
 
@@ -165,9 +181,11 @@ La fase successiva automatizzerà questi passi con una stage **pi-gen** dedicata
 | 0 | PoC hardware (display + lldpd) | Da validare su Pi reale |
 | 1 | Core engine Python | ✅ v0.1 |
 | 1b | Discovery Up/Down wizard | ✅ v0.2 |
-| 2 | UI Pygame su framebuffer | ✅ v0.3 (beta) |
+| 2 | UI Pygame su framebuffer | ✅ v0.3 |
+| 2b | Discover su TFT + splash | ✅ v0.4 |
 | 3 | Immagine SD custom (pi-gen) | Prossima |
-| 4 | Web UI + hotspot Wi-Fi | Pianificata |
+| 4 | Web config HTTP | ✅ v0.4 (senza hotspot) |
+| 4b | Hotspot Wi-Fi | Ultima — dopo funzioni core |
 | 5 | Case 3D | Pianificata |
 
 ## Licenza

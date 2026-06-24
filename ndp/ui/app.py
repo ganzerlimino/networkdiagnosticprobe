@@ -6,16 +6,20 @@ import logging
 import os
 import threading
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ndp import __version__
 from ndp.core.config import NdpConfig
 from ndp.core.engine import ProbeEngine
 from ndp.core.state import ProbeState
-from ndp.ui.buttons import ButtonAction, ButtonMapping, PhysicalButtons
 from ndp.ui.backlight import enable_backlight
+from ndp.ui.buttons import ButtonAction, ButtonMapping, PhysicalButtons
+from ndp.ui.discovery_session import DiscoveryUISession
 from ndp.ui.framebuffer import RawFramebuffer
 from ndp.ui.layout import content_text_x, content_width, content_x_offset, draw_button_hints
 from ndp.ui.screens import ScreenId, lines_for_screen, next_screen
+from ndp.ui.splash import draw_splash
 
 if TYPE_CHECKING:
     import pygame
@@ -37,6 +41,16 @@ def _configure_pygame_env(config: NdpConfig, use_dummy: bool) -> None:
     os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 
 
+def _prefer_raw_backend(config: NdpConfig) -> bool:
+    if config.ui_backend == "raw":
+        return True
+    if config.ui_backend == "sdl":
+        return False
+    if os.environ.get("SDL_VIDEODRIVER") == "dummy":
+        return True
+    return Path(config.ui_framebuffer).exists()
+
+
 def _load_font(size: int) -> pygame.font.Font:
     import pygame
 
@@ -53,7 +67,7 @@ def _init_display(config: NdpConfig) -> tuple[pygame.Surface, RawFramebuffer | N
 
     errors: list[str] = []
 
-    if config.ui_backend != "raw":
+    if not _prefer_raw_backend(config):
         _configure_pygame_env(config, use_dummy=False)
         try:
             if pygame.get_init():
@@ -94,6 +108,18 @@ def _init_display(config: NdpConfig) -> tuple[pygame.Surface, RawFramebuffer | N
     return surface, raw_fb
 
 
+def _blit_frame(
+    screen: pygame.Surface,
+    raw_fb: RawFramebuffer | None,
+) -> None:
+    if raw_fb is not None:
+        raw_fb.blit_surface(screen)
+    else:
+        import pygame
+
+        pygame.display.flip()
+
+
 class ProbeUI:
     def __init__(self, config: NdpConfig) -> None:
         self.config = config
@@ -104,6 +130,7 @@ class ProbeUI:
         self._screen = ScreenId.HOME
         self._state = ProbeState(interface=config.interface)
         self._redraw_now = threading.Event()
+        self._discovery = DiscoveryUISession(config)
         self._buttons = PhysicalButtons(
             ButtonMapping(
                 previous=config.ui_button_previous,
@@ -112,6 +139,11 @@ class ProbeUI:
             ),
             debounce_seconds=config.ui_button_debounce_seconds,
         )
+        self._web_thread: threading.Thread | None = None
+
+    def get_state(self) -> ProbeState:
+        with self._lock:
+            return self._state
 
     def _engine_loop(self) -> None:
         while not self._stop.is_set():
@@ -122,6 +154,18 @@ class ProbeUI:
             time.sleep(self.engine.poll_interval())
 
     def _on_button(self, action: ButtonAction) -> None:
+        if self._screen == ScreenId.DISCOVER:
+            if action == ButtonAction.SELECT and self._discovery.on_select():
+                self._redraw_now.set()
+                return
+            if action == ButtonAction.NEXT and self._discovery.on_next_skip():
+                self._redraw_now.set()
+                return
+            if action == ButtonAction.PREVIOUS and self._discovery.running:
+                self._discovery.cancel()
+                self._redraw_now.set()
+                return
+
         previous = self._screen
         if action == ButtonAction.PREVIOUS:
             self._screen = next_screen(self._screen, -1)
@@ -129,16 +173,82 @@ class ProbeUI:
             self._screen = next_screen(self._screen, 1)
         elif action == ButtonAction.SELECT:
             self._force_refresh.set()
-            with self._lock:
-                self._state = self.engine.refresh()
 
         if self._screen != previous:
             logger.info("UI screen -> %s", self._screen.name)
 
         self._redraw_now.set()
 
+    def _run_startup(
+        self,
+        screen: pygame.Surface,
+        raw_fb: RawFramebuffer | None,
+        title_font: pygame.font.Font,
+        body_font: pygame.font.Font,
+        hint_font: pygame.font.Font,
+    ) -> None:
+        if not self.config.ui_splash_enabled and not self.config.ui_warmup_on_start:
+            return
+
+        warmup_done = threading.Event()
+        warmup_error: list[str] = []
+
+        def _warmup() -> None:
+            try:
+                if self.config.ui_warmup_on_start:
+                    with self._lock:
+                        self._state = self.engine.refresh()
+                    for sid in ScreenId:
+                        for line in lines_for_screen(sid, self._state):
+                            body_font.render(line, True, COLOR_TEXT)
+                warmup_done.set()
+            except Exception as exc:  # pragma: no cover
+                warmup_error.append(str(exc))
+                warmup_done.set()
+
+        worker = threading.Thread(target=_warmup, daemon=True, name="ndp-warmup")
+        worker.start()
+
+        splash_start = time.monotonic()
+        status = "Caricamento..."
+        while not self._stop.is_set():
+            elapsed = time.monotonic() - splash_start
+            if warmup_done.is_set():
+                status = "Pronto" if not warmup_error else "Errore init"
+            elif elapsed > 0.5:
+                status = "Raccolta dati..."
+
+            if self.config.ui_splash_enabled:
+                draw_splash(
+                    screen,
+                    self.config,
+                    title_font=title_font,
+                    body_font=body_font,
+                    version=__version__,
+                    status_line=status,
+                )
+                _blit_frame(screen, raw_fb)
+
+            ready = warmup_done.is_set() and elapsed >= self.config.ui_splash_min_seconds
+            if ready:
+                break
+            time.sleep(0.05)
+
+        if warmup_error:
+            logger.warning("Warmup error: %s", warmup_error[0])
+
     def run(self) -> int:
         import pygame
+
+        if self.config.web_enabled:
+            from ndp.web.server import resolve_config_path, start_web_server
+
+            config_path = self.config.source_path or resolve_config_path()
+            self._web_thread = start_web_server(
+                self.config,
+                config_path,
+                self.get_state,
+            )
 
         if self.config.ui_backlight_enabled:
             enable_backlight(self.config.ui_backlight_gpio)
@@ -149,14 +259,17 @@ class ProbeUI:
         body_font = _load_font(self.config.ui_font_size)
         hint_font = _load_font(max(12, self.config.ui_font_size - 2))
 
-        worker = threading.Thread(target=self._engine_loop, daemon=True)
+        self._run_startup(screen, raw_fb, title_font, body_font, hint_font)
+
+        worker = threading.Thread(target=self._engine_loop, daemon=True, name="ndp-engine")
         worker.start()
+
+        poll_interval = 1.0 / max(10, self.config.ui_button_poll_hz)
+        frame_interval = 1.0 / max(1, self.config.ui_fps)
 
         try:
             with self._buttons:
-                frame_interval = 1.0 / max(1, self.config.ui_fps)
-                poll_interval = 1.0 / 50.0
-                last_frame = 0.0
+                last_frame = time.monotonic()
 
                 while not self._stop.is_set():
                     for event in pygame.event.get():
@@ -174,12 +287,7 @@ class ProbeUI:
                             current = self._screen
 
                         self._draw(screen, title_font, body_font, hint_font, current, state)
-
-                        if raw_fb is not None:
-                            raw_fb.blit_surface(screen)
-                        else:
-                            pygame.display.flip()
-
+                        _blit_frame(screen, raw_fb)
                         last_frame = now
 
                     time.sleep(poll_interval)
@@ -225,14 +333,20 @@ class ProbeUI:
             (content_x + text_width - dots_surface.get_width() - 8, 10),
         )
 
+        if screen_id == ScreenId.DISCOVER:
+            body_lines = self._discovery.display_lines()
+        else:
+            body_lines = lines_for_screen(screen_id, state)
+
         y = 42
-        for line in lines_for_screen(screen_id, state):
+        line_step = self.config.ui_font_size + self.config.ui_line_spacing
+        for line in body_lines:
             rendered = body_font.render(line, True, COLOR_TEXT)
             if rendered.get_width() > text_width - text_gap - 20:
                 line = line[:28] + "…"
                 rendered = body_font.render(line, True, COLOR_TEXT)
             surface.blit(rendered, (text_x, y))
-            y += self.config.ui_font_size + 6
+            y += line_step
 
         draw_button_hints(
             surface,

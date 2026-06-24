@@ -75,6 +75,24 @@ ui:
   hint_y_offset: 24
   # Sposta le icone dei tasti verso il basso in pixel (~5 mm sul TFT da 3.2").
 
+  splash_enabled: true
+  # true = mostra splash screen all'avvio finché moduli e dati non sono pronti.
+
+  splash_message: "Network Diagnostic Probe"
+  # Testo principale mostrato sullo splash screen.
+
+  splash_min_seconds: 1.5
+  # Durata minima dello splash (secondi), anche se il caricamento finisce prima.
+
+  warmup_on_start: true
+  # true = precarica font, framebuffer e prima scansione probe prima dei tasti.
+
+  button_poll_hz: 50
+  # Frequenza lettura GPIO tasti (Hz); indipendente da fps schermo.
+
+  line_spacing: 6
+  # Pixel aggiuntivi tra una riga di testo e l'altra oltre alla dimensione font.
+
 console:
   enabled: true
   # true = stampa riepilogo periodico su stdout/journal quando l'UI è disabilitata.
@@ -84,13 +102,13 @@ console:
 
 web:
   enabled: false
-  # true = abilita interfaccia web (non ancora implementata nel servizio principale).
+  # true = server HTTP per stato probe e modifica config.yaml (porta 8080).
 
   host: "0.0.0.0"
   # Indirizzo di ascolto del server web (0.0.0.0 = tutte le interfacce).
 
   port: 8080
-  # Porta TCP del server web.
+  # Porta TCP del server web; apri http://<ip-pi>:8080/ per configurare.
 
 wifi_hotspot:
   enabled: false

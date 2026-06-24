@@ -7,6 +7,7 @@ import json
 import logging
 import signal
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from ndp.cli.test_display import add_test_subparser, run_test_command
 from ndp.console import render_status
 from ndp.core.config import load_config
 from ndp.core.engine import ProbeEngine
+from ndp.core.state import ProbeState
 
 logger = logging.getLogger(__name__)
 _STOP_REQUESTED = False
@@ -47,6 +49,36 @@ def run_once(config_path: Path | None, as_json: bool) -> int:
     return 0
 
 
+def run_web_only(config_path: Path | None) -> int:
+    config = load_config(config_path)
+    _configure_logging(config.log_level)
+
+    from ndp.web.server import resolve_config_path, start_web_server
+
+    engine = ProbeEngine(config)
+    lock = threading.Lock()
+    state = engine.refresh()
+
+    def get_state() -> ProbeState:
+        with lock:
+            return state
+
+    config_file = config.source_path or resolve_config_path(config_path)
+    start_web_server(config, config_file, get_state)
+
+    signal.signal(signal.SIGTERM, _handle_signal)
+    signal.signal(signal.SIGINT, _handle_signal)
+
+    logger.info("NDP %s web-only on %s:%s", __version__, config.web_host, config.web_port)
+    while not _STOP_REQUESTED:
+        with lock:
+            state = engine.refresh()
+        time.sleep(engine.poll_interval())
+
+    logger.info("NDP stopped")
+    return 0
+
+
 def run_service(config_path: Path | None) -> int:
     config = load_config(config_path)
     _configure_logging(config.log_level)
@@ -56,6 +88,9 @@ def run_service(config_path: Path | None) -> int:
 
         logger.info("NDP %s UI mode on %s", __version__, config.ui_framebuffer)
         return run_ui(config)
+
+    if config.web_enabled:
+        return run_web_only(config_path)
 
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
@@ -80,7 +115,7 @@ def run_service(config_path: Path | None) -> int:
                 last_console_print = now
 
         if config.web_enabled:
-            logger.debug("Web UI enabled but not yet implemented in v0.1")
+            logger.debug("Web UI runs with the Pygame UI or web-only service loop")
 
         time.sleep(engine.poll_interval())
 
