@@ -1,52 +1,114 @@
-# Default NDP configuration. Copy to /etc/ndp/config.yaml to override.
+# Configurazione predefinita NDP.
+# Copia in /etc/ndp/config.yaml per personalizzare (install.sh lo fa al primo avvio).
 
 interface: eth0
+# Interfaccia di rete da monitorare (di solito eth0 sulla Raspberry Pi).
 
 poll_interval_link_up: 1
+# Secondi tra un aggiornamento e l'altro quando il link Ethernet è su (UP).
+
 poll_interval_link_down: 5
+# Secondi tra un aggiornamento e l'altro quando il cavo è scollegato (link DOWN).
 
 lldp:
   cache_ttl_seconds: 30
+  # Secondi di validità della cache LLDP/CDP prima di considerare i dati vecchi.
 
 ui:
   enabled: false
+  # true = avvia l'interfaccia grafica sul display TFT; false = solo motore/CLI.
+
   framebuffer: "/dev/fb1"
+  # Device framebuffer Linux del display Joy-it (su Lite/Bookworm di solito /dev/fb1).
+
   width: 320
+  # Larghezza schermo in pixel (RB-TFT3.2-V3: 320).
+
   height: 240
+  # Altezza schermo in pixel (RB-TFT3.2-V3: 240).
+
   sdl_driver: "fbcon"
-  backend: "auto"   # auto | raw | sdl  (Lite/Bookworm: auto uses raw /dev/fb1)
+  # Driver SDL per output video (su Lite spesso non disponibile; si usa backend raw).
+
+  backend: "auto"
+  # auto | raw | sdl — auto sceglie raw su Pi OS Lite se fbcon non funziona.
+
   backlight_gpio: 18
+  # Pin GPIO che controlla la retroilluminazione del TFT Joy-it.
+
   backlight_enabled: true
+  # true = accende la retroilluminazione all'avvio dell'UI.
+
   rgb565_bgr: false
+  # Scambia canali R/B nel formato pixel RGB565 (solo se i colori sono sbagliati).
+
   rgb565_swap_bytes: false
-  font_size: 16          # body text (pt); title = +4, button hints = -2
-  fps: 20               # screen refresh rate; button input polls at 50 Hz
+  # Inverte l'ordine dei byte a 16 bit (solo se l'immagine appare corrotta).
+
+  font_size: 14
+  # Dimensione font del testo principale (pt); titolo = +4, icone tasti = -2.
+
+  fps: 20
+  # Aggiornamenti schermo al secondo; i tasti vengono letti a 50 Hz indipendentemente.
+
   button_previous: 23
+  # GPIO del tasto "indietro" / schermata precedente (◀).
+
   button_select: 24
+  # GPIO del tasto centrale "seleziona" / aggiorna dati (○).
+
   button_next: 25
-  button_debounce_seconds: 0.1
-  hint_edge: left        # left | right | bottom — Joy-it V3 + rotate=270: buttons on the left
-  content_margin_side: 32
-  content_text_gap: 4    # px between hint column and screen text (lower = closer to buttons)
-  hint_y_offset: 24      # shift side hints down (~5 mm on 3.2" TFT)
+  # GPIO del tasto "avanti" / schermata successiva (▶).
+
+  button_debounce_seconds: 0.08
+  # Secondi minimi tra due pressioni dello stesso tasto (più basso = più reattivo).
+
+  hint_edge: left
+  # Bordo dove disegnare le icone dei tasti: left | right | bottom (Joy-it rotate=270: left).
+
+  content_margin_side: 28
+  # Larghezza riservata alla colonna icone; più basso = più spazio al testo (min ~24).
+
+  content_text_gap: 0
+  # Spazio in pixel tra colonna icone e testo schermata; 0 = testo più vicino ai tasti.
+
+  hint_y_offset: 24
+  # Sposta le icone dei tasti verso il basso in pixel (~5 mm sul TFT da 3.2").
 
 console:
   enabled: true
+  # true = stampa riepilogo periodico su stdout/journal quando l'UI è disabilitata.
+
   refresh_seconds: 5
+  # Intervallo in secondi tra una stampa console e l'altra.
 
 web:
   enabled: false
+  # true = abilita interfaccia web (non ancora implementata nel servizio principale).
+
   host: "0.0.0.0"
+  # Indirizzo di ascolto del server web (0.0.0.0 = tutte le interfacce).
+
   port: 8080
+  # Porta TCP del server web.
 
 wifi_hotspot:
   enabled: false
+  # true = attiva hotspot Wi-Fi per accesso remoto (funzionalità futura).
+
   ssid_prefix: "NDP"
+  # Prefisso del nome rete Wi-Fi dell'hotspot (es. NDP-XXXX).
 
 discovery:
   disconnect_wait_seconds: 8
+  # Secondi di attesa dopo lo scollegamento del cavo nella procedura discover updown.
+
   flush_arp_before_second_scan: true
+  # true = svuota la tabella ARP prima della seconda scansione (wizard Up/Down).
+
   verify_replug: true
+  # true = verifica che il dispositivo ricompaia dopo il ricollegamento del cavo.
 
 logging:
   level: INFO
+  # Livello log: DEBUG, INFO, WARNING, ERROR.
