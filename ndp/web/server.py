@@ -30,7 +30,8 @@ _INDEX_HTML = """<!DOCTYPE html>
 </head>
 <body>
   <h1>Network Diagnostic Probe</h1>
-  <p>Modifica <code>/etc/ndp/config.yaml</code> e salva. Riavvia il servizio per applicare.</p>
+  <p>Modifica <code>/etc/ndp/config.yaml</code> e salva. Riavvia il servizio per applicare.<br>
+  Per non perdere i commenti, usa <code>/etc/ndp/config.yaml.example</code> come riferimento.</p>
   <textarea id="yaml"></textarea><br>
   <button id="save">Salva configurazione</button>
   <button id="reload">Ricarica</button>

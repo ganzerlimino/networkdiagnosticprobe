@@ -138,6 +138,8 @@ class ProbeUI:
                 next=config.ui_button_next,
             ),
             debounce_seconds=config.ui_button_debounce_seconds,
+            trigger_mode=config.ui_button_trigger_mode,
+            press_confirm_ms=config.ui_button_press_confirm_ms,
         )
         self._web_thread: threading.Thread | None = None
 

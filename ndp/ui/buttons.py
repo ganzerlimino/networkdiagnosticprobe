@@ -34,10 +34,15 @@ class PhysicalButtons:
     def __init__(
         self,
         mapping: ButtonMapping | None = None,
-        debounce_seconds: float = 0.2,
+        *,
+        debounce_seconds: float = 0.05,
+        trigger_mode: str = "level",
+        press_confirm_ms: int = 0,
     ) -> None:
         self.mapping = mapping or ButtonMapping()
         self.debounce_seconds = debounce_seconds
+        self.trigger_mode = trigger_mode if trigger_mode in {"level", "edge"} else "level"
+        self.press_confirm_ms = max(0, press_confirm_ms)
         self._chip: int | None = None
         self._last_fire: dict[ButtonAction, float] = {}
         self._pin_to_action = {
@@ -46,6 +51,8 @@ class PhysicalButtons:
             self.mapping.next: ButtonAction.NEXT,
         }
         self._last_levels: dict[int, int] = {}
+        self._press_started: dict[int, float] = {}
+        self._armed: dict[int, bool] = {pin: True for pin in self._pin_to_action}
 
     def open(self) -> None:
         if lgpio is None:
@@ -68,10 +75,12 @@ class PhysicalButtons:
             self._last_levels[pin] = lgpio.gpio_read(self._chip, pin)
 
         logger.info(
-            "Buttons ready on GPIO %s/%s/%s",
+            "Buttons ready on GPIO %s/%s/%s (mode=%s, confirm=%sms)",
             self.mapping.previous,
             self.mapping.select,
             self.mapping.next,
+            self.trigger_mode,
+            self.press_confirm_ms,
         )
 
     def close(self) -> None:
@@ -84,22 +93,61 @@ class PhysicalButtons:
             return
 
         now = time.monotonic()
+        confirm_seconds = self.press_confirm_ms / 1000.0
+
         for pin, action in self._pin_to_action.items():
             level = lgpio.gpio_read(self._chip, pin)
             previous = self._last_levels.get(pin)
             self._last_levels[pin] = level
 
-            if previous is None or level == previous:
-                continue
-            if level != 0:
-                continue
+            if self.trigger_mode == "edge":
+                self._poll_edge(pin, action, level, previous, now, handler)
+            else:
+                self._poll_level(pin, action, level, now, confirm_seconds, handler)
 
-            last = self._last_fire.get(action, 0.0)
-            if now - last < self.debounce_seconds:
-                continue
+    def _poll_edge(
+        self,
+        pin: int,
+        action: ButtonAction,
+        level: int,
+        previous: int | None,
+        now: float,
+        handler: Callable[[ButtonAction], None],
+    ) -> None:
+        if previous is None or level == previous or level != 0:
+            return
+        last = self._last_fire.get(action, 0.0)
+        if now - last < self.debounce_seconds:
+            return
+        self._last_fire[action] = now
+        handler(action)
 
-            self._last_fire[action] = now
-            handler(action)
+    def _poll_level(
+        self,
+        pin: int,
+        action: ButtonAction,
+        level: int,
+        now: float,
+        confirm_seconds: float,
+        handler: Callable[[ButtonAction], None],
+    ) -> None:
+        pressed = level == 0
+        if pressed:
+            if pin not in self._press_started:
+                self._press_started[pin] = now
+            held = now - self._press_started[pin]
+            if (
+                held >= confirm_seconds
+                and self._armed.get(pin, True)
+                and now - self._last_fire.get(action, 0.0) >= self.debounce_seconds
+            ):
+                self._last_fire[action] = now
+                self._armed[pin] = False
+                handler(action)
+            return
+
+        self._press_started.pop(pin, None)
+        self._armed[pin] = True
 
     def __enter__(self) -> PhysicalButtons:
         self.open()

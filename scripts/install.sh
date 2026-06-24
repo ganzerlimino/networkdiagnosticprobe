@@ -53,34 +53,19 @@ fi
 
 echo "==> Installing configuration"
 install -d -m 0755 "${NDP_CONFIG_DIR}"
+install -m 0644 "${NDP_ROOT}/ndp/config/default.yaml" "${NDP_CONFIG_DIR}/config.yaml.example"
 if [[ ! -f "${NDP_CONFIG_DIR}/config.yaml" ]]; then
   install -m 0644 "${NDP_ROOT}/ndp/config/default.yaml" "${NDP_CONFIG_DIR}/config.yaml"
 else
   "${NDP_ROOT}/venv/bin/python" <<'PY'
-import yaml
 from pathlib import Path
+from ndp.core.config_merge import append_missing_config_keys
 
 config_path = Path("/etc/ndp/config.yaml")
 default_path = Path("/opt/ndp/ndp/config/default.yaml")
-
-
-def deep_merge(defaults: dict, user: dict) -> dict:
-    merged = dict(user)
-    for key, value in defaults.items():
-        if key not in merged:
-            merged[key] = value
-        elif isinstance(value, dict) and isinstance(merged[key], dict):
-            merged[key] = deep_merge(value, merged[key])
-    return merged
-
-
-if config_path.exists() and default_path.exists():
-    user = yaml.safe_load(config_path.read_text()) or {}
-    defaults = yaml.safe_load(default_path.read_text()) or {}
-    merged = deep_merge(defaults, user)
-    if merged != user:
-        config_path.write_text(yaml.dump(merged, default_flow_style=False, sort_keys=False))
-        print("Added missing keys to /etc/ndp/config.yaml")
+if append_missing_config_keys(config_path, default_path):
+    print("Appended missing keys (with comments) to /etc/ndp/config.yaml")
+print("Reference template with all comments: /etc/ndp/config.yaml.example")
 PY
 fi
 

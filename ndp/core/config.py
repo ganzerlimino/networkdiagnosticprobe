@@ -33,7 +33,9 @@ class NdpConfig:
     ui_button_previous: int = 23
     ui_button_select: int = 24
     ui_button_next: int = 25
-    ui_button_debounce_seconds: float = 0.08
+    ui_button_debounce_seconds: float = 0.05
+    ui_button_trigger_mode: str = "level"
+    ui_button_press_confirm_ms: int = 0
     ui_hint_edge: str = "left"
     ui_content_margin_side: int = 28
     ui_content_text_gap: int = 0
@@ -42,7 +44,7 @@ class NdpConfig:
     ui_splash_message: str = "Network Diagnostic Probe"
     ui_splash_min_seconds: float = 1.5
     ui_warmup_on_start: bool = True
-    ui_button_poll_hz: int = 50
+    ui_button_poll_hz: int = 100
     ui_line_spacing: int = 6
     console_enabled: bool = True
     console_refresh_seconds: float = 5.0
@@ -83,7 +85,9 @@ class NdpConfig:
             ui_button_previous=int(ui.get("button_previous", 23)),
             ui_button_select=int(ui.get("button_select", 24)),
             ui_button_next=int(ui.get("button_next", 25)),
-            ui_button_debounce_seconds=float(ui.get("button_debounce_seconds", 0.08)),
+            ui_button_debounce_seconds=float(ui.get("button_debounce_seconds", 0.05)),
+            ui_button_trigger_mode=str(ui.get("button_trigger_mode", "level")),
+            ui_button_press_confirm_ms=int(ui.get("button_press_confirm_ms", 0)),
             ui_hint_edge=str(ui.get("hint_edge", "left")),
             ui_content_margin_side=int(ui.get("content_margin_side", 28)),
             ui_content_text_gap=int(ui.get("content_text_gap", 0)),
@@ -92,7 +96,7 @@ class NdpConfig:
             ui_splash_message=str(ui.get("splash_message", "Network Diagnostic Probe")),
             ui_splash_min_seconds=float(ui.get("splash_min_seconds", 1.5)),
             ui_warmup_on_start=bool(ui.get("warmup_on_start", True)),
-            ui_button_poll_hz=int(ui.get("button_poll_hz", 50)),
+            ui_button_poll_hz=int(ui.get("button_poll_hz", 100)),
             ui_line_spacing=int(ui.get("line_spacing", 6)),
             console_enabled=bool(console.get("enabled", True)),
             console_refresh_seconds=float(console.get("refresh_seconds", 5)),

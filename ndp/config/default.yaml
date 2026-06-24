@@ -49,7 +49,7 @@ ui:
   # Dimensione font del testo principale (pt); titolo = +4, icone tasti = -2.
 
   fps: 20
-  # Aggiornamenti schermo al secondo; i tasti vengono letti a 50 Hz indipendentemente.
+  # Aggiornamenti schermo al secondo; i tasti usano button_poll_hz.
 
   button_previous: 23
   # GPIO del tasto "indietro" / schermata precedente (◀).
@@ -60,8 +60,14 @@ ui:
   button_next: 25
   # GPIO del tasto "avanti" / schermata successiva (▶).
 
-  button_debounce_seconds: 0.08
-  # Secondi minimi tra due pressioni dello stesso tasto (più basso = più reattivo).
+  button_debounce_seconds: 0.05
+  # Secondi minimi tra due attivazioni dello stesso tasto (più basso = più reattivo).
+
+  button_trigger_mode: level
+  # level = reagisce appena il tasto è premuto; edge = solo sul fronte di discesa GPIO.
+
+  button_press_confirm_ms: 0
+  # Millisecondi che il tasto deve restare premuto prima di registrare (0 = immediato).
 
   hint_edge: left
   # Bordo dove disegnare le icone dei tasti: left | right | bottom (Joy-it rotate=270: left).
@@ -87,8 +93,8 @@ ui:
   warmup_on_start: true
   # true = precarica font, framebuffer e prima scansione probe prima dei tasti.
 
-  button_poll_hz: 50
-  # Frequenza lettura GPIO tasti (Hz); indipendente da fps schermo.
+  button_poll_hz: 100
+  # Frequenza lettura GPIO tasti (Hz); prova 100–150 se serve più reattività.
 
   line_spacing: 6
   # Pixel aggiuntivi tra una riga di testo e l'altra oltre alla dimensione font.
