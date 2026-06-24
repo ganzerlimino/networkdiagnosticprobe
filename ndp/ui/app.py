@@ -193,7 +193,10 @@ class ProbeUI:
         import pygame
 
         surface.fill(COLOR_BG)
-        header = pygame.Rect(0, 0, self.config.ui_width, 34)
+        margin = self.config.ui_content_margin_side
+        text_width = content_width(self.config.ui_width, self.config.ui_hint_edge, margin)
+
+        header = pygame.Rect(0, 0, text_width, 34)
         pygame.draw.rect(surface, COLOR_HEADER, header)
 
         title = title_font.render(screen_id.name, True, COLOR_ACCENT)
@@ -201,16 +204,26 @@ class ProbeUI:
 
         dots = self._screen_dots(screen_id)
         dots_surface = hint_font.render(dots, True, COLOR_MUTED)
-        surface.blit(dots_surface, (self.config.ui_width - dots_surface.get_width() - 8, 10))
+        surface.blit(dots_surface, (text_width - dots_surface.get_width() - 8, 10))
 
         y = 42
         for line in lines_for_screen(screen_id, state):
             rendered = body_font.render(line, True, COLOR_TEXT)
+            if rendered.get_width() > text_width - 20:
+                line = line[:28] + "…"
+                rendered = body_font.render(line, True, COLOR_TEXT)
             surface.blit(rendered, (10, y))
             y += self.config.ui_font_size + 6
 
-        hint = hint_font.render("< 23    O 24    25 >", True, COLOR_MUTED)
-        surface.blit(hint, (10, self.config.ui_height - hint.get_height() - 6))
+        draw_button_hints(
+            surface,
+            hint_font,
+            edge=self.config.ui_hint_edge,
+            width=self.config.ui_width,
+            height=self.config.ui_height,
+            color=COLOR_MUTED,
+            margin=margin,
+        )
 
     def _screen_dots(self, active: ScreenId) -> str:
         parts = []
