@@ -6,6 +6,12 @@ Collegando il probe a una porta switch, NDP mostra informazioni L2 (LLDP/CDP) e 
 
 ## Stato del progetto
 
+**v0.5 — Ping diagnostico**
+
+- ICMP verso **8.8.8.8**, **1.1.1.1**, fino a **4 host in config**, più **1 adhoc** al volo
+- Schermata **Ping** sul TFT; CLI `ndp test ping`
+- API web `/api/ping/*`
+
 **v0.4 — UI discovery + web config**
 
 - Splash screen e warmup all'avvio (tasti attivi solo quando pronto)

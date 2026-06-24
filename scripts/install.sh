@@ -22,6 +22,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   iproute2 \
   ethtool \
   arp-scan \
+  iputils-ping \
   python3-lgpio \
   python3-pygame \
   fonts-dejavu-core \

@@ -19,7 +19,7 @@ from ndp.ui.discovery_session import DiscoveryUISession
 from ndp.ui.framebuffer import RawFramebuffer
 from ndp.ui.layout import content_text_x, content_width, content_x_offset, draw_button_hints
 from ndp.ui.screens import ScreenId, lines_for_screen, next_screen
-from ndp.ui.splash import draw_splash
+from ndp.ping.service import read_adhoc_host, run_ping_suite
 
 if TYPE_CHECKING:
     import pygame
@@ -142,6 +142,8 @@ class ProbeUI:
             press_confirm_ms=config.ui_button_press_confirm_ms,
         )
         self._web_thread: threading.Thread | None = None
+        self._ping_thread: threading.Thread | None = None
+        self._state.ping.adhoc_host = read_adhoc_host(Path(config.ping_adhoc_path))
 
     def get_state(self) -> ProbeState:
         with self._lock:
@@ -168,6 +170,11 @@ class ProbeUI:
                 self._redraw_now.set()
                 return
 
+        if self._screen == ScreenId.PING and action == ButtonAction.SELECT:
+            self._start_ping_suite()
+            self._redraw_now.set()
+            return
+
         previous = self._screen
         if action == ButtonAction.PREVIOUS:
             self._screen = next_screen(self._screen, -1)
@@ -180,6 +187,29 @@ class ProbeUI:
             logger.info("UI screen -> %s", self._screen.name)
 
         self._redraw_now.set()
+
+    def _start_ping_suite(self) -> None:
+        if self._ping_thread is not None and self._ping_thread.is_alive():
+            return
+
+        with self._lock:
+            self._state.ping.running = True
+            self._state.ping.message = "Ping in corso..."
+            gateway = self._state.ip.gateway
+            self._state.ping.adhoc_host = read_adhoc_host(Path(self.config.ping_adhoc_path))
+
+        def _worker() -> None:
+            suite = run_ping_suite(
+                self.config,
+                gateway=gateway,
+                adhoc_path=Path(self.config.ping_adhoc_path),
+            )
+            with self._lock:
+                self._state.ping = suite
+            self._redraw_now.set()
+
+        self._ping_thread = threading.Thread(target=_worker, daemon=True, name="ndp-ping")
+        self._ping_thread.start()
 
     def _run_startup(
         self,

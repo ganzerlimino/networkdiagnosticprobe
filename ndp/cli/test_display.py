@@ -11,6 +11,7 @@ from argparse import Namespace
 from pathlib import Path
 
 from ndp.core.config import load_config
+from ndp.cli.test_ping import add_ping_test_subparser, run_ping_test_command
 from ndp.ui.backlight import enable_backlight
 from ndp.ui.framebuffer import RawFramebuffer
 
@@ -56,8 +57,13 @@ def add_test_subparser(subparsers) -> None:
         help="Render via temporary PNG + fbi (diagnostic fallback)",
     )
 
+    add_ping_test_subparser(test_sub)
+
 
 def run_test_command(args: Namespace, config_path) -> int:
+    if args.test_command == "ping":
+        return run_ping_test_command(args, config_path, getattr(args, "json", False))
+
     if args.test_command != "display":
         return 1
 

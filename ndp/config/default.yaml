@@ -136,3 +136,20 @@ discovery:
 logging:
   level: INFO
   # Livello log: DEBUG, INFO, WARNING, ERROR.
+
+ping:
+  count: 2
+  # Numero di pacchetti ICMP inviati verso ogni destinazione.
+
+  timeout_seconds: 3
+  # Timeout massimo in secondi per ogni singolo host.
+
+  adhoc_path: "/var/lib/ndp/ping_adhoc.host"
+  # File con un solo host temporaneo (uno alla volta), impostabile al volo.
+
+  custom_targets: []
+  # Fino a 4 destinazioni salvate in config (oltre a 8.8.8.8 e 1.1.1.1). Esempio:
+  # - label: Gateway
+  #   host: gateway
+  # - label: Server LAN
+  #   host: 192.168.10.50

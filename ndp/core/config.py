@@ -55,6 +55,10 @@ class NdpConfig:
     discovery_disconnect_wait_seconds: float = 8.0
     discovery_flush_arp: bool = True
     discovery_verify_replug: bool = True
+    ping_count: int = 2
+    ping_timeout_seconds: float = 3.0
+    ping_custom_targets: list[dict[str, str]] = field(default_factory=list)
+    ping_adhoc_path: str = "/var/lib/ndp/ping_adhoc.host"
     source_path: Path | None = field(default=None, repr=False)
 
     @classmethod
@@ -65,6 +69,10 @@ class NdpConfig:
         web = data.get("web", {})
         logging_cfg = data.get("logging", {})
         discovery = data.get("discovery", {})
+        ping = data.get("ping", {})
+        custom_targets = ping.get("custom_targets", [])
+        if not isinstance(custom_targets, list):
+            custom_targets = []
         return cls(
             interface=str(data.get("interface", "eth0")),
             poll_interval_link_up=float(data.get("poll_interval_link_up", 1)),
@@ -109,6 +117,17 @@ class NdpConfig:
             ),
             discovery_flush_arp=bool(discovery.get("flush_arp_before_second_scan", True)),
             discovery_verify_replug=bool(discovery.get("verify_replug", True)),
+            ping_count=int(ping.get("count", 2)),
+            ping_timeout_seconds=float(ping.get("timeout_seconds", 3)),
+            ping_custom_targets=[
+                {
+                    "label": str(item.get("label", "Custom")),
+                    "host": str(item.get("host", "")),
+                }
+                for item in custom_targets[:4]
+                if isinstance(item, dict) and item.get("host")
+            ],
+            ping_adhoc_path=str(ping.get("adhoc_path", "/var/lib/ndp/ping_adhoc.host")),
         )
 
 

@@ -6,6 +6,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from ndp.core.ping_state import PingSuiteState
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -64,6 +66,7 @@ class ProbeState:
     ip: IpState = field(default_factory=IpState)
     neighbor: NeighborState = field(default_factory=NeighborState)
     system: SystemState = field(default_factory=SystemState)
+    ping: PingSuiteState = field(default_factory=PingSuiteState)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

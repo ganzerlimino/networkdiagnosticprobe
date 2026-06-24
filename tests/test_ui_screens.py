@@ -4,7 +4,8 @@ from ndp.ui.screens import ScreenId, lines_for_screen, next_screen
 
 def test_next_screen_cycles() -> None:
     assert next_screen(ScreenId.HOME) == ScreenId.SWITCH
-    assert next_screen(ScreenId.SYSTEM) == ScreenId.DISCOVER
+    assert next_screen(ScreenId.NETWORK) == ScreenId.PING
+    assert next_screen(ScreenId.PING) == ScreenId.SYSTEM
     assert next_screen(ScreenId.DISCOVER) == ScreenId.HOME
     assert next_screen(ScreenId.HOME, -1) == ScreenId.DISCOVER
 

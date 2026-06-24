@@ -84,7 +84,10 @@ def create_app(
     class ConfigPayload(BaseModel):
         yaml: str
 
-    app = FastAPI(title="NDP", version="0.4")
+    class AdhocPayload(BaseModel):
+        host: str
+
+    app = FastAPI(title="NDP", version="0.5")
 
     @app.get("/", response_class=HTMLResponse)
     def index() -> str:
@@ -112,6 +115,40 @@ def create_app(
         from ndp import __version__
 
         return {"version": __version__, "interface": config.interface}
+
+    @app.get("/api/ping")
+    def api_ping_status() -> dict[str, object]:
+        return get_state().ping.to_dict()
+
+    @app.post("/api/ping/run")
+    def api_ping_run() -> dict[str, object]:
+        from ndp.ping.service import run_ping_suite
+
+        state = get_state()
+        suite = run_ping_suite(
+            config,
+            gateway=state.ip.gateway,
+            adhoc_path=Path(config.ping_adhoc_path),
+        )
+        return suite.to_dict()
+
+    @app.put("/api/ping/adhoc")
+    def api_ping_set_adhoc(payload: AdhocPayload) -> dict[str, object]:
+        from ndp.ping.service import validate_host, write_adhoc_host
+
+        try:
+            host = validate_host(payload.host)
+            write_adhoc_host(host, Path(config.ping_adhoc_path))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"ok": True, "host": host}
+
+    @app.delete("/api/ping/adhoc")
+    def api_ping_clear_adhoc() -> dict[str, object]:
+        from ndp.ping.service import write_adhoc_host
+
+        write_adhoc_host(None, Path(config.ping_adhoc_path))
+        return {"ok": True}
 
     return app
 
