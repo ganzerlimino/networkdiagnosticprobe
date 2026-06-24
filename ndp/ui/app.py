@@ -80,8 +80,6 @@ def _init_display(config: NdpConfig) -> tuple[pygame.Surface, RawFramebuffer | N
         config.ui_framebuffer,
         config.ui_width,
         config.ui_height,
-        bgr=config.ui_rgb565_bgr,
-        swap_bytes=config.ui_rgb565_swap_bytes,
     )
     logger.info(
         "UI using offscreen pygame + raw framebuffer %s (%sx%s, stride=%s)",

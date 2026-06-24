@@ -3,20 +3,24 @@
 from __future__ import annotations
 
 import logging
+import os
+import subprocess
+import tempfile
 import time
 from argparse import Namespace
+from pathlib import Path
 
 from ndp.core.config import load_config
 from ndp.ui.backlight import enable_backlight
-from ndp.ui.framebuffer import BLUE, GREEN, RED, WHITE, RawFramebuffer
+from ndp.ui.framebuffer import RawFramebuffer
 
 logger = logging.getLogger(__name__)
 
 COLOR_MAP = {
-    "red": RED,
-    "green": GREEN,
-    "blue": BLUE,
-    "white": WHITE,
+    "red": (255, 0, 0),
+    "green": (0, 255, 0),
+    "blue": (0, 0, 255),
+    "white": (255, 255, 255),
 }
 
 
@@ -42,19 +46,14 @@ def add_test_subparser(subparsers) -> None:
         help="Seconds per color (default: 3)",
     )
     display.add_argument(
-        "--swap-bytes",
-        action="store_true",
-        help="Swap RGB565 byte order",
-    )
-    display.add_argument(
-        "--bgr",
-        action="store_true",
-        help="Use BGR565 component order",
-    )
-    display.add_argument(
         "--no-backlight",
         action="store_true",
         help="Do not drive GPIO18 backlight",
+    )
+    display.add_argument(
+        "--via-fbi",
+        action="store_true",
+        help="Render via temporary PNG + fbi (diagnostic fallback)",
     )
 
 
@@ -76,24 +75,43 @@ def run_test_command(args: Namespace, config_path) -> int:
     )
 
     print(f"Testing {device} ({len(colors)} color step(s), {args.seconds}s each)")
-    with RawFramebuffer(
-        device,
-        config.ui_width,
-        config.ui_height,
-        bgr=args.bgr,
-        swap_bytes=args.swap_bytes,
-    ) as fb:
+
+    if args.via_fbi:
+        return _test_via_fbi(device, colors, args.seconds)
+
+    with RawFramebuffer(device, config.ui_width, config.ui_height) as fb:
         print(
             f"Framebuffer {fb.width}x{fb.height}, "
             f"stride={fb.line_length}, bpp={fb.bpp}"
         )
-        for name, value in colors:
-            print(f"  -> {name} (0x{value:04X})")
-            fb.fill_color(value)
+        print(f"Kernel format: {fb.format.describe()}")
+        for name, rgb in colors:
+            print(f"  -> {name} RGB{rgb}")
+            fb.fill_rgb(*rgb)
             time.sleep(args.seconds)
 
-    print("Done. If the TFT stayed black, try:")
-    print("  ndp test display --swap-bytes")
-    print("  ndp test display --bgr")
-    print("  ndp test display --swap-bytes --bgr")
+    print("Done.")
+    return 0
+
+
+def _test_via_fbi(device: str, colors: list[tuple[str, tuple[int, int, int]]], seconds: float) -> int:
+    import pygame
+
+    os.environ["SDL_VIDEODRIVER"] = "dummy"
+    pygame.init()
+    surface = pygame.Surface((320, 240))
+
+    with tempfile.TemporaryDirectory(prefix="ndp-fbi-") as tmp:
+        for name, rgb in colors:
+            path = Path(tmp) / f"{name}.png"
+            surface.fill(rgb)
+            pygame.image.save(surface, path)
+            print(f"  -> {name} via fbi ({path})")
+            subprocess.run(
+                ["fbi", "-d", device, "-T", "1", "-noverbose", "-a", str(path)],
+                check=False,
+            )
+            time.sleep(seconds)
+
+    pygame.quit()
     return 0

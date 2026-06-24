@@ -60,12 +60,20 @@ def _extract_vlan(port_entries: list[dict[str, Any]]) -> str | None:
     return None
 
 
+def _normalize_interface_entries(interfaces: object) -> list[dict[str, Any]]:
+    if isinstance(interfaces, dict):
+        return [interfaces]
+    if not isinstance(interfaces, list):
+        return []
+    return [item for item in interfaces if isinstance(item, dict)]
+
+
 def _parse_neighbor_payload(payload: dict[str, Any], interface: str) -> NeighborState:
     lldp_root = payload.get("lldp", {})
-    interfaces = lldp_root.get("interface", [])
+    interfaces = _normalize_interface_entries(lldp_root.get("interface", []))
     iface_entry = next((item for item in interfaces if item.get("name") == interface), None)
-    if not iface_entry:
-        iface_entry = interfaces[0] if interfaces else None
+    if not iface_entry and interfaces:
+        iface_entry = interfaces[0]
 
     if not iface_entry:
         return NeighborState(available=False, message="no neighbor data")
