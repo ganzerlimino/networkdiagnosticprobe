@@ -14,6 +14,7 @@ from ndp.core.state import ProbeState
 from ndp.ui.buttons import ButtonAction, ButtonMapping, PhysicalButtons
 from ndp.ui.backlight import enable_backlight
 from ndp.ui.framebuffer import RawFramebuffer
+from ndp.ui.layout import content_width, draw_button_hints
 from ndp.ui.screens import ScreenId, lines_for_screen, next_screen
 
 if TYPE_CHECKING:

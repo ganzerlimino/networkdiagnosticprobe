@@ -34,6 +34,8 @@ class NdpConfig:
     ui_button_select: int = 24
     ui_button_next: int = 25
     ui_button_debounce_seconds: float = 0.2
+    ui_hint_edge: str = "right"
+    ui_content_margin_side: int = 48
     console_enabled: bool = True
     console_refresh_seconds: float = 5.0
     web_enabled: bool = False
