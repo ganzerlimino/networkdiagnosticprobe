@@ -5,7 +5,6 @@ from __future__ import annotations
 import ctypes
 import fcntl
 import logging
-import mmap
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -150,15 +149,12 @@ def solid_fill_bytes(fmt: FramebufferFormat, r: int, g: int, b: int) -> bytes:
     return row * fmt.height
 
 
-def _fb_index(device: str) -> str:
-    name = Path(device).name
-    if name.startswith("fb") and name[2:].isdigit():
-        return name[2:]
-    return "1"
-
-
 class RawFramebuffer:
-    """Memory-mapped write access to /dev/fbX using kernel bitfield layout."""
+    """Framebuffer writer using os.write().
+
+    On Joy-it / fbtft devices mmap updates may not reach the panel; the kernel
+  fb_write path (used by fbi and plain file writes) does.
+    """
 
     def __init__(self, device: str, width: int, height: int) -> None:
         self.device = device
@@ -182,8 +178,6 @@ class RawFramebuffer:
                 f"{device} uses {self.format.bpp} bpp; NDP UI supports 16/32-bit only"
             )
 
-        size = fix.smem_len or (self.format.line_length * self.format.height)
-        self._mmap = mmap.mmap(self._fd, size, mmap.MAP_SHARED, mmap.PROT_WRITE)
         self._base_offset = (self.format.yoffset * self.format.line_length) + (
             self.format.xoffset * self.format.bpp // 8
         )
@@ -213,18 +207,18 @@ class RawFramebuffer:
         self._write(data)
 
     def _write(self, data: bytes) -> None:
-        start = self._base_offset
-        end = min(start + len(data), self._mmap.size())
-        self._mmap.seek(start)
-        self._mmap.write(data[: end - start])
-        self._mmap.flush()
-        os.fsync(self._fd)
+        os.lseek(self._fd, self._base_offset, os.SEEK_SET)
+        written = 0
+        while written < len(data):
+            chunk = os.write(self._fd, data[written:])
+            if chunk <= 0:
+                raise OSError(f"short write to {self.device} at offset {written}")
+            written += chunk
 
     def close(self) -> None:
-        if hasattr(self, "_mmap"):
-            self._mmap.close()
         if hasattr(self, "_fd"):
             os.close(self._fd)
+            del self._fd
 
     def __enter__(self) -> RawFramebuffer:
         return self
