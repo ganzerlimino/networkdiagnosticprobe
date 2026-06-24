@@ -1,4 +1,4 @@
-from ndp.ui.layout import content_width, content_x_offset, draw_button_hints
+from ndp.ui.layout import content_text_x, content_width, content_x_offset, draw_button_hints
 
 
 def test_content_width_right_hint() -> None:
@@ -14,6 +14,12 @@ def test_content_x_offset_left_only() -> None:
     assert content_x_offset("left", 32) == 32
     assert content_x_offset("right", 32) == 0
     assert content_x_offset("bottom", 32) == 0
+
+
+def test_content_text_x_gap() -> None:
+    assert content_text_x("left", 32, 4) == 36
+    assert content_text_x("left", 32, 0) == 32
+    assert content_text_x("right", 32, 4) == 4
 
 
 def test_hint_y_positions_offset() -> None:

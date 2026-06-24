@@ -19,6 +19,11 @@ def content_x_offset(hint_edge: str, margin: int) -> int:
     return margin if hint_edge == "left" else 0
 
 
+def content_text_x(hint_edge: str, margin: int, text_gap: int) -> int:
+    """Left edge of text block (hint column + configurable gap)."""
+    return content_x_offset(hint_edge, margin) + text_gap
+
+
 def hint_y_positions(height: int, y_offset: int) -> tuple[int, int, int]:
     """Vertical positions for prev / select / next side-button hints."""
     return (

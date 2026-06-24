@@ -20,13 +20,14 @@ ui:
   rgb565_bgr: false
   rgb565_swap_bytes: false
   font_size: 16          # body text (pt); title = +4, button hints = -2
-  fps: 10
+  fps: 20               # screen refresh rate; button input polls at 50 Hz
   button_previous: 23
   button_select: 24
   button_next: 25
-  button_debounce_seconds: 0.2
+  button_debounce_seconds: 0.1
   hint_edge: left        # left | right | bottom — Joy-it V3 + rotate=270: buttons on the left
   content_margin_side: 32
+  content_text_gap: 4    # px between hint column and screen text (lower = closer to buttons)
   hint_y_offset: 24      # shift side hints down (~5 mm on 3.2" TFT)
 
 console:

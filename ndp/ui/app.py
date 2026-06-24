@@ -14,7 +14,7 @@ from ndp.core.state import ProbeState
 from ndp.ui.buttons import ButtonAction, ButtonMapping, PhysicalButtons
 from ndp.ui.backlight import enable_backlight
 from ndp.ui.framebuffer import RawFramebuffer
-from ndp.ui.layout import content_width, content_x_offset, draw_button_hints
+from ndp.ui.layout import content_text_x, content_width, content_x_offset, draw_button_hints
 from ndp.ui.screens import ScreenId, lines_for_screen, next_screen
 
 if TYPE_CHECKING:
@@ -103,6 +103,7 @@ class ProbeUI:
         self._force_refresh = threading.Event()
         self._screen = ScreenId.HOME
         self._state = ProbeState(interface=config.interface)
+        self._redraw_now = threading.Event()
         self._buttons = PhysicalButtons(
             ButtonMapping(
                 previous=config.ui_button_previous,
@@ -134,6 +135,8 @@ class ProbeUI:
         if self._screen != previous:
             logger.info("UI screen -> %s", self._screen.name)
 
+        self._redraw_now.set()
+
     def run(self) -> int:
         import pygame
 
@@ -151,7 +154,10 @@ class ProbeUI:
 
         try:
             with self._buttons:
-                clock = pygame.time.Clock()
+                frame_interval = 1.0 / max(1, self.config.ui_fps)
+                poll_interval = 1.0 / 50.0
+                last_frame = 0.0
+
                 while not self._stop.is_set():
                     for event in pygame.event.get():
                         if event.type == pygame.QUIT:
@@ -159,18 +165,24 @@ class ProbeUI:
 
                     self._buttons.poll(self._on_button)
 
-                    with self._lock:
-                        state = self._state
-                        current = self._screen
+                    now = time.monotonic()
+                    if self._redraw_now.is_set() or (now - last_frame) >= frame_interval:
+                        self._redraw_now.clear()
 
-                    self._draw(screen, title_font, body_font, hint_font, current, state)
+                        with self._lock:
+                            state = self._state
+                            current = self._screen
 
-                    if raw_fb is not None:
-                        raw_fb.blit_surface(screen)
-                    else:
-                        pygame.display.flip()
+                        self._draw(screen, title_font, body_font, hint_font, current, state)
 
-                    clock.tick(self.config.ui_fps)
+                        if raw_fb is not None:
+                            raw_fb.blit_surface(screen)
+                        else:
+                            pygame.display.flip()
+
+                        last_frame = now
+
+                    time.sleep(poll_interval)
         finally:
             if raw_fb is not None:
                 raw_fb.close()
@@ -195,14 +207,16 @@ class ProbeUI:
         surface.fill(COLOR_BG)
         margin = self.config.ui_content_margin_side
         edge = self.config.ui_hint_edge
+        text_gap = self.config.ui_content_text_gap
         text_width = content_width(self.config.ui_width, edge, margin)
         content_x = content_x_offset(edge, margin)
+        text_x = content_text_x(edge, margin, text_gap)
 
         header = pygame.Rect(content_x, 0, text_width, 34)
         pygame.draw.rect(surface, COLOR_HEADER, header)
 
         title = title_font.render(screen_id.name, True, COLOR_ACCENT)
-        surface.blit(title, (content_x + 10, 6))
+        surface.blit(title, (text_x, 6))
 
         dots = self._screen_dots(screen_id)
         dots_surface = hint_font.render(dots, True, COLOR_MUTED)
@@ -214,10 +228,10 @@ class ProbeUI:
         y = 42
         for line in lines_for_screen(screen_id, state):
             rendered = body_font.render(line, True, COLOR_TEXT)
-            if rendered.get_width() > text_width - 20:
+            if rendered.get_width() > text_width - text_gap - 20:
                 line = line[:28] + "…"
                 rendered = body_font.render(line, True, COLOR_TEXT)
-            surface.blit(rendered, (content_x + 10, y))
+            surface.blit(rendered, (text_x, y))
             y += self.config.ui_font_size + 6
 
         draw_button_hints(
