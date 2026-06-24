@@ -14,6 +14,11 @@ def content_width(screen_width: int, hint_edge: str, margin: int) -> int:
     return screen_width
 
 
+def content_x_offset(hint_edge: str, margin: int) -> int:
+    """Horizontal offset for main content when hints sit on the left edge."""
+    return margin if hint_edge == "left" else 0
+
+
 def draw_button_hints(
     surface: pygame.Surface,
     font: pygame.font.Font,

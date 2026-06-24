@@ -14,7 +14,7 @@ from ndp.core.state import ProbeState
 from ndp.ui.buttons import ButtonAction, ButtonMapping, PhysicalButtons
 from ndp.ui.backlight import enable_backlight
 from ndp.ui.framebuffer import RawFramebuffer
-from ndp.ui.layout import content_width, draw_button_hints
+from ndp.ui.layout import content_width, content_x_offset, draw_button_hints
 from ndp.ui.screens import ScreenId, lines_for_screen, next_screen
 
 if TYPE_CHECKING:
@@ -194,17 +194,22 @@ class ProbeUI:
 
         surface.fill(COLOR_BG)
         margin = self.config.ui_content_margin_side
-        text_width = content_width(self.config.ui_width, self.config.ui_hint_edge, margin)
+        edge = self.config.ui_hint_edge
+        text_width = content_width(self.config.ui_width, edge, margin)
+        content_x = content_x_offset(edge, margin)
 
-        header = pygame.Rect(0, 0, text_width, 34)
+        header = pygame.Rect(content_x, 0, text_width, 34)
         pygame.draw.rect(surface, COLOR_HEADER, header)
 
         title = title_font.render(screen_id.name, True, COLOR_ACCENT)
-        surface.blit(title, (10, 6))
+        surface.blit(title, (content_x + 10, 6))
 
         dots = self._screen_dots(screen_id)
         dots_surface = hint_font.render(dots, True, COLOR_MUTED)
-        surface.blit(dots_surface, (text_width - dots_surface.get_width() - 8, 10))
+        surface.blit(
+            dots_surface,
+            (content_x + text_width - dots_surface.get_width() - 8, 10),
+        )
 
         y = 42
         for line in lines_for_screen(screen_id, state):
@@ -212,7 +217,7 @@ class ProbeUI:
             if rendered.get_width() > text_width - 20:
                 line = line[:28] + "…"
                 rendered = body_font.render(line, True, COLOR_TEXT)
-            surface.blit(rendered, (10, y))
+            surface.blit(rendered, (content_x + 10, y))
             y += self.config.ui_font_size + 6
 
         draw_button_hints(

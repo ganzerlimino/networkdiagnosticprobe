@@ -34,7 +34,7 @@ class NdpConfig:
     ui_button_select: int = 24
     ui_button_next: int = 25
     ui_button_debounce_seconds: float = 0.2
-    ui_hint_edge: str = "right"
+    ui_hint_edge: str = "left"
     ui_content_margin_side: int = 48
     console_enabled: bool = True
     console_refresh_seconds: float = 5.0
@@ -75,7 +75,7 @@ class NdpConfig:
             ui_button_select=int(ui.get("button_select", 24)),
             ui_button_next=int(ui.get("button_next", 25)),
             ui_button_debounce_seconds=float(ui.get("button_debounce_seconds", 0.2)),
-            ui_hint_edge=str(ui.get("hint_edge", "right")),
+            ui_hint_edge=str(ui.get("hint_edge", "left")),
             ui_content_margin_side=int(ui.get("content_margin_side", 48)),
             console_enabled=bool(console.get("enabled", True)),
             console_refresh_seconds=float(console.get("refresh_seconds", 5)),

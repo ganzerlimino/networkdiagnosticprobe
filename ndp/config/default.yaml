@@ -25,7 +25,7 @@ ui:
   button_select: 24
   button_next: 25
   button_debounce_seconds: 0.2
-  hint_edge: right       # right | left | bottom — Joy-it V3: buttons on the side
+  hint_edge: left        # left | right | bottom — Joy-it V3 + rotate=270: buttons on the left
   content_margin_side: 48
 
 console:
