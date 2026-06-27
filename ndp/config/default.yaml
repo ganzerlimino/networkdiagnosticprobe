@@ -60,11 +60,11 @@ ui:
   button_next: 25
   # GPIO del tasto "avanti" / schermata successiva (▶).
 
-  button_debounce_seconds: 0.05
+  button_debounce_seconds: 0.03
   # Secondi minimi tra due attivazioni dello stesso tasto (più basso = più reattivo).
 
-  button_trigger_mode: level
-  # level = reagisce appena il tasto è premuto; edge = solo sul fronte di discesa GPIO.
+  button_trigger_mode: edge
+  # edge = tap breve (consigliato con button_poll_hz alto); level = finché premuto.
 
   button_press_confirm_ms: 0
   # Millisecondi che il tasto deve restare premuto prima di registrare (0 = immediato).
@@ -93,8 +93,8 @@ ui:
   warmup_on_start: true
   # true = precarica font, framebuffer e prima scansione probe prima dei tasti.
 
-  button_poll_hz: 100
-  # Frequenza lettura GPIO tasti (Hz); prova 100–150 se serve più reattività.
+  button_poll_hz: 200
+  # Frequenza lettura GPIO in thread dedicato (Hz); 200 = molto reattivo.
 
   line_spacing: 6
   # Pixel aggiuntivi tra una riga di testo e l'altra oltre alla dimensione font.

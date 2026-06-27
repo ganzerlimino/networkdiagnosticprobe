@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from ndp.core.config import NdpConfig
@@ -18,10 +19,13 @@ from ndp.discovery.wizard import (
 
 logger = logging.getLogger(__name__)
 
+RedrawFn = Callable[[], None]
+
 
 @dataclass
 class DiscoveryUISession:
     config: NdpConfig
+    on_activity: RedrawFn | None = None
     _lines: list[str] = field(default_factory=list)
     _phase: WizardPhase = WizardPhase.IDLE
     _running: bool = False
@@ -50,23 +54,34 @@ class DiscoveryUISession:
         return self._result
 
     def is_idle(self) -> bool:
-        return not self._running and self._thread is None
+        if self._running:
+            return False
+        if self._thread is not None and self._thread.is_alive():
+            return False
+        return True
+
+    def _notify(self) -> None:
+        if self.on_activity is not None:
+            self.on_activity()
 
     def start(self) -> None:
-        if self._running:
+        if not self.is_idle():
             return
         self._cancel.clear()
         self._result = None
         self._error = None
         self._lines.clear()
-        self._phase = WizardPhase.IDLE
+        self._phase = WizardPhase.SCANNING_BASELINE
         self._running = True
+        self._lines.append("Avvio wizard...")
+        self._notify()
         self._thread = threading.Thread(target=self._run, daemon=True, name="ndp-discovery")
         self._thread.start()
 
     def cancel(self) -> None:
         self._cancel.set()
         self._prompt_answer.set()
+        self._notify()
 
     def reset(self) -> None:
         self.cancel()
@@ -81,6 +96,7 @@ class DiscoveryUISession:
         self._countdown = None
         self._cancel.clear()
         self._prompt_answer.clear()
+        self._notify()
 
     def on_select(self) -> bool:
         with self._lock:
@@ -95,7 +111,7 @@ class DiscoveryUISession:
             self.reset()
             self.start()
             return True
-        return False
+        return True
 
     def on_next_skip(self) -> bool:
         with self._lock:
@@ -107,7 +123,7 @@ class DiscoveryUISession:
 
     def display_lines(self) -> list[str]:
         with self._lock:
-            if self.is_idle():
+            if self.is_idle() and self._phase != WizardPhase.DONE:
                 return [
                     "Up/Down scan",
                     "○ avvia wizard",
@@ -127,6 +143,8 @@ class DiscoveryUISession:
                 if self._waiting_allow_skip:
                     hint += "  ▶ skip"
                 lines.append(hint)
+            elif self._running:
+                lines.append("Scansione...")
             return lines[:7]
 
     def _run(self) -> None:
@@ -165,6 +183,8 @@ class DiscoveryUISession:
             self._running = False
             self._waiting_for_user = False
             self._countdown = None
+            self._thread = None
+            self._notify()
 
     def _ui_output(self, message: str) -> None:
         line = message.strip()
@@ -176,6 +196,7 @@ class DiscoveryUISession:
             self._lines.append(line[:32])
             if len(self._lines) > 12:
                 self._lines = self._lines[-12:]
+        self._notify()
 
     def _ui_prompt(self, _message: str) -> str:
         with self._lock:
@@ -184,6 +205,7 @@ class DiscoveryUISession:
             self._waiting_for_user = True
             self._waiting_allow_skip = self._phase == WizardPhase.VERIFY_REPLUG
             self._prompt_answer.clear()
+        self._notify()
         self._prompt_answer.wait()
         with self._lock:
             self._waiting_for_user = False
@@ -200,7 +222,9 @@ class DiscoveryUISession:
                 raise WizardCancelled()
             with self._lock:
                 self._countdown = second
+            self._notify()
             self._prompt_answer.wait(timeout=1.0)
             self._prompt_answer.clear()
         with self._lock:
             self._countdown = None
+        self._notify()

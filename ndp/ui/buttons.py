@@ -35,8 +35,8 @@ class PhysicalButtons:
         self,
         mapping: ButtonMapping | None = None,
         *,
-        debounce_seconds: float = 0.05,
-        trigger_mode: str = "level",
+        debounce_seconds: float = 0.03,
+        trigger_mode: str = "edge",
         press_confirm_ms: int = 0,
     ) -> None:
         self.mapping = mapping or ButtonMapping()

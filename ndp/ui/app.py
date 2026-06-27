@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import queue
 import threading
 import time
 from pathlib import Path
@@ -130,7 +131,8 @@ class ProbeUI:
         self._screen = ScreenId.HOME
         self._state = ProbeState(interface=config.interface)
         self._redraw_now = threading.Event()
-        self._discovery = DiscoveryUISession(config)
+        self._button_queue: queue.SimpleQueue[ButtonAction] = queue.SimpleQueue()
+        self._discovery = DiscoveryUISession(config, on_activity=self._request_redraw)
         self._buttons = PhysicalButtons(
             ButtonMapping(
                 previous=config.ui_button_previous,
@@ -149,6 +151,26 @@ class ProbeUI:
         with self._lock:
             return self._state
 
+    def _request_redraw(self) -> None:
+        self._redraw_now.set()
+
+    def _enqueue_button(self, action: ButtonAction) -> None:
+        self._button_queue.put(action)
+
+    def _drain_button_queue(self) -> None:
+        while True:
+            try:
+                action = self._button_queue.get_nowait()
+            except queue.Empty:
+                break
+            self._on_button(action)
+
+    def _button_input_loop(self) -> None:
+        poll_interval = 1.0 / max(50, self.config.ui_button_poll_hz)
+        while not self._stop.is_set():
+            self._buttons.poll(self._enqueue_button)
+            time.sleep(poll_interval)
+
     def _engine_loop(self) -> None:
         while not self._stop.is_set():
             if self._force_refresh.is_set():
@@ -159,14 +181,24 @@ class ProbeUI:
 
     def _on_button(self, action: ButtonAction) -> None:
         if self._screen == ScreenId.DISCOVER:
-            if action == ButtonAction.SELECT and self._discovery.on_select():
+            if action == ButtonAction.SELECT:
+                self._discovery.on_select()
                 self._redraw_now.set()
                 return
             if action == ButtonAction.NEXT and self._discovery.on_next_skip():
                 self._redraw_now.set()
                 return
-            if action == ButtonAction.PREVIOUS and self._discovery.running:
-                self._discovery.cancel()
+            if action == ButtonAction.PREVIOUS:
+                if self._discovery.running:
+                    self._discovery.cancel()
+                else:
+                    self._screen = next_screen(self._screen, -1)
+                    logger.info("UI screen -> %s", self._screen.name)
+                self._redraw_now.set()
+                return
+            if action == ButtonAction.NEXT:
+                self._screen = next_screen(self._screen, 1)
+                logger.info("UI screen -> %s", self._screen.name)
                 self._redraw_now.set()
                 return
 
@@ -296,19 +328,23 @@ class ProbeUI:
         worker = threading.Thread(target=self._engine_loop, daemon=True, name="ndp-engine")
         worker.start()
 
-        poll_interval = 1.0 / max(10, self.config.ui_button_poll_hz)
-        frame_interval = 1.0 / max(1, self.config.ui_fps)
-
         try:
             with self._buttons:
+                input_thread = threading.Thread(
+                    target=self._button_input_loop,
+                    daemon=True,
+                    name="ndp-buttons",
+                )
+                input_thread.start()
                 last_frame = time.monotonic()
+                frame_interval = 1.0 / max(1, self.config.ui_fps)
 
                 while not self._stop.is_set():
                     for event in pygame.event.get():
                         if event.type == pygame.QUIT:
                             self._stop.set()
 
-                    self._buttons.poll(self._on_button)
+                    self._drain_button_queue()
 
                     now = time.monotonic()
                     if self._redraw_now.is_set() or (now - last_frame) >= frame_interval:
@@ -321,8 +357,8 @@ class ProbeUI:
                         self._draw(screen, title_font, body_font, hint_font, current, state)
                         _blit_frame(screen, raw_fb)
                         last_frame = now
-
-                    time.sleep(poll_interval)
+                    else:
+                        time.sleep(0.002)
         finally:
             if raw_fb is not None:
                 raw_fb.close()
