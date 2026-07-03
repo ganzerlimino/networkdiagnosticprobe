@@ -47,7 +47,7 @@ Prossime milestone: immagine SD pronta al flash, hotspot Wi-Fi per accesso remot
 | Componente | Modello |
 |------------|---------|
 | SBC | Raspberry Pi 3 Model B/B+ |
-| Display | Joy-it RB-TFT3.2 (3 pulsanti GPIO) |
+| Display | Joy-it RB-TFT3.2 (3 pulsanti GPIO **oppure** encoder KY-040) |
 | Rete | Ethernet RJ45 integrata |
 | Alimentazione | Powerbank USB 5V |
 
@@ -150,7 +150,15 @@ ui:
   enabled: true
   font_size: 14
   splash_enabled: true
-  button_poll_hz: 50
+  button_poll_hz: 200
+
+  # Encoder KY-040 (alternativa ai 3 tasti TFT):
+  # input: encoder
+  # hint_edge: none
+  # content_margin_side: 0
+  # encoder_clk: 17
+  # encoder_dt: 27
+  # encoder_sw: 22
 
 web:
   enabled: true    # http://<ip-pi>:8080/ per modificare il YAML
@@ -168,6 +176,43 @@ Con `web.enabled: true` apri `http://<ip-della-pi>:8080/` da browser sulla stess
 - riavvia il servizio per applicare: `sudo systemctl restart ndp`
 
 Il Wi-Fi hotspot è previsto in una fase successiva; per ora usa Ethernet o la rete Wi-Fi già configurata sulla Pi.
+
+## Encoder KY-040 (navigazione senza tasti TFT)
+
+Per eliminare i tre pulsanti laterali del TFT e recuperare tutta la larghezza schermo (320 px), puoi usare un modulo **KY-040**:
+
+| Pin KY-040 | Collegamento Pi (BCM) | Funzione |
+|------------|----------------------|----------|
+| `+` | 3.3V | Alimentazione |
+| `GND` | GND | Massa |
+| `CLK` | **GPIO 17** | Quadratura rotazione |
+| `DT` | **GPIO 27** | Quadratura rotazione |
+| `SW` | **GPIO 22** | Click (conferma / avvia) |
+
+GPIO già occupati dal setup Joy-it RB-TFT3.2-V3:
+
+| Uso | GPIO (BCM) |
+|-----|------------|
+| SPI display (fbtft) | 7, 8, 9, 10, 11 |
+| Retroilluminazione | 18 |
+| Tasti TFT (opzionali) | 23, 24, 25 |
+
+**Comportamento:** ruota per cambiare schermata; click per aggiornare dati, avviare ping o il wizard Discover. Sullo step di verifica Discover, ruota in avanti per saltare.
+
+Esempio in `/etc/ndp/config.yaml`:
+
+```yaml
+ui:
+  input: encoder
+  hint_edge: none
+  content_margin_side: 0
+  encoder_clk: 17
+  encoder_dt: 27
+  encoder_sw: 22
+  button_poll_hz: 200
+```
+
+Dopo la modifica: `sudo systemctl restart ndp`.
 
 ## Immagine SD pronta al flash
 
@@ -189,6 +234,7 @@ La fase successiva automatizzerà questi passi con una stage **pi-gen** dedicata
 | 1b | Discovery Up/Down wizard | ✅ v0.2 |
 | 2 | UI Pygame su framebuffer | ✅ v0.3 |
 | 2b | Discover su TFT + splash | ✅ v0.4 |
+| 2c | Encoder KY-040 al posto dei tasti | ✅ v0.6 |
 | 3 | Immagine SD custom (pi-gen) | Prossima |
 | 4 | Web config HTTP | ✅ v0.4 (senza hotspot) |
 | 4b | Hotspot Wi-Fi | Ultima — dopo funzioni core |

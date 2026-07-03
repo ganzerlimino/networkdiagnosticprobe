@@ -15,7 +15,8 @@ from ndp.core.config import NdpConfig
 from ndp.core.engine import ProbeEngine
 from ndp.core.state import ProbeState
 from ndp.ui.backlight import enable_backlight
-from ndp.ui.buttons import ButtonAction, ButtonMapping, PhysicalButtons
+from ndp.ui.buttons import ButtonAction
+from ndp.ui.input import create_ui_input
 from ndp.ui.discovery_session import DiscoveryUISession
 from ndp.ui.framebuffer import RawFramebuffer
 from ndp.ui.layout import content_text_x, content_width, content_x_offset, draw_button_hints
@@ -133,16 +134,7 @@ class ProbeUI:
         self._redraw_now = threading.Event()
         self._button_queue: queue.SimpleQueue[ButtonAction] = queue.SimpleQueue()
         self._discovery = DiscoveryUISession(config, on_activity=self._request_redraw)
-        self._buttons = PhysicalButtons(
-            ButtonMapping(
-                previous=config.ui_button_previous,
-                select=config.ui_button_select,
-                next=config.ui_button_next,
-            ),
-            debounce_seconds=config.ui_button_debounce_seconds,
-            trigger_mode=config.ui_button_trigger_mode,
-            press_confirm_ms=config.ui_button_press_confirm_ms,
-        )
+        self._input_device = create_ui_input(config)
         self._web_thread: threading.Thread | None = None
         self._ping_thread: threading.Thread | None = None
         self._state.ping.adhoc_host = read_adhoc_host(Path(config.ping_adhoc_path))
@@ -165,10 +157,10 @@ class ProbeUI:
                 break
             self._on_button(action)
 
-    def _button_input_loop(self) -> None:
+    def _input_loop(self) -> None:
         poll_interval = 1.0 / max(50, self.config.ui_button_poll_hz)
         while not self._stop.is_set():
-            self._buttons.poll(self._enqueue_button)
+            self._input_device.poll(self._enqueue_button)
             time.sleep(poll_interval)
 
     def _engine_loop(self) -> None:
@@ -197,6 +189,9 @@ class ProbeUI:
                 self._redraw_now.set()
                 return
             if action == ButtonAction.NEXT:
+                if not self._discovery.is_idle():
+                    self._redraw_now.set()
+                    return
                 self._screen = next_screen(self._screen, 1)
                 logger.info("UI screen -> %s", self._screen.name)
                 self._redraw_now.set()
@@ -329,11 +324,11 @@ class ProbeUI:
         worker.start()
 
         try:
-            with self._buttons:
+            with self._input_device:
                 input_thread = threading.Thread(
-                    target=self._button_input_loop,
+                    target=self._input_loop,
                     daemon=True,
-                    name="ndp-buttons",
+                    name="ndp-input",
                 )
                 input_thread.start()
                 last_frame = time.monotonic()

@@ -48,6 +48,9 @@ def draw_button_hints(
     icons = ("◀", "○", "▶")
     y_positions = hint_y_positions(height, y_offset)
 
+    if edge == "none":
+        return
+
     if edge == "right":
         x_icon = width - margin + max(4, (margin - 16) // 2)
         for icon, y in zip(icons, y_positions):

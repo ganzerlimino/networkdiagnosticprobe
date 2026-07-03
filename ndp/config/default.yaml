@@ -49,7 +49,10 @@ ui:
   # Dimensione font del testo principale (pt); titolo = +4, icone tasti = -2.
 
   fps: 20
-  # Aggiornamenti schermo al secondo; i tasti usano button_poll_hz.
+  # Aggiornamenti schermo al secondo; input usa button_poll_hz.
+
+  input: buttons
+  # buttons = 3 tasti GPIO Joy-it | encoder = modulo KY-040 (rotazione + click).
 
   button_previous: 23
   # GPIO del tasto "indietro" / schermata precedente (◀).
@@ -69,11 +72,26 @@ ui:
   button_press_confirm_ms: 0
   # Millisecondi che il tasto deve restare premuto prima di registrare (0 = immediato).
 
+  encoder_clk: 17
+  # GPIO CLK del KY-040 (rotazione); libero rispetto a SPI display e retroilluminazione.
+
+  encoder_dt: 27
+  # GPIO DT del KY-040 (rotazione).
+
+  encoder_sw: 22
+  # GPIO SW del KY-040 (click = selezione / conferma).
+
+  encoder_steps_per_detent: 4
+  # Transizioni quadratura per un click meccanico; 4 = una schermata per dente.
+
+  encoder_sw_debounce_seconds: 0.03
+  # Antirimbalzo sul pulsante integrato nell'encoder.
+
   hint_edge: left
-  # Bordo dove disegnare le icone dei tasti: left | right | bottom (Joy-it rotate=270: left).
+  # Bordo icone tasti: left | right | bottom | none (none con input: encoder, larghezza piena).
 
   content_margin_side: 28
-  # Larghezza riservata alla colonna icone; più basso = più spazio al testo (min ~24).
+  # Larghezza colonna icone; con encoder usare 0 e hint_edge: none.
 
   content_text_gap: 0
   # Spazio in pixel tra colonna icone e testo schermata; 0 = testo più vicino ai tasti.

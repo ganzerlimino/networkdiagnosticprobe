@@ -30,9 +30,15 @@ class NdpConfig:
     ui_rgb565_swap_bytes: bool = False
     ui_font_size: int = 14
     ui_fps: int = 20
+    ui_input: str = "buttons"
     ui_button_previous: int = 23
     ui_button_select: int = 24
     ui_button_next: int = 25
+    ui_encoder_clk: int = 17
+    ui_encoder_dt: int = 27
+    ui_encoder_sw: int = 22
+    ui_encoder_steps_per_detent: int = 4
+    ui_encoder_sw_debounce_seconds: float = 0.03
     ui_button_debounce_seconds: float = 0.03
     ui_button_trigger_mode: str = "edge"
     ui_button_press_confirm_ms: int = 0
@@ -73,6 +79,9 @@ class NdpConfig:
         custom_targets = ping.get("custom_targets", [])
         if not isinstance(custom_targets, list):
             custom_targets = []
+        ui_input = str(ui.get("input", "buttons"))
+        hint_edge_default = "none" if ui_input == "encoder" else "left"
+        margin_default = 0 if ui_input == "encoder" else 28
         return cls(
             interface=str(data.get("interface", "eth0")),
             poll_interval_link_up=float(data.get("poll_interval_link_up", 1)),
@@ -90,14 +99,22 @@ class NdpConfig:
             ui_rgb565_swap_bytes=bool(ui.get("rgb565_swap_bytes", False)),
             ui_font_size=int(ui.get("font_size", 14)),
             ui_fps=int(ui.get("fps", 20)),
+            ui_input=ui_input,
             ui_button_previous=int(ui.get("button_previous", 23)),
             ui_button_select=int(ui.get("button_select", 24)),
             ui_button_next=int(ui.get("button_next", 25)),
+            ui_encoder_clk=int(ui.get("encoder_clk", 17)),
+            ui_encoder_dt=int(ui.get("encoder_dt", 27)),
+            ui_encoder_sw=int(ui.get("encoder_sw", 22)),
+            ui_encoder_steps_per_detent=int(ui.get("encoder_steps_per_detent", 4)),
+            ui_encoder_sw_debounce_seconds=float(
+                ui.get("encoder_sw_debounce_seconds", 0.03)
+            ),
             ui_button_debounce_seconds=float(ui.get("button_debounce_seconds", 0.03)),
             ui_button_trigger_mode=str(ui.get("button_trigger_mode", "edge")),
             ui_button_press_confirm_ms=int(ui.get("button_press_confirm_ms", 0)),
-            ui_hint_edge=str(ui.get("hint_edge", "left")),
-            ui_content_margin_side=int(ui.get("content_margin_side", 28)),
+            ui_hint_edge=str(ui.get("hint_edge", hint_edge_default)),
+            ui_content_margin_side=int(ui.get("content_margin_side", margin_default)),
             ui_content_text_gap=int(ui.get("content_text_gap", 0)),
             ui_hint_y_offset=int(ui.get("hint_y_offset", 24)),
             ui_splash_enabled=bool(ui.get("splash_enabled", True)),

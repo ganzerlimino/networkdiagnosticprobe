@@ -10,6 +10,12 @@ def test_content_width_left_hint() -> None:
     assert content_width(320, "left", 28) == 292
 
 
+def test_content_width_none_hint() -> None:
+    assert content_width(320, "none", 0) == 320
+    assert content_x_offset("none", 0) == 0
+    assert content_text_x("none", 0, 4) == 4
+
+
 def test_content_x_offset_left_only() -> None:
     assert content_x_offset("left", 28) == 28
     assert content_x_offset("right", 28) == 0

@@ -124,24 +124,39 @@ class DiscoveryUISession:
     def display_lines(self) -> list[str]:
         with self._lock:
             if self.is_idle() and self._phase != WizardPhase.DONE:
+                start_hint = (
+                    "Click avvia wizard"
+                    if self.config.ui_input == "encoder"
+                    else "○ avvia wizard"
+                )
                 return [
                     "Up/Down scan",
-                    "○ avvia wizard",
+                    start_hint,
                     "",
                     "Stacca 1 device",
                     "per trovarlo in rete",
                 ]
             if self._error:
-                return ["Errore:", self._error[:28], "", "○ riprova"]
+                retry_hint = (
+                    "Click riprova"
+                    if self.config.ui_input == "encoder"
+                    else "○ riprova"
+                )
+                return ["Errore:", self._error[:28], "", retry_hint]
             if self._phase == WizardPhase.DONE and self._result is not None:
                 return compact_diff_lines(self._result.diff)[:7]
             lines = list(self._lines[-6:])
             if self._countdown is not None:
                 lines.append(f"Attesa {self._countdown}s")
             if self._waiting_for_user:
-                hint = "○ continua"
-                if self._waiting_allow_skip:
-                    hint += "  ▶ skip"
+                if self.config.ui_input == "encoder":
+                    hint = "Click continua"
+                    if self._waiting_allow_skip:
+                        hint += "  ↻ skip"
+                else:
+                    hint = "○ continua"
+                    if self._waiting_allow_skip:
+                        hint += "  ▶ skip"
                 lines.append(hint)
             elif self._running:
                 lines.append("Scansione...")
