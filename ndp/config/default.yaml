@@ -72,14 +72,14 @@ ui:
   button_press_confirm_ms: 0
   # Millisecondi che il tasto deve restare premuto prima di registrare (0 = immediato).
 
-  encoder_clk: 17
-  # GPIO CLK del KY-040 (rotazione); libero rispetto a SPI display e retroilluminazione.
+  encoder_clk: 5
+  # GPIO CLK del KY-040 (BCM 5 = pin fisico 29, fuori dallo stack display).
 
-  encoder_dt: 27
-  # GPIO DT del KY-040 (rotazione).
+  encoder_dt: 6
+  # GPIO DT del KY-040 (BCM 6 = pin fisico 31).
 
-  encoder_sw: 22
-  # GPIO SW del KY-040 (click = selezione / conferma).
+  encoder_sw: 19
+  # GPIO SW del KY-040 (BCM 19 = pin fisico 35, click = conferma).
 
   encoder_steps_per_detent: 4
   # Transizioni quadratura per un click meccanico; 4 = una schermata per dente.

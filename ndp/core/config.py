@@ -34,9 +34,9 @@ class NdpConfig:
     ui_button_previous: int = 23
     ui_button_select: int = 24
     ui_button_next: int = 25
-    ui_encoder_clk: int = 17
-    ui_encoder_dt: int = 27
-    ui_encoder_sw: int = 22
+    ui_encoder_clk: int = 5
+    ui_encoder_dt: int = 6
+    ui_encoder_sw: int = 19
     ui_encoder_steps_per_detent: int = 4
     ui_encoder_sw_debounce_seconds: float = 0.03
     ui_button_debounce_seconds: float = 0.03
@@ -103,9 +103,9 @@ class NdpConfig:
             ui_button_previous=int(ui.get("button_previous", 23)),
             ui_button_select=int(ui.get("button_select", 24)),
             ui_button_next=int(ui.get("button_next", 25)),
-            ui_encoder_clk=int(ui.get("encoder_clk", 17)),
-            ui_encoder_dt=int(ui.get("encoder_dt", 27)),
-            ui_encoder_sw=int(ui.get("encoder_sw", 22)),
+            ui_encoder_clk=int(ui.get("encoder_clk", 5)),
+            ui_encoder_dt=int(ui.get("encoder_dt", 6)),
+            ui_encoder_sw=int(ui.get("encoder_sw", 19)),
             ui_encoder_steps_per_detent=int(ui.get("encoder_steps_per_detent", 4)),
             ui_encoder_sw_debounce_seconds=float(
                 ui.get("encoder_sw_debounce_seconds", 0.03)

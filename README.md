@@ -156,9 +156,9 @@ ui:
   # input: encoder
   # hint_edge: none
   # content_margin_side: 0
-  # encoder_clk: 17
-  # encoder_dt: 27
-  # encoder_sw: 22
+  # encoder_clk: 5
+  # encoder_dt: 6
+  # encoder_sw: 19
 
 web:
   enabled: true    # http://<ip-pi>:8080/ per modificare il YAML
@@ -179,23 +179,45 @@ Il Wi-Fi hotspot è previsto in una fase successiva; per ora usa Ethernet o la r
 
 ## Encoder KY-040 (navigazione senza tasti TFT)
 
-Per eliminare i tre pulsanti laterali del TFT e recuperare tutta la larghezza schermo (320 px), puoi usare un modulo **KY-040**:
+Il display Joy-it RB-TFT3.2-V3 si innesta sui **primi 26 pin fisici** del GPIO (pin 1–26). Tutti i GPIO in quella zona sono occupati da SPI, retroilluminazione e tasti integrati. L'encoder va quindi collegato ai **pin 27–40** (fila esterna, sotto il display).
 
-| Pin KY-040 | Collegamento Pi (BCM) | Funzione |
-|------------|----------------------|----------|
-| `+` | 3.3V | Alimentazione |
-| `GND` | GND | Massa |
-| `CLK` | **GPIO 17** | Quadratura rotazione |
-| `DT` | **GPIO 27** | Quadratura rotazione |
-| `SW` | **GPIO 22** | Click (conferma / avvia) |
+### Pin liberi (Raspberry Pi 3, BCM)
 
-GPIO già occupati dal setup Joy-it RB-TFT3.2-V3:
+| GPIO (BCM) | Pin fisico | Note |
+|------------|------------|------|
+| **5** | 29 | Consigliato — CLK encoder |
+| **6** | 31 | Consigliato — DT encoder |
+| **19** | 35 | Consigliato — SW (click) |
+| 16 | 36 | Alternativa |
+| 20 | 38 | Alternativa |
+| 21 | 40 | Alternativa |
+| 26 | 37 | Alternativa |
+| 12 | 32 | PWM hardware (ok per encoder) |
+| 0 | 27 | Evitare se usi HAT con EEPROM |
+| 1 | 28 | Evitare se usi HAT con EEPROM |
 
-| Uso | GPIO (BCM) |
-|-----|------------|
-| SPI display (fbtft) | 7, 8, 9, 10, 11 |
-| Retroilluminazione | 18 |
-| Tasti TFT (opzionali) | 23, 24, 25 |
+**GND** sui pin fisici **30**, **33** o **39** (tutti fuori dallo stack display).
+
+**3.3V:** non c'è sui pin 27–40. Opzioni: cavo saldato su pin **1** o **17** (sotto il display), oppure extender GPIO a passante.
+
+### Cablaggio consigliato
+
+| Pin KY-040 | Collegamento Pi | Funzione |
+|------------|-----------------|----------|
+| `+` | 3.3V (pin 1 o 17, via extender/saldo) | Alimentazione |
+| `GND` | GND (pin **30**, 33 o 39) | Massa |
+| `CLK` | **GPIO 5** (pin 29) | Quadratura rotazione |
+| `DT` | **GPIO 6** (pin 31) | Quadratura rotazione |
+| `SW` | **GPIO 19** (pin 35) | Click (conferma / avvia) |
+
+GPIO occupati **sotto** il display (pin 1–26), da non usare per l'encoder:
+
+| Uso | GPIO (BCM) | Pin fisico |
+|-----|------------|------------|
+| SPI display | 7, 8, 9, 10, 11 | 26, 24, 21, 19, 23 |
+| Retroilluminazione | 18 | 12 |
+| Tasti TFT (opzionali) | 23, 24, 25 | 16, 18, 22 |
+| Altri sullo stack | 2, 3, 4, 14, 15, 17, 22, 27 | vari |
 
 **Comportamento:** ruota per cambiare schermata; click per aggiornare dati, avviare ping o il wizard Discover. Sullo step di verifica Discover, ruota in avanti per saltare.
 
@@ -206,9 +228,9 @@ ui:
   input: encoder
   hint_edge: none
   content_margin_side: 0
-  encoder_clk: 17
-  encoder_dt: 27
-  encoder_sw: 22
+  encoder_clk: 5
+  encoder_dt: 6
+  encoder_sw: 19
   button_poll_hz: 200
 ```
 

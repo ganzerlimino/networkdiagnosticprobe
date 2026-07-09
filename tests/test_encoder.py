@@ -38,9 +38,9 @@ def test_quadrature_ignores_bounce() -> None:
 
 def test_encoder_mapping_defaults() -> None:
     mapping = EncoderMapping()
-    assert mapping.clk == 17
-    assert mapping.dt == 27
-    assert mapping.sw == 22
+    assert mapping.clk == 5
+    assert mapping.dt == 6
+    assert mapping.sw == 19
 
 
 def test_create_ui_input_encoder() -> None:
@@ -69,6 +69,6 @@ def test_config_encoder_defaults() -> None:
     config = NdpConfig.from_mapping({"ui": {"input": "encoder"}})
     assert config.ui_hint_edge == "none"
     assert config.ui_content_margin_side == 0
-    assert config.ui_encoder_clk == 17
-    assert config.ui_encoder_dt == 27
-    assert config.ui_encoder_sw == 22
+    assert config.ui_encoder_clk == 5
+    assert config.ui_encoder_dt == 6
+    assert config.ui_encoder_sw == 19

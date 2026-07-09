@@ -40,9 +40,9 @@ _QUAD_DELTA = (
 
 @dataclass(frozen=True)
 class EncoderMapping:
-    clk: int = 17
-    dt: int = 27
-    sw: int = 22
+    clk: int = 5
+    dt: int = 6
+    sw: int = 19
 
 
 class QuadratureDecoder:
