@@ -66,6 +66,60 @@ def test_validate_host_rejects_invalid() -> None:
         pass
 
 
+def test_ping_hosts_parallel(monkeypatch) -> None:
+    from ndp.core.collectors.ping import ping_hosts_parallel
+
+    calls: list[str] = []
+
+    def fake_ping(host: str, **kwargs) -> object:
+        calls.append(host)
+        from ndp.core.ping_state import PingResult
+
+        return PingResult(
+            host=host,
+            reachable=True,
+            packets_sent=1,
+            packets_received=1,
+            packet_loss_pct=0.0,
+            rtt_ms=10.0,
+            message="ok",
+        )
+
+    monkeypatch.setattr("ndp.core.collectors.ping.ping_host", fake_ping)
+    results = ping_hosts_parallel(["8.8.8.8", "1.1.1.1", "10.0.0.1"])
+    assert set(results.keys()) == {"8.8.8.8", "1.1.1.1", "10.0.0.1"}
+    assert len(calls) == 3
+
+
+def test_run_ping_hosts_only_selected(monkeypatch) -> None:
+    from ndp.ping.service import run_ping_hosts
+
+    config = NdpConfig(ping_count=1, ping_timeout_seconds=1.0)
+
+    def fake_parallel(hosts, **kwargs):
+        from ndp.core.ping_state import PingResult
+
+        return {
+            host: PingResult(
+                host=host,
+                reachable=True,
+                packets_sent=1,
+                packets_received=1,
+                packet_loss_pct=0.0,
+                rtt_ms=5.0,
+                message="ok",
+            )
+            for host in hosts
+        }
+
+    monkeypatch.setattr("ndp.ping.service.ping_hosts_parallel", fake_parallel)
+    suite = run_ping_hosts(config, ["10.0.0.2", "10.0.0.3"])
+
+    assert len(suite.results) == 2
+    hosts = {item.host for item in suite.results}
+    assert hosts == {"10.0.0.2", "10.0.0.3"}
+
+
 def test_ping_host_missing_command(monkeypatch) -> None:
     monkeypatch.setattr("ndp.core.collectors.ping.shutil.which", lambda _name: None)
     result = ping_host("8.8.8.8")

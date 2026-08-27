@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c1220">
+  <title>NDP</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c1220; --card: #18243f; --text: #e8f0ff; --muted: #9eb0d0;
+      --accent: #50c878; --danger: #ff8080; --border: #2a3a5c;
+      --c1: #50c878; --c2: #5eb8ff; --c3: #ffb85e;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 5rem; }
+    header { position: sticky; top: 0; z-index: 3; background: rgba(12,18,32,.96); border-bottom: 1px solid var(--border); padding: .85rem 1rem; }
+    h1 { margin: 0; font-size: 1.1rem; }
+    .sub { color: var(--muted); font-size: .82rem; margin-top: .2rem; }
+    nav { display: flex; gap: .35rem; padding: .55rem 1rem; overflow-x: auto; border-bottom: 1px solid var(--border); position: sticky; top: 3.4rem; z-index: 2; background: var(--bg); }
+    nav button { flex: 1; min-width: 4.8rem; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 999px; padding: .5rem .7rem; font-size: .85rem; }
+    nav button.active { border-color: var(--accent); color: var(--accent); }
+    main { padding: 1rem; }
+    .panel { display: none; } .panel.active { display: block; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: .9rem; margin-bottom: .75rem; }
+    .card h2 { margin: 0 0 .55rem; font-size: .95rem; color: var(--accent); }
+    .row { display: flex; justify-content: space-between; gap: .6rem; padding: .3rem 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: .9rem; }
+    .row:last-child { border-bottom: 0; }
+    .label { color: var(--muted); }
+    .ok { color: var(--accent); } .bad { color: var(--danger); }
+    .actions { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .65rem; }
+    button.primary, button.secondary, button.danger {
+      border: 0; border-radius: 10px; padding: .7rem .9rem; font-size: .92rem; font-weight: 600;
+    }
+    button.primary { background: var(--accent); color: #062010; flex: 1; }
+    button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    button.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+    input, textarea { width: 100%; background: #0f1728; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: .65rem .75rem; font-size: 1rem; margin-top: .35rem; }
+    textarea { min-height: 16rem; font-family: ui-monospace, monospace; font-size: .82rem; }
+    .host-grid { display: grid; gap: .5rem; }
+    .prompt { background: #0f1728; border-radius: 10px; padding: .75rem; font-size: .92rem; line-height: 1.4; margin-bottom: .6rem; }
+    .log { font-size: .82rem; color: var(--muted); max-height: 8rem; overflow-y: auto; }
+    .log div { padding: .15rem 0; }
+    canvas { width: 100%; height: 180px; background: #0f1728; border-radius: 10px; display: block; }
+    .legend { display: flex; flex-wrap: wrap; gap: .6rem; font-size: .78rem; margin-top: .4rem; }
+    .legend span::before { content: ''; display: inline-block; width: .65rem; height: .65rem; border-radius: 50%; margin-right: .3rem; vertical-align: middle; }
+    .l1::before { background: var(--c1); } .l2::before { background: var(--c2); } .l3::before { background: var(--c3); }
+    .phase { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Network Diagnostic Probe</h1>
+    <div class="sub" id="version">...</div>
+  </header>
+  <nav>
+    <button class="active" data-panel="status">Stato</button>
+    <button data-panel="ping">Ping</button>
+    <button data-panel="discover">Discover</button>
+    <button data-panel="config">Config</button>
+  </nav>
+  <main>
+    <section class="panel active" id="panel-status">
+      <div class="card"><h2>Link</h2><div id="status-link"></div></div>
+      <div class="card"><h2>Rete</h2><div id="status-network"></div></div>
+      <div class="card"><h2>Switch</h2><div id="status-switch"></div></div>
+      <div class="card"><h2>Sistema</h2><div id="status-system"></div></div>
+      <div class="actions">
+        <button class="secondary" onclick="sendReport('status')">📧 Report stato</button>
+        <button class="secondary" onclick="sendReport('all')">📧 Report completo</button>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-ping">
+      <div class="card">
+        <h2>Ping live (fino a 3 host)</h2>
+        <p class="sub">I ping partono in parallelo. Grafico aggiornato in tempo reale.</p>
+        <div class="host-grid">
+          <input id="host1" placeholder="Host 1 (es. 8.8.8.8)">
+          <input id="host2" placeholder="Host 2 (opzionale)">
+          <input id="host3" placeholder="Host 3 (opzionale)">
+        </div>
+        <canvas id="ping-chart" width="600" height="240"></canvas>
+        <div class="legend">
+          <span class="l1" id="leg1">Host 1</span>
+          <span class="l2" id="leg2">Host 2</span>
+          <span class="l3" id="leg3">Host 3</span>
+        </div>
+        <div class="actions">
+          <button class="primary" id="live-start">Avvia grafico live</button>
+          <button class="secondary" id="live-stop" disabled>Ferma</button>
+          <button class="secondary" id="suite-run">Suite completa</button>
+        </div>
+        <p id="ping-msg" class="sub"></p>
+      </div>
+      <div class="card">
+        <h2>Ultimi risultati</h2>
+        <div id="ping-results"></div>
+        <div class="actions">
+          <button class="secondary" onclick="sendReport('ping')">📧 Report ping</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-discover">
+      <div class="card">
+        <h2>Wizard Up/Down</h2>
+        <div class="phase" id="disc-phase">idle</div>
+        <div class="prompt" id="disc-prompt">Caricamento...</div>
+        <div class="log" id="disc-log"></div>
+        <div class="actions">
+          <button class="primary" id="disc-start">Avvia wizard</button>
+          <button class="secondary" id="disc-continue" disabled>Continua</button>
+          <button class="secondary" id="disc-skip" disabled>Salta verifica</button>
+          <button class="danger" id="disc-cancel" disabled>Annulla</button>
+        </div>
+        <div id="disc-result" class="log"></div>
+        <div class="actions">
+          <button class="secondary" onclick="sendReport('discover')">📧 Report discover</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Scansione rapida ARP</h2>
+        <div class="actions"><button class="secondary" id="discover-scan">Scansiona rete</button></div>
+        <div id="discover-scan-results" class="log"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-config">
+      <div class="card">
+        <h2>config.yaml</h2>
+        <textarea id="yaml"></textarea>
+        <div class="actions">
+          <button class="primary" id="save">Salva</button>
+          <button class="secondary" id="reload">Ricarica</button>
+        </div>
+        <p id="msg"></p>
+      </div>
+    </section>
+  </main>
+  <script>
+    const COLORS = ['#50c878', '#5eb8ff', '#ffb85e'];
+    let liveSessionId = null;
+    let liveSource = null;
+    let chartSeries = {};
+    let chartHosts = [];
+    let statusData = null;
+
+    document.querySelectorAll('nav button').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+      };
+    });
+
+    function row(label, value, cls='') {
+      return `<div class="row"><span class="label">${label}</span><span class="${cls}">${value}</span></div>`;
+    }
+
+    async function loadVersion() {
+      const j = await (await fetch('/api/version')).json();
+      document.getElementById('version').textContent = `v${j.version} · ${j.interface}`;
+    }
+
+    function renderStatus(data) {
+      statusData = data;
+      const link = data.link || {}, ip = data.ip || {}, n = data.neighbor || {}, s = data.system || {};
+      document.getElementById('status-link').innerHTML = [
+        row('Stato', link.carrier ? 'UP' : 'DOWN', link.carrier ? 'ok' : 'bad'),
+        row('MAC', link.mac_address || 'n/a'),
+        row('Velocità', link.speed_mbps ? link.speed_mbps + ' Mbps' : 'n/a'),
+      ].join('');
+      const addresses = (ip.addresses || []).map(a => `${a.address}/${a.prefixlen}`).join(', ') || 'n/a';
+      document.getElementById('status-network').innerHTML = [
+        row('IP', addresses), row('Gateway', ip.gateway || 'n/a'),
+        row('DNS', (ip.dns_servers || []).join(', ') || 'n/a'),
+      ].join('');
+      document.getElementById('status-switch').innerHTML = n.available ? [
+        row('Protocollo', n.protocol || 'n/a'), row('Switch', n.switch_name || 'n/a'),
+        row('Porta', n.port_id || 'n/a'), row('VLAN', n.vlan_id || 'n/a'),
+      ].join('') : row('Stato', n.message || 'In attesa', 'bad');
+      document.getElementById('status-system').innerHTML = [
+        row('Hostname', s.hostname || 'n/a'),
+        row('Uptime', s.uptime_seconds != null ? Math.round(s.uptime_seconds) + ' s' : 'n/a'),
+        row('Temp', s.cpu_temperature_c != null ? s.cpu_temperature_c.toFixed(1) + ' °C' : 'n/a'),
+      ].join('');
+      renderPingResults(data.ping || {});
+    }
+
+    function renderPingResults(ping) {
+      const el = document.getElementById('ping-results');
+      if (ping.running) { el.innerHTML = row('Stato', ping.message || 'In corso...'); return; }
+      const results = ping.results || [];
+      if (!results.length) { el.innerHTML = '<div class="sub">Nessun risultato.</div>'; return; }
+      el.innerHTML = results.map(item => {
+        const ok = item.reachable;
+        const rtt = item.rtt_ms != null ? item.rtt_ms.toFixed(0) + ' ms' : 'FAIL';
+        return row(item.label || item.host, `${item.host} · ${rtt}`, ok ? 'ok' : 'bad');
+      }).join('');
+    }
+
+    async function loadStatus() {
+      const data = await (await fetch('/api/status')).json();
+      renderStatus(data);
+    }
+
+    async function sendReport(section) {
+      const r = await fetch('/api/report?section=' + encodeURIComponent(section));
+      const j = await r.json();
+      const url = 'mailto:?subject=' + encodeURIComponent(j.subject) + '&body=' + encodeURIComponent(j.body);
+      window.location.href = url;
+    }
+
+    function resetChart(hosts) {
+      chartHosts = hosts;
+      chartSeries = {};
+      hosts.forEach(h => chartSeries[h] = []);
+      hosts.forEach((h, i) => {
+        const leg = document.getElementById('leg' + (i+1));
+        if (leg) { leg.textContent = h; leg.style.display = 'inline'; }
+      });
+      for (let i = hosts.length; i < 3; i++) {
+        const leg = document.getElementById('leg' + (i+1));
+        if (leg) leg.style.display = 'none';
+      }
+      drawChart();
+    }
+
+    function drawChart() {
+      const canvas = document.getElementById('ping-chart');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = '#2a3a5c';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = 20 + (h - 40) * i / 4;
+        ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(w - 10, y); ctx.stroke();
+      }
+      let maxRtt = 50;
+      chartHosts.forEach(host => {
+        (chartSeries[host] || []).forEach(p => { if (p.rtt_ms) maxRtt = Math.max(maxRtt, p.rtt_ms); });
+      });
+      chartHosts.forEach((host, idx) => {
+        const points = chartSeries[host] || [];
+        if (!points.length) return;
+        ctx.strokeStyle = COLORS[idx];
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        points.forEach((p, i) => {
+          const x = 40 + (w - 50) * (i / Math.max(1, points.length - 1));
+          const y = p.rtt_ms == null ? h - 20 : h - 20 - (p.rtt_ms / maxRtt) * (h - 40);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      });
+      ctx.fillStyle = '#9eb0d0';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('0 ms', 4, h - 18);
+      ctx.fillText(Math.round(maxRtt) + ' ms', 4, 24);
+    }
+
+    function stopLive() {
+      if (liveSource) { liveSource.close(); liveSource = null; }
+      if (liveSessionId) {
+        fetch('/api/ping/live/' + liveSessionId + '/stop', {method: 'POST'});
+        liveSessionId = null;
+      }
+      document.getElementById('live-start').disabled = false;
+      document.getElementById('live-stop').disabled = true;
+    }
+
+    document.getElementById('live-start').onclick = async () => {
+      const hosts = ['host1','host2','host3'].map(id => document.getElementById(id).value.trim()).filter(Boolean);
+      if (!hosts.length) { document.getElementById('ping-msg').textContent = 'Inserisci almeno un host.'; return; }
+      stopLive();
+      resetChart(hosts);
+      const r = await fetch('/api/ping/live/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({hosts, interval: 1.0, max_samples: 60})
+      });
+      const j = await r.json();
+      if (!r.ok) { document.getElementById('ping-msg').textContent = j.detail || 'Errore'; return; }
+      liveSessionId = j.session_id;
+      document.getElementById('ping-msg').textContent = 'Ping live attivo...';
+      document.getElementById('live-start').disabled = true;
+      document.getElementById('live-stop').disabled = false;
+      liveSource = new EventSource('/api/ping/live/' + liveSessionId + '/events');
+      liveSource.onmessage = (ev) => {
+        const data = JSON.parse(ev.data);
+        if (data.type === 'sample') {
+          if (!chartSeries[data.host]) chartSeries[data.host] = [];
+          chartSeries[data.host].push(data);
+          if (chartSeries[data.host].length > 60) chartSeries[data.host].shift();
+          drawChart();
+        }
+        if (data.type === 'done') stopLive();
+      };
+    };
+
+    document.getElementById('live-stop').onclick = stopLive;
+
+    document.getElementById('suite-run').onclick = async () => {
+      const hosts = ['host1','host2','host3'].map(id => document.getElementById(id).value.trim()).filter(Boolean);
+      const msg = document.getElementById('ping-msg');
+      msg.textContent = 'Suite in corso...';
+      const r = await fetch('/api/ping/run', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({hosts: hosts.length ? hosts : null})
+      });
+      const j = await r.json();
+      msg.textContent = r.ok ? 'Completato.' : (j.detail || 'Errore');
+      renderPingResults(j);
+      loadStatus();
+    };
+
+    let discPoll = null;
+    function renderDiscover(d) {
+      document.getElementById('disc-phase').textContent = d.phase || 'idle';
+      document.getElementById('disc-prompt').textContent = d.prompt || '';
+      const log = (d.lines || d.display_lines || []).map(l => `<div>${l}</div>`).join('');
+      document.getElementById('disc-log').innerHTML = log;
+      const idle = d.idle && d.phase !== 'done';
+      document.getElementById('disc-start').disabled = !idle;
+      document.getElementById('disc-continue').disabled = !d.waiting_for_user;
+      document.getElementById('disc-skip').disabled = !(d.waiting_for_user && d.allow_skip);
+      document.getElementById('disc-cancel').disabled = idle && !d.error;
+      if (d.result && d.result.diff) {
+        const diff = d.result.diff;
+        let html = '';
+        if (diff.probable_match) {
+          const h = diff.probable_match;
+          html = `<div class="ok">MATCH: ${h.ip} ${h.mac}</div>`;
+        } else if (diff.offline_hosts && diff.offline_hosts.length) {
+          html = diff.offline_hosts.map(h => `<div>${h.ip} ${h.mac}</div>`).join('');
+        }
+        document.getElementById('disc-result').innerHTML = html;
+      }
+    }
+
+    async function pollDiscover() {
+      const d = await (await fetch('/api/discover/updown')).json();
+      renderDiscover(d);
+    }
+
+    function startDiscPoll() {
+      if (discPoll) return;
+      discPoll = setInterval(pollDiscover, 1000);
+    }
+
+    document.getElementById('disc-start').onclick = async () => {
+      await fetch('/api/discover/updown/start', {method: 'POST'});
+      startDiscPoll(); pollDiscover();
+    };
+    document.getElementById('disc-continue').onclick = async () => {
+      await fetch('/api/discover/updown/continue', {method: 'POST'});
+      pollDiscover();
+    };
+    document.getElementById('disc-skip').onclick = async () => {
+      await fetch('/api/discover/updown/skip', {method: 'POST'});
+      pollDiscover();
+    };
+    document.getElementById('disc-cancel').onclick = async () => {
+      await fetch('/api/discover/updown/cancel', {method: 'POST'});
+      pollDiscover();
+    };
+
+    document.getElementById('discover-scan').onclick = async () => {
+      const el = document.getElementById('discover-scan-results');
+      el.textContent = 'Scansione...';
+      const r = await fetch('/api/discover/scan');
+      const j = await r.json();
+      if (!r.ok) { el.textContent = j.detail || 'Errore'; return; }
+      const hosts = j.hosts || [];
+      el.innerHTML = hosts.slice(0, 30).map(h => `<div>${h.ip} · ${h.mac}</div>`).join('') ||
+        '<div>Nessun host</div>';
+    };
+
+    document.getElementById('reload').onclick = () => { loadConfig(); loadStatus(); };
+    async function loadConfig() {
+      document.getElementById('yaml').value = (await (await fetch('/api/config')).json()).yaml || '';
+    }
+    document.getElementById('save').onclick = async () => {
+      const msgEl = document.getElementById('msg');
+      const r = await fetch('/api/config', {
+        method: 'PUT', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({yaml: document.getElementById('yaml').value})
+      });
+      const j = await r.json();
+      msgEl.textContent = r.ok ? 'Salvato.' : (j.detail || 'Errore');
+      msgEl.className = r.ok ? 'ok' : 'bad';
+    };
+
+    loadVersion(); loadConfig(); loadStatus(); pollDiscover(); startDiscPoll();
+    setInterval(loadStatus, 5000);
+  </script>
+</body>
+</html>

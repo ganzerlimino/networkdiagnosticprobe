@@ -6,6 +6,13 @@ Collegando il probe a una porta switch, NDP mostra informazioni L2 (LLDP/CDP) e 
 
 ## Stato del progetto
 
+**v0.8 — Web mobile avanzata**
+
+- Wizard **Discover Up/Down** guidato da telefono (prompt + Continua/Salta)
+- **Ping live** verso 3 host in parallelo con grafico RTT in tempo reale (SSE)
+- **Report email** via app mail del telefono (`mailto:`) per pagina o report completo
+- Suite ping parallelizzata (fino a 3 worker)
+
 **v0.7 — Display read-only + telefono come controllo**
 
 - TFT a **rotazione automatica** delle schermate (nessun tasto/encoder necessario)
@@ -209,9 +216,10 @@ discovery:
 Con `web.enabled: true` apri `http://<ip-della-pi>:8080/` da browser sulla stessa rete:
 
 - **Stato** — link, IP, LLDP, sistema (aggiornamento automatico)
-- **Ping** — esegui suite ICMP, host ad-hoc temporaneo
-- **Discover** — scansione ARP della subnet (wizard Up/Down completo via CLI/SSH)
+- **Ping** — grafico live 1–3 host in parallelo, suite ICMP completa
+- **Discover** — wizard Up/Down guidato + scansione ARP rapida
 - **Config** — modifica e salva `/etc/ndp/config.yaml`
+- **Email** — pulsanti 📧 per inviare report pagina o completo (apre l'app mail del telefono)
 
 Dopo modifiche al config: `sudo systemctl restart ndp`
 

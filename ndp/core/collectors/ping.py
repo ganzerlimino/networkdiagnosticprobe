@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ndp.core.ping_state import PingResult
 
@@ -93,3 +94,35 @@ def _parse_ping_output(host: str, count: int, output: str, returncode: int) -> P
         rtt_ms=rtt_ms,
         message=message,
     )
+
+
+def ping_hosts_parallel(
+    hosts: list[str],
+    *,
+    count: int = 2,
+    timeout_seconds: float = 2.0,
+    max_workers: int = 3,
+) -> dict[str, PingResult]:
+    """Ping up to max_workers hosts concurrently."""
+    unique_hosts = list(dict.fromkeys(host.strip() for host in hosts if host.strip()))
+    if not unique_hosts:
+        return {}
+
+    workers = min(max(1, max_workers), len(unique_hosts), 3)
+    results: dict[str, PingResult] = {}
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {
+            executor.submit(
+                ping_host,
+                host,
+                count=count,
+                timeout_seconds=timeout_seconds,
+            ): host
+            for host in unique_hosts
+        }
+        for future in as_completed(futures):
+            host = futures[future]
+            results[host] = future.result()
+
+    return results

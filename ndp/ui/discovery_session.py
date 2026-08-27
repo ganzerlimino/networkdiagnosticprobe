@@ -121,6 +121,45 @@ class DiscoveryUISession:
                 return True
         return False
 
+    def _web_prompt_message_unlocked(self) -> str:
+        if self._waiting_for_user:
+            if self._phase == WizardPhase.WAIT_UNPLUG:
+                return "Stacca il dispositivo da cercare, poi tocca Continua."
+            if self._phase == WizardPhase.VERIFY_REPLUG:
+                return "Ricollega il dispositivo. Continua per verificare o Salta."
+            return "Tocca Continua per proseguire."
+        if self._phase == WizardPhase.DONE and self._result is not None:
+            return "Wizard completato."
+        if self._error:
+            return "Si è verificato un errore. Puoi riavviare il wizard."
+        if self.is_idle():
+            return "Avvia il wizard Up/Down per trovare un device scollegandolo dalla rete."
+        if self._countdown is not None:
+            return f"Attesa rete ({self._countdown}s)..."
+        return "Wizard in corso..."
+
+    def to_api_dict(self) -> dict[str, object]:
+        with self._lock:
+            if self._phase == WizardPhase.DONE and self._result is not None:
+                display_lines = compact_diff_lines(self._result.diff)[:10]
+            else:
+                display_lines = list(self._lines[-10:])
+            payload: dict[str, object] = {
+                "idle": self.is_idle(),
+                "running": self._running,
+                "phase": self._phase.value,
+                "waiting_for_user": self._waiting_for_user,
+                "allow_skip": self._waiting_allow_skip,
+                "countdown": self._countdown,
+                "lines": list(self._lines[-20:]),
+                "display_lines": display_lines,
+                "prompt": self._web_prompt_message_unlocked(),
+                "error": self._error,
+            }
+            if self._phase == WizardPhase.DONE and self._result is not None:
+                payload["result"] = self._result.to_dict()
+            return payload
+
     def display_lines(self) -> list[str]:
         with self._lock:
             if self.is_idle() and self._phase != WizardPhase.DONE:
