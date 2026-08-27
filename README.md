@@ -6,6 +6,13 @@ Collegando il probe a una porta switch, NDP mostra informazioni L2 (LLDP/CDP) e 
 
 ## Stato del progetto
 
+**v0.7 — Display read-only + telefono come controllo**
+
+- TFT a **rotazione automatica** delle schermate (nessun tasto/encoder necessario)
+- **Web UI mobile** come strumento principale: stato, ping, scan ARP, config
+- `ui.input: none` — nessun GPIO input sul dispositivo
+- Il touchscreen del display Joy-it **non è usato** (solo framebuffer)
+
 **v0.5 — Ping diagnostico**
 
 - ICMP verso **8.8.8.8**, **1.1.1.1**, fino a **4 host in config**, più **1 adhoc** al volo
@@ -47,13 +54,30 @@ Prossime milestone: immagine SD pronta al flash, hotspot Wi-Fi per accesso remot
 | Componente | Modello |
 |------------|---------|
 | SBC | Raspberry Pi 3 Model B/B+ |
-| Display | Joy-it RB-TFT3.2 (3 pulsanti GPIO **oppure** encoder KY-040) |
+| Display | Joy-it RB-TFT3.2 (solo output, no touch) |
+| Controllo | Smartphone via browser (`http://<ip-pi>:8080`) |
 | Rete | Ethernet RJ45 integrata |
 | Alimentazione | Powerbank USB 5V |
 
 Il Pi 3 è scelto per il **basso costo**. Un boot di 60–90 secondi è accettabile per uno strumento da campo, non per un dispositivo consumer.
 
 ## Architettura software
+
+```
+                    ┌─────────────────┐
+  Smartphone  ─────►│  Web UI :8080   │  ping, discover, config
+                    └────────┬────────┘
+                             │
+ndp-core (polling) ◄─────────┤
+    ├── collectors/          │
+    └── engine               ▼
+                    ┌─────────────────┐
+                    │  TFT /dev/fb1   │  mirror read-only, auto-cycle
+                    └─────────────────┘
+```
+
+Il display mostra i risultati in rotazione (Home → Switch → Network → Ping → System).  
+Tutta l'interazione (ping, scan rete, configurazione) avviene dal **telefono** sulla stessa rete.
 
 ```
 ndp-core (polling)
@@ -70,7 +94,26 @@ ndp-discovery
 ndp.service (systemd) → avvio automatico all'accensione
 ```
 
-La UI locale (Pygame) e la Web UI (FastAPI) saranno client dello stesso stato condiviso.
+La UI locale (Pygame) è un **pannello informativo**; la Web UI (FastAPI) è il **piano di controllo**.
+
+### Profilo consigliato (Pi con display)
+
+```yaml
+ui:
+  enabled: true
+  input: none
+  auto_cycle_seconds: 8
+  hint_edge: none
+  content_margin_side: 0
+
+web:
+  enabled: true
+  port: 8080
+```
+
+Apri `http://<ip-della-pi>:8080/` dal telefono (stessa rete Ethernet/Wi-Fi della Pi).
+
+> Il touchscreen resistivo del Joy-it non è utilizzato da NDP. Non serve calibrarlo né abilitare driver touch.
 
 ## Installazione rapida su Raspberry Pi
 
@@ -148,93 +191,35 @@ File predefinito: `/etc/ndp/config.yaml` — ogni chiave è commentata nel templ
 ```yaml
 ui:
   enabled: true
-  font_size: 14
-  splash_enabled: true
-  button_poll_hz: 200
-
-  # Encoder KY-040 (alternativa ai 3 tasti TFT):
-  # input: encoder
-  # hint_edge: none
-  # content_margin_side: 0
-  # encoder_clk: 5
-  # encoder_dt: 6
-  # encoder_sw: 19
+  input: none
+  auto_cycle_seconds: 8
+  hint_edge: none
+  content_margin_side: 0
 
 web:
-  enabled: true    # http://<ip-pi>:8080/ per modificare il YAML
+  enabled: true
+  port: 8080
 
 discovery:
   disconnect_wait_seconds: 8
 ```
 
-## Web UI configurazione
+## Web UI (controllo da telefono)
 
 Con `web.enabled: true` apri `http://<ip-della-pi>:8080/` da browser sulla stessa rete:
 
-- visualizza lo stato probe (JSON)
-- modifica e salva `/etc/ndp/config.yaml`
-- riavvia il servizio per applicare: `sudo systemctl restart ndp`
+- **Stato** — link, IP, LLDP, sistema (aggiornamento automatico)
+- **Ping** — esegui suite ICMP, host ad-hoc temporaneo
+- **Discover** — scansione ARP della subnet (wizard Up/Down completo via CLI/SSH)
+- **Config** — modifica e salva `/etc/ndp/config.yaml`
+
+Dopo modifiche al config: `sudo systemctl restart ndp`
 
 Il Wi-Fi hotspot è previsto in una fase successiva; per ora usa Ethernet o la rete Wi-Fi già configurata sulla Pi.
 
-## Encoder KY-040 (navigazione senza tasti TFT)
+### Input opzionale sul dispositivo
 
-Il display Joy-it RB-TFT3.2-V3 si innesta sui **primi 26 pin fisici** del GPIO (pin 1–26). Tutti i GPIO in quella zona sono occupati da SPI, retroilluminazione e tasti integrati. L'encoder va quindi collegato ai **pin 27–40** (fila esterna, sotto il display).
-
-### Pin liberi (Raspberry Pi 3, BCM)
-
-| GPIO (BCM) | Pin fisico | Note |
-|------------|------------|------|
-| **5** | 29 | Consigliato — CLK encoder |
-| **6** | 31 | Consigliato — DT encoder |
-| **19** | 35 | Consigliato — SW (click) |
-| 16 | 36 | Alternativa |
-| 20 | 38 | Alternativa |
-| 21 | 40 | Alternativa |
-| 26 | 37 | Alternativa |
-| 12 | 32 | PWM hardware (ok per encoder) |
-| 0 | 27 | Evitare se usi HAT con EEPROM |
-| 1 | 28 | Evitare se usi HAT con EEPROM |
-
-**GND** sui pin fisici **30**, **33** o **39** (tutti fuori dallo stack display).
-
-**3.3V:** non c'è sui pin 27–40. Opzioni: cavo saldato su pin **1** o **17** (sotto il display), oppure extender GPIO a passante.
-
-### Cablaggio consigliato
-
-| Pin KY-040 | Collegamento Pi | Funzione |
-|------------|-----------------|----------|
-| `+` | 3.3V (pin 1 o 17, via extender/saldo) | Alimentazione |
-| `GND` | GND (pin **30**, 33 o 39) | Massa |
-| `CLK` | **GPIO 5** (pin 29) | Quadratura rotazione |
-| `DT` | **GPIO 6** (pin 31) | Quadratura rotazione |
-| `SW` | **GPIO 19** (pin 35) | Click (conferma / avvia) |
-
-GPIO occupati **sotto** il display (pin 1–26), da non usare per l'encoder:
-
-| Uso | GPIO (BCM) | Pin fisico |
-|-----|------------|------------|
-| SPI display | 7, 8, 9, 10, 11 | 26, 24, 21, 19, 23 |
-| Retroilluminazione | 18 | 12 |
-| Tasti TFT (opzionali) | 23, 24, 25 | 16, 18, 22 |
-| Altri sullo stack | 2, 3, 4, 14, 15, 17, 22, 27 | vari |
-
-**Comportamento:** ruota per cambiare schermata; click per aggiornare dati, avviare ping o il wizard Discover. Sullo step di verifica Discover, ruota in avanti per saltare.
-
-Esempio in `/etc/ndp/config.yaml`:
-
-```yaml
-ui:
-  input: encoder
-  hint_edge: none
-  content_margin_side: 0
-  encoder_clk: 5
-  encoder_dt: 6
-  encoder_sw: 19
-  button_poll_hz: 200
-```
-
-Dopo la modifica: `sudo systemctl restart ndp`.
+Per prototipi con tasti TFT o encoder KY-040, imposta `ui.input: buttons` o `ui.input: encoder` in config. Il profilo di prodotto consigliato resta `none` (solo telefono).
 
 ## Immagine SD pronta al flash
 
@@ -255,8 +240,8 @@ La fase successiva automatizzerà questi passi con una stage **pi-gen** dedicata
 | 1 | Core engine Python | ✅ v0.1 |
 | 1b | Discovery Up/Down wizard | ✅ v0.2 |
 | 2 | UI Pygame su framebuffer | ✅ v0.3 |
-| 2b | Discover su TFT + splash | ✅ v0.4 |
-| 2c | Encoder KY-040 al posto dei tasti | ✅ v0.6 |
+| 2b | Splash + schermate TFT | ✅ v0.4 |
+| 2c | Display read-only + web mobile | ✅ v0.7 |
 | 3 | Immagine SD custom (pi-gen) | Prossima |
 | 4 | Web config HTTP | ✅ v0.4 (senza hotspot) |
 | 4b | Hotspot Wi-Fi | Ultima — dopo funzioni core |

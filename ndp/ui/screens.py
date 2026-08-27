@@ -26,8 +26,20 @@ SCREEN_TITLES = {
 }
 
 
-def next_screen(current: ScreenId, step: int = 1) -> ScreenId:
-    values = list(ScreenId)
+def screen_ids_for_mode(interactive: bool) -> list[ScreenId]:
+    """Display-only mode skips the Discover wizard screen."""
+    if interactive:
+        return list(ScreenId)
+    return [screen for screen in ScreenId if screen != ScreenId.DISCOVER]
+
+
+def next_screen(
+    current: ScreenId,
+    step: int = 1,
+    *,
+    screens: list[ScreenId] | None = None,
+) -> ScreenId:
+    values = screens or list(ScreenId)
     index = (values.index(current) + step) % len(values)
     return values[index]
 
@@ -46,7 +58,13 @@ def _ping_line(label: str, host: str, reachable: bool, rtt_ms: float | None, mes
     return f"{short_label} {short_host} FAIL"
 
 
-def lines_for_screen(screen: ScreenId, state: ProbeState) -> list[str]:
+def lines_for_screen(
+    screen: ScreenId,
+    state: ProbeState,
+    *,
+    interactive: bool = False,
+    web_port: int = 8080,
+) -> list[str]:
     if screen == ScreenId.HOME:
         ip = "n/a"
         if state.ip.addresses:
@@ -94,14 +112,16 @@ def lines_for_screen(screen: ScreenId, state: ProbeState) -> list[str]:
             return ["Ping in corso...", "", state.ping.message]
         if not state.ping.results:
             adhoc = state.ping.adhoc_host or "n/a"
-            return [
+            lines = [
                 "8.8.8.8 + 1.1.1.1",
                 f"Adhoc: {adhoc[:16]}",
                 "",
-                "○ esegui ping",
-                "ndp test ping",
-                "--adhoc HOST",
             ]
+            if interactive:
+                lines.extend(["○ esegui ping", "ndp test ping", "--adhoc HOST"])
+            else:
+                lines.append(f"Avvia da telefono :{web_port}")
+            return lines
         lines = [
             _ping_line(
                 item.label,
@@ -114,7 +134,8 @@ def lines_for_screen(screen: ScreenId, state: ProbeState) -> list[str]:
         ]
         if state.ping.adhoc_host:
             lines.append(f"Adhoc {state.ping.adhoc_host[:16]}")
-        lines.append("○ ripeti")
+        if interactive:
+            lines.append("○ ripeti")
         return lines[:7]
 
     if screen == ScreenId.SYSTEM:
@@ -125,12 +146,26 @@ def lines_for_screen(screen: ScreenId, state: ProbeState) -> list[str]:
         if state.system.cpu_temperature_c is not None:
             temp = f"{state.system.cpu_temperature_c:.1f} C"
 
-        return [
+        lines = [
             f"Host  {_fmt(state.system.hostname)}",
             f"Up    {uptime}",
             f"Temp  {temp}",
             f"IF    {state.interface}",
-            "NDP ready",
+        ]
+        if interactive:
+            lines.append("NDP ready")
+        else:
+            lines.append(f"Web  :{web_port}")
+        return lines
+
+    if screen == ScreenId.DISCOVER:
+        if interactive:
+            return ["Discover screen"]
+        return [
+            "Up/Down scan",
+            "Solo da telefono",
+            "o CLI:",
+            "ndp discover updown",
         ]
 
-    return ["Discover screen"]
+    return []

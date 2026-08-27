@@ -17,6 +17,7 @@ from ndp.cli.test_display import add_test_subparser, run_test_command
 from ndp.console import render_status
 from ndp.core.config import load_config
 from ndp.core.engine import ProbeEngine
+from ndp.core.ping_state import PingSuiteState
 from ndp.core.state import ProbeState
 
 logger = logging.getLogger(__name__)
@@ -64,7 +65,18 @@ def run_web_only(config_path: Path | None) -> int:
             return state
 
     config_file = config.source_path or resolve_config_path(config_path)
-    start_web_server(config, config_file, get_state)
+
+    def _set_ping(suite: PingSuiteState) -> None:
+        nonlocal state
+        with lock:
+            state.ping = suite
+
+    start_web_server(
+        config,
+        config_file,
+        get_state,
+        on_ping_complete=_set_ping,
+    )
 
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)

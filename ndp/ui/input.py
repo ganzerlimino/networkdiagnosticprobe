@@ -1,4 +1,4 @@
-"""Factory for TFT UI input devices (buttons or rotary encoder)."""
+"""Factory for TFT UI input devices (buttons, encoder, or none)."""
 
 from __future__ import annotations
 
@@ -22,7 +22,29 @@ class UIInputDevice(Protocol):
     def __exit__(self, *args: object) -> None: ...
 
 
+class NoOpInput:
+    """Display-only mode: no GPIO buttons or encoder."""
+
+    def open(self) -> None:
+        return None
+
+    def close(self) -> None:
+        return None
+
+    def poll(self, handler: Callable[[ButtonAction], None]) -> None:
+        return None
+
+    def __enter__(self) -> NoOpInput:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+
 def create_ui_input(config: NdpConfig) -> UIInputDevice:
+    if config.ui_input == "none":
+        return NoOpInput()
+
     if config.ui_input == "encoder":
         return RotaryEncoder(
             EncoderMapping(

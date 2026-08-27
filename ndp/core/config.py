@@ -30,7 +30,8 @@ class NdpConfig:
     ui_rgb565_swap_bytes: bool = False
     ui_font_size: int = 14
     ui_fps: int = 20
-    ui_input: str = "buttons"
+    ui_input: str = "none"
+    ui_auto_cycle_seconds: float = 8.0
     ui_button_previous: int = 23
     ui_button_select: int = 24
     ui_button_next: int = 25
@@ -42,8 +43,8 @@ class NdpConfig:
     ui_button_debounce_seconds: float = 0.03
     ui_button_trigger_mode: str = "edge"
     ui_button_press_confirm_ms: int = 0
-    ui_hint_edge: str = "left"
-    ui_content_margin_side: int = 28
+    ui_hint_edge: str = "none"
+    ui_content_margin_side: int = 0
     ui_content_text_gap: int = 0
     ui_hint_y_offset: int = 24
     ui_splash_enabled: bool = True
@@ -54,7 +55,7 @@ class NdpConfig:
     ui_line_spacing: int = 6
     console_enabled: bool = True
     console_refresh_seconds: float = 5.0
-    web_enabled: bool = False
+    web_enabled: bool = True
     web_host: str = "0.0.0.0"
     web_port: int = 8080
     log_level: str = "INFO"
@@ -79,9 +80,10 @@ class NdpConfig:
         custom_targets = ping.get("custom_targets", [])
         if not isinstance(custom_targets, list):
             custom_targets = []
-        ui_input = str(ui.get("input", "buttons"))
-        hint_edge_default = "none" if ui_input == "encoder" else "left"
-        margin_default = 0 if ui_input == "encoder" else 28
+        ui_input = str(ui.get("input", "none"))
+        passive_input = ui_input in {"encoder", "none"}
+        hint_edge_default = "none" if passive_input else "left"
+        margin_default = 0 if passive_input else 28
         return cls(
             interface=str(data.get("interface", "eth0")),
             poll_interval_link_up=float(data.get("poll_interval_link_up", 1)),
@@ -100,6 +102,7 @@ class NdpConfig:
             ui_font_size=int(ui.get("font_size", 14)),
             ui_fps=int(ui.get("fps", 20)),
             ui_input=ui_input,
+            ui_auto_cycle_seconds=float(ui.get("auto_cycle_seconds", 8)),
             ui_button_previous=int(ui.get("button_previous", 23)),
             ui_button_select=int(ui.get("button_select", 24)),
             ui_button_next=int(ui.get("button_next", 25)),

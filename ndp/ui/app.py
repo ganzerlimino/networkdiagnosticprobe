@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from ndp import __version__
 from ndp.core.config import NdpConfig
 from ndp.core.engine import ProbeEngine
+from ndp.core.ping_state import PingSuiteState
 from ndp.core.state import ProbeState
 from ndp.ui.backlight import enable_backlight
 from ndp.ui.buttons import ButtonAction
@@ -20,7 +21,8 @@ from ndp.ui.input import create_ui_input
 from ndp.ui.discovery_session import DiscoveryUISession
 from ndp.ui.framebuffer import RawFramebuffer
 from ndp.ui.layout import content_text_x, content_width, content_x_offset, draw_button_hints
-from ndp.ui.screens import ScreenId, lines_for_screen, next_screen
+from ndp.ui.screens import ScreenId, lines_for_screen, next_screen, screen_ids_for_mode
+from ndp.ui.splash import draw_splash
 from ndp.ping.service import read_adhoc_host, run_ping_suite
 
 if TYPE_CHECKING:
@@ -133,15 +135,36 @@ class ProbeUI:
         self._state = ProbeState(interface=config.interface)
         self._redraw_now = threading.Event()
         self._button_queue: queue.SimpleQueue[ButtonAction] = queue.SimpleQueue()
-        self._discovery = DiscoveryUISession(config, on_activity=self._request_redraw)
-        self._input_device = create_ui_input(config)
+        self._interactive = config.ui_input != "none"
+        self._display_screens = screen_ids_for_mode(self._interactive)
+        self._discovery = (
+            DiscoveryUISession(config, on_activity=self._request_redraw)
+            if self._interactive
+            else None
+        )
+        self._input_device = create_ui_input(config) if self._interactive else None
         self._web_thread: threading.Thread | None = None
         self._ping_thread: threading.Thread | None = None
+        self._last_cycle_at = time.monotonic()
         self._state.ping.adhoc_host = read_adhoc_host(Path(config.ping_adhoc_path))
+
+    @property
+    def display_only(self) -> bool:
+        return not self._interactive
 
     def get_state(self) -> ProbeState:
         with self._lock:
             return self._state
+
+    def update_ping_state(self, suite: PingSuiteState) -> None:
+        with self._lock:
+            self._state.ping = suite
+        self._request_redraw()
+
+    def refresh_adhoc_host(self) -> None:
+        with self._lock:
+            self._state.ping.adhoc_host = read_adhoc_host(Path(self.config.ping_adhoc_path))
+        self._request_redraw()
 
     def _request_redraw(self) -> None:
         self._redraw_now.set()
@@ -158,6 +181,8 @@ class ProbeUI:
             self._on_button(action)
 
     def _input_loop(self) -> None:
+        if self._input_device is None:
+            return
         poll_interval = 1.0 / max(50, self.config.ui_button_poll_hz)
         while not self._stop.is_set():
             self._input_device.poll(self._enqueue_button)
@@ -169,9 +194,31 @@ class ProbeUI:
                 self._force_refresh.clear()
             with self._lock:
                 self._state = self.engine.refresh()
+                self._state.ping.adhoc_host = read_adhoc_host(
+                    Path(self.config.ping_adhoc_path)
+                )
             time.sleep(self.engine.poll_interval())
 
+    def _maybe_auto_cycle(self, now: float) -> None:
+        interval = self.config.ui_auto_cycle_seconds
+        if interval <= 0 or not self.display_only:
+            return
+        if now - self._last_cycle_at < interval:
+            return
+        self._last_cycle_at = now
+        previous = self._screen
+        self._screen = next_screen(
+            self._screen,
+            1,
+            screens=self._display_screens,
+        )
+        if self._screen != previous:
+            logger.debug("UI auto-cycle -> %s", self._screen.name)
+
     def _on_button(self, action: ButtonAction) -> None:
+        if not self._interactive or self._discovery is None:
+            return
+
         if self._screen == ScreenId.DISCOVER:
             if action == ButtonAction.SELECT:
                 self._discovery.on_select()
@@ -184,7 +231,7 @@ class ProbeUI:
                 if self._discovery.running:
                     self._discovery.cancel()
                 else:
-                    self._screen = next_screen(self._screen, -1)
+                    self._screen = next_screen(self._screen, -1, screens=self._display_screens)
                     logger.info("UI screen -> %s", self._screen.name)
                 self._redraw_now.set()
                 return
@@ -192,7 +239,7 @@ class ProbeUI:
                 if not self._discovery.is_idle():
                     self._redraw_now.set()
                     return
-                self._screen = next_screen(self._screen, 1)
+                self._screen = next_screen(self._screen, 1, screens=self._display_screens)
                 logger.info("UI screen -> %s", self._screen.name)
                 self._redraw_now.set()
                 return
@@ -204,9 +251,9 @@ class ProbeUI:
 
         previous = self._screen
         if action == ButtonAction.PREVIOUS:
-            self._screen = next_screen(self._screen, -1)
+            self._screen = next_screen(self._screen, -1, screens=self._display_screens)
         elif action == ButtonAction.NEXT:
-            self._screen = next_screen(self._screen, 1)
+            self._screen = next_screen(self._screen, 1, screens=self._display_screens)
         elif action == ButtonAction.SELECT:
             self._force_refresh.set()
 
@@ -231,9 +278,7 @@ class ProbeUI:
                 gateway=gateway,
                 adhoc_path=Path(self.config.ping_adhoc_path),
             )
-            with self._lock:
-                self._state.ping = suite
-            self._redraw_now.set()
+            self.update_ping_state(suite)
 
         self._ping_thread = threading.Thread(target=_worker, daemon=True, name="ndp-ping")
         self._ping_thread.start()
@@ -257,8 +302,13 @@ class ProbeUI:
                 if self.config.ui_warmup_on_start:
                     with self._lock:
                         self._state = self.engine.refresh()
-                    for sid in ScreenId:
-                        for line in lines_for_screen(sid, self._state):
+                    for sid in self._display_screens:
+                        for line in lines_for_screen(
+                            sid,
+                            self._state,
+                            interactive=self._interactive,
+                            web_port=self.config.web_port,
+                        ):
                             body_font.render(line, True, COLOR_TEXT)
                 warmup_done.set()
             except Exception as exc:  # pragma: no cover
@@ -307,6 +357,8 @@ class ProbeUI:
                 self.config,
                 config_path,
                 self.get_state,
+                on_ping_complete=self.update_ping_state,
+                on_adhoc_changed=self.refresh_adhoc_host,
             )
 
         if self.config.ui_backlight_enabled:
@@ -318,48 +370,69 @@ class ProbeUI:
         body_font = _load_font(self.config.ui_font_size)
         hint_font = _load_font(max(12, self.config.ui_font_size - 2))
 
+        mode = "display-only" if self.display_only else f"input={self.config.ui_input}"
+        logger.info("TFT UI started (%s, auto-cycle=%ss)", mode, self.config.ui_auto_cycle_seconds)
+
         self._run_startup(screen, raw_fb, title_font, body_font, hint_font)
 
         worker = threading.Thread(target=self._engine_loop, daemon=True, name="ndp-engine")
         worker.start()
 
         try:
-            with self._input_device:
-                input_thread = threading.Thread(
-                    target=self._input_loop,
-                    daemon=True,
-                    name="ndp-input",
-                )
-                input_thread.start()
-                last_frame = time.monotonic()
-                frame_interval = 1.0 / max(1, self.config.ui_fps)
-
-                while not self._stop.is_set():
-                    for event in pygame.event.get():
-                        if event.type == pygame.QUIT:
-                            self._stop.set()
-
-                    self._drain_button_queue()
-
-                    now = time.monotonic()
-                    if self._redraw_now.is_set() or (now - last_frame) >= frame_interval:
-                        self._redraw_now.clear()
-
-                        with self._lock:
-                            state = self._state
-                            current = self._screen
-
-                        self._draw(screen, title_font, body_font, hint_font, current, state)
-                        _blit_frame(screen, raw_fb)
-                        last_frame = now
-                    else:
-                        time.sleep(0.002)
+            if self._input_device is not None:
+                with self._input_device:
+                    input_thread = threading.Thread(
+                        target=self._input_loop,
+                        daemon=True,
+                        name="ndp-input",
+                    )
+                    input_thread.start()
+                    self._main_loop(screen, raw_fb, title_font, body_font, hint_font)
+            else:
+                self._main_loop(screen, raw_fb, title_font, body_font, hint_font)
         finally:
             if raw_fb is not None:
                 raw_fb.close()
             pygame.quit()
 
         return 0
+
+    def _main_loop(
+        self,
+        screen: pygame.Surface,
+        raw_fb: RawFramebuffer | None,
+        title_font: pygame.font.Font,
+        body_font: pygame.font.Font,
+        hint_font: pygame.font.Font,
+    ) -> None:
+        import pygame
+
+        last_frame = time.monotonic()
+        frame_interval = 1.0 / max(1, self.config.ui_fps)
+
+        while not self._stop.is_set():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self._stop.set()
+
+            if self._interactive:
+                self._drain_button_queue()
+
+            now = time.monotonic()
+            self._maybe_auto_cycle(now)
+
+            if self._redraw_now.is_set() or (now - last_frame) >= frame_interval:
+                self._redraw_now.clear()
+
+                with self._lock:
+                    state = self._state
+                    current = self._screen
+
+                self._draw(screen, title_font, body_font, hint_font, current, state)
+                _blit_frame(screen, raw_fb)
+                last_frame = now
+            else:
+                time.sleep(0.002)
 
     def stop(self) -> None:
         self._stop.set()
@@ -396,10 +469,19 @@ class ProbeUI:
             (content_x + text_width - dots_surface.get_width() - 8, 10),
         )
 
-        if screen_id == ScreenId.DISCOVER:
+        if (
+            self._interactive
+            and screen_id == ScreenId.DISCOVER
+            and self._discovery is not None
+        ):
             body_lines = self._discovery.display_lines()
         else:
-            body_lines = lines_for_screen(screen_id, state)
+            body_lines = lines_for_screen(
+                screen_id,
+                state,
+                interactive=self._interactive,
+                web_port=self.config.web_port,
+            )
 
         y = 42
         line_step = self.config.ui_font_size + self.config.ui_line_spacing
@@ -411,20 +493,24 @@ class ProbeUI:
             surface.blit(rendered, (text_x, y))
             y += line_step
 
-        draw_button_hints(
-            surface,
-            hint_font,
-            edge=self.config.ui_hint_edge,
-            width=self.config.ui_width,
-            height=self.config.ui_height,
-            color=COLOR_MUTED,
-            margin=margin,
-            y_offset=self.config.ui_hint_y_offset,
-        )
+        if self._interactive:
+            draw_button_hints(
+                surface,
+                hint_font,
+                edge=self.config.ui_hint_edge,
+                width=self.config.ui_width,
+                height=self.config.ui_height,
+                color=COLOR_MUTED,
+                margin=margin,
+                y_offset=self.config.ui_hint_y_offset,
+            )
+        elif self.config.web_enabled:
+            footer = hint_font.render(f"Telefono :{self.config.web_port}", True, COLOR_MUTED)
+            surface.blit(footer, (text_x, self.config.ui_height - footer.get_height() - 4))
 
     def _screen_dots(self, active: ScreenId) -> str:
         parts = []
-        for screen in ScreenId:
+        for screen in self._display_screens:
             parts.append("*" if screen == active else "-")
         return " ".join(parts)
 

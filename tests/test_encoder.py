@@ -63,12 +63,19 @@ def test_create_ui_input_buttons() -> None:
     assert isinstance(device, PhysicalButtons)
 
 
-def test_config_encoder_defaults() -> None:
+def test_create_ui_input_none() -> None:
+    from ndp.core.config import NdpConfig
+    from ndp.ui.input import NoOpInput, create_ui_input
+
+    config = NdpConfig(ui_input="none")
+    device = create_ui_input(config)
+    assert isinstance(device, NoOpInput)
+
+
+def test_config_display_defaults() -> None:
     from ndp.core.config import NdpConfig
 
-    config = NdpConfig.from_mapping({"ui": {"input": "encoder"}})
+    config = NdpConfig.from_mapping({"ui": {"input": "none"}})
     assert config.ui_hint_edge == "none"
     assert config.ui_content_margin_side == 0
-    assert config.ui_encoder_clk == 5
-    assert config.ui_encoder_dt == 6
-    assert config.ui_encoder_sw == 19
+    assert config.ui_auto_cycle_seconds == 8.0

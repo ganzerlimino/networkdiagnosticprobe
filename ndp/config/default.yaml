@@ -15,8 +15,8 @@ lldp:
   # Secondi di validità della cache LLDP/CDP prima di considerare i dati vecchi.
 
 ui:
-  enabled: false
-  # true = avvia l'interfaccia grafica sul display TFT; false = solo motore/CLI.
+  enabled: true
+  # true = schermo TFT a rotazione automatica; false = solo motore/CLI.
 
   framebuffer: "/dev/fb1"
   # Device framebuffer Linux del display Joy-it (su Lite/Bookworm di solito /dev/fb1).
@@ -49,10 +49,13 @@ ui:
   # Dimensione font del testo principale (pt); titolo = +4, icone tasti = -2.
 
   fps: 20
-  # Aggiornamenti schermo al secondo; input usa button_poll_hz.
+  # Aggiornamenti schermo al secondo.
 
-  input: buttons
-  # buttons = 3 tasti GPIO Joy-it | encoder = modulo KY-040 (rotazione + click).
+  input: none
+  # none = display read-only (telefono via web) | buttons | encoder
+
+  auto_cycle_seconds: 8
+  # Secondi tra una schermata e l'altra sul TFT (0 = disabilitato).
 
   button_previous: 23
   # GPIO del tasto "indietro" / schermata precedente (◀).
@@ -87,11 +90,11 @@ ui:
   encoder_sw_debounce_seconds: 0.03
   # Antirimbalzo sul pulsante integrato nell'encoder.
 
-  hint_edge: left
-  # Bordo icone tasti: left | right | bottom | none (none con input: encoder, larghezza piena).
+  hint_edge: none
+  # Bordo icone tasti: none (display read-only) | left | right | bottom
 
-  content_margin_side: 28
-  # Larghezza colonna icone; con encoder usare 0 e hint_edge: none.
+  content_margin_side: 0
+  # Larghezza colonna icone; 0 = testo a tutta larghezza (consigliato con input: none).
 
   content_text_gap: 0
   # Spazio in pixel tra colonna icone e testo schermata; 0 = testo più vicino ai tasti.
@@ -125,8 +128,8 @@ console:
   # Intervallo in secondi tra una stampa console e l'altra.
 
 web:
-  enabled: false
-  # true = server HTTP per stato probe e modifica config.yaml (porta 8080).
+  enabled: true
+  # true = interfaccia web da telefono (controllo principale dello strumento).
 
   host: "0.0.0.0"
   # Indirizzo di ascolto del server web (0.0.0.0 = tutte le interfacce).
