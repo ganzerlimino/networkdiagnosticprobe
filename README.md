@@ -6,6 +6,12 @@ Collegando il probe a una porta switch, NDP mostra informazioni L2 (LLDP/CDP) e 
 
 ## Stato del progetto
 
+**v0.9 — Port scan + DNS/gateway**
+
+- Scan TCP **porte standard**, **industriali** (Modbus, MQTT, OPC UA, S7, PROFINET…) e **custom**
+- Verifica **DNS** (risoluzione hostname + server configurati) e **gateway** (ping + porte rapide)
+- Report email sezioni Scan e DNS
+
 **v0.8 — Web mobile avanzata**
 
 - Wizard **Discover Up/Down** guidato da telefono (prompt + Continua/Salta)
@@ -218,6 +224,7 @@ Con `web.enabled: true` apri `http://<ip-della-pi>:8080/` da browser sulla stess
 - **Stato** — link, IP, LLDP, sistema (aggiornamento automatico)
 - **Ping** — grafico live 1–3 host in parallelo, suite ICMP completa
 - **Discover** — wizard Up/Down guidato + scansione ARP rapida
+- **Scan** — porte standard / industriali / custom + DNS e gateway
 - **Config** — modifica e salva `/etc/ndp/config.yaml`
 - **Email** — pulsanti 📧 per inviare report pagina o completo (apre l'app mail del telefono)
 

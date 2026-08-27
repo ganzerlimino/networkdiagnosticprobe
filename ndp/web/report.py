@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from ndp.core.state import ProbeState
 from ndp.discovery.console import render_updown_result
 from ndp.discovery.wizard import UpDownResult
+from ndp.scan.dns import NetworkDiagnosticsResult
+from ndp.scan.ports import PortScanResult
 
 
 def _fmt(value: object, fallback: str = "n/a") -> str:
@@ -95,11 +97,51 @@ def _section_discover(result: UpDownResult | None) -> list[str]:
     return lines
 
 
+def _section_scan(scan: PortScanResult | None) -> list[str]:
+    lines = ["=== PORT SCAN ==="]
+    if scan is None:
+        lines.append("Nessuna scansione porte salvata.")
+        return lines
+    lines.append(f"Host: {scan.host}  Profilo: {scan.profile}")
+    lines.append(f"Porte aperte: {len(scan.open_ports)} / {len(scan.entries)}")
+    for entry in scan.open_ports:
+        latency = f" ({entry.latency_ms:.0f} ms)" if entry.latency_ms else ""
+        lines.append(f"  {entry.port}/tcp {entry.service}{latency}")
+    if not scan.open_ports:
+        lines.append("  (nessuna porta aperta nel profilo)")
+    return lines
+
+
+def _section_network(diag: NetworkDiagnosticsResult | None) -> list[str]:
+    lines = ["=== DNS / GATEWAY ==="]
+    if diag is None:
+        lines.append("Nessun controllo DNS/gateway salvato.")
+        return lines
+    for lookup in diag.lookups:
+        if lookup.addresses:
+            lines.append(f"{lookup.hostname} -> {', '.join(lookup.addresses)}")
+        else:
+            lines.append(f"{lookup.hostname} FAIL ({lookup.error or 'n/a'})")
+    for server in diag.dns_servers:
+        status = "OK" if server.resolves else ("TCP/53" if server.reachable_tcp_53 else "FAIL")
+        lines.append(f"DNS {server.server}: {status}")
+    if diag.gateway is not None:
+        gw = diag.gateway
+        ping = f"OK {gw.ping_rtt_ms:.0f}ms" if gw.ping_reachable and gw.ping_rtt_ms else "FAIL"
+        lines.append(f"Gateway {gw.gateway} ping: {ping}")
+        if gw.open_ports:
+            ports = ", ".join(f"{p.port}/{p.service}" for p in gw.open_ports)
+            lines.append(f"  Porte aperte: {ports}")
+    return lines
+
+
 def build_report(
     state: ProbeState,
     *,
     section: str = "all",
     discovery_result: UpDownResult | None = None,
+    scan_result: PortScanResult | None = None,
+    network_diag: NetworkDiagnosticsResult | None = None,
     version: str = "0.0.0",
 ) -> dict[str, str]:
     section = section.lower().strip()
@@ -132,6 +174,20 @@ def build_report(
         if body_parts:
             body_parts.append("")
         body_parts.extend(_section_discover(discovery_result))
+
+    if section in {"scan", "porte", "ports", "all", "tutto"}:
+        if section in {"scan", "porte", "ports"}:
+            subject = "NDP — Port scan"
+        if body_parts:
+            body_parts.append("")
+        body_parts.extend(_section_scan(scan_result))
+
+    if section in {"network", "dns", "gateway", "all", "tutto"}:
+        if section in {"network", "dns", "gateway"}:
+            subject = "NDP — DNS/Gateway"
+        if body_parts:
+            body_parts.append("")
+        body_parts.extend(_section_network(network_diag))
 
     if section == "all" or section == "tutto":
         subject = "NDP — Report completo"

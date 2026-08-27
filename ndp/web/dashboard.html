@@ -18,7 +18,7 @@
     h1 { margin: 0; font-size: 1.1rem; }
     .sub { color: var(--muted); font-size: .82rem; margin-top: .2rem; }
     nav { display: flex; gap: .35rem; padding: .55rem 1rem; overflow-x: auto; border-bottom: 1px solid var(--border); position: sticky; top: 3.4rem; z-index: 2; background: var(--bg); }
-    nav button { flex: 1; min-width: 4.8rem; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 999px; padding: .5rem .7rem; font-size: .85rem; }
+    nav button { flex: 1; min-width: 3.6rem; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 999px; padding: .5rem .55rem; font-size: .8rem; }
     nav button.active { border-color: var(--accent); color: var(--accent); }
     main { padding: 1rem; }
     .panel { display: none; } .panel.active { display: block; }
@@ -45,7 +45,10 @@
     .legend { display: flex; flex-wrap: wrap; gap: .6rem; font-size: .78rem; margin-top: .4rem; }
     .legend span::before { content: ''; display: inline-block; width: .65rem; height: .65rem; border-radius: 50%; margin-right: .3rem; vertical-align: middle; }
     .l1::before { background: var(--c1); } .l2::before { background: var(--c2); } .l3::before { background: var(--c3); }
-    .phase { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .chip-list { display: flex; flex-wrap: wrap; gap: .35rem; margin: .4rem 0; }
+    .chip { font-size: .75rem; padding: .2rem .45rem; border-radius: 6px; background: #0f1728; color: var(--muted); }
+    .open { color: var(--accent); font-weight: 600; }
+    .closed { color: var(--muted); }
   </style>
 </head>
 <body>
@@ -57,6 +60,7 @@
     <button class="active" data-panel="status">Stato</button>
     <button data-panel="ping">Ping</button>
     <button data-panel="discover">Discover</button>
+    <button data-panel="scan">Scan</button>
     <button data-panel="config">Config</button>
   </nav>
   <main>
@@ -123,6 +127,59 @@
         <h2>Scansione rapida ARP</h2>
         <div class="actions"><button class="secondary" id="discover-scan">Scansiona rete</button></div>
         <div id="discover-scan-results" class="log"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-scan">
+      <div class="card">
+        <h2>Target</h2>
+        <input id="scan-host" placeholder="IP host (es. 192.168.1.50)">
+        <div class="actions">
+          <button class="secondary" id="scan-use-gateway">Usa gateway</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Porte standard</h2>
+        <p class="sub">SSH, HTTP/S, SMB, RDP, DNS, LDAP, SNMP…</p>
+        <div id="scan-standard-chips" class="chip-list"></div>
+        <div class="actions">
+          <button class="primary" id="scan-standard-run">Scansiona standard</button>
+        </div>
+        <div id="scan-standard-results" class="log"></div>
+      </div>
+
+      <div class="card">
+        <h2>Porte industriali</h2>
+        <p class="sub">Modbus, MQTT, OPC UA, S7, EtherNet/IP, PROFINET, BACnet, DNP3, IEC-104…</p>
+        <div id="scan-industrial-chips" class="chip-list"></div>
+        <div class="actions">
+          <button class="primary" id="scan-industrial-run">Scansiona industriali</button>
+        </div>
+        <div id="scan-industrial-results" class="log"></div>
+      </div>
+
+      <div class="card">
+        <h2>Porte custom</h2>
+        <input id="scan-custom-ports" placeholder="Es. 80,443,502,4840,11740">
+        <div class="actions">
+          <button class="primary" id="scan-custom-run">Scansiona custom</button>
+        </div>
+        <div id="scan-custom-results" class="log"></div>
+      </div>
+
+      <div class="card">
+        <h2>DNS e gateway</h2>
+        <input id="dns-hostname" placeholder="Hostname da risolvere (opzionale)">
+        <div class="actions">
+          <button class="primary" id="network-check-run">Verifica DNS + gateway</button>
+          <button class="secondary" id="dns-lookup-run">Solo risoluzione</button>
+        </div>
+        <div id="network-check-results" class="log"></div>
+        <div class="actions">
+          <button class="secondary" onclick="sendReport('scan')">📧 Report porte</button>
+          <button class="secondary" onclick="sendReport('network')">📧 Report DNS</button>
+        </div>
       </div>
     </section>
 
@@ -380,6 +437,106 @@
         '<div>Nessun host</div>';
     };
 
+    function renderPortResults(el, data) {
+      if (!data || !data.entries) { el.innerHTML = '<div class="sub">Nessun risultato</div>'; return; }
+      const open = data.open_ports || [];
+      const header = `<div class="ok">${data.host} · ${open.length} aperte / ${data.scanned_count} (${Math.round(data.duration_ms)} ms)</div>`;
+      const lines = data.entries.map(e => {
+        const cls = e.open ? 'open' : 'closed';
+        const mark = e.open ? 'OPEN' : 'closed';
+        const lat = e.latency_ms != null ? ` ${e.latency_ms.toFixed(0)}ms` : '';
+        return `<div class="${cls}">${e.port} ${e.service} · ${mark}${lat}</div>`;
+      }).join('');
+      el.innerHTML = header + lines;
+    }
+
+    async function runPortScan(profile, resultId) {
+      const host = document.getElementById('scan-host').value.trim();
+      if (!host) { document.getElementById(resultId).textContent = 'Inserisci un host.'; return; }
+      const el = document.getElementById(resultId);
+      el.textContent = 'Scansione in corso...';
+      const body = { host, profile, timeout_ms: 1500 };
+      if (profile === 'custom') {
+        body.ports = document.getElementById('scan-custom-ports').value.trim();
+      }
+      const r = await fetch('/api/scan/ports', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+      });
+      const j = await r.json();
+      if (!r.ok) { el.textContent = j.detail || 'Errore'; return; }
+      renderPortResults(el, j);
+    }
+
+    function renderChips(containerId, ports) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = ports.slice(0, 12).map(p =>
+        `<span class="chip">${p.port} ${p.service}</span>`
+      ).join('') + (ports.length > 12 ? `<span class="chip">+${ports.length - 12}</span>` : '');
+    }
+
+    async function loadScanProfiles() {
+      const j = await (await fetch('/api/scan/profiles')).json();
+      renderChips('scan-standard-chips', j.profiles.standard.ports);
+      renderChips('scan-industrial-chips', j.profiles.industrial.ports);
+    }
+
+    document.getElementById('scan-standard-run').onclick = () => runPortScan('standard', 'scan-standard-results');
+    document.getElementById('scan-industrial-run').onclick = () => runPortScan('industrial', 'scan-industrial-results');
+    document.getElementById('scan-custom-run').onclick = () => runPortScan('custom', 'scan-custom-results');
+    document.getElementById('scan-use-gateway').onclick = () => {
+      const gw = statusData && statusData.ip && statusData.ip.gateway;
+      if (gw) document.getElementById('scan-host').value = gw;
+    };
+
+    function renderNetworkResults(data) {
+      const el = document.getElementById('network-check-results');
+      let html = '';
+      (data.lookups || []).forEach(l => {
+        const ok = l.ok ? 'ok' : 'bad';
+        const val = l.addresses && l.addresses.length ? l.addresses.join(', ') : (l.error || 'FAIL');
+        html += `<div class="${ok}">DNS ${l.hostname} → ${val}</div>`;
+      });
+      (data.dns_servers || []).forEach(s => {
+        const ok = s.ok ? 'ok' : 'bad';
+        html += `<div class="${ok}">Server ${s.server}: ${s.message || (s.resolves ? 'OK' : 'FAIL')}</div>`;
+      });
+      if (data.gateway) {
+        const g = data.gateway;
+        const ping = g.ping_reachable ? `OK ${Math.round(g.ping_rtt_ms)}ms` : 'FAIL';
+        html += `<div class="${g.ping_reachable ? 'ok' : 'bad'}">Gateway ${g.gateway} ping: ${ping}</div>`;
+        (g.open_ports || []).forEach(p => {
+          html += `<div class="open">GW ${p.port} ${p.service} OPEN</div>`;
+        });
+      }
+      el.innerHTML = html || '<div class="sub">Nessun risultato</div>';
+    }
+
+    document.getElementById('network-check-run').onclick = async () => {
+      const hostname = document.getElementById('dns-hostname').value.trim();
+      const hostnames = hostname ? [hostname] : [];
+      const el = document.getElementById('network-check-results');
+      el.textContent = 'Verifica in corso...';
+      const r = await fetch('/api/network/check', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ hostnames, include_gateway: true })
+      });
+      const j = await r.json();
+      if (!r.ok) { el.textContent = j.detail || 'Errore'; return; }
+      renderNetworkResults(j);
+    };
+
+    document.getElementById('dns-lookup-run').onclick = async () => {
+      const hostname = document.getElementById('dns-hostname').value.trim();
+      if (!hostname) {
+        document.getElementById('network-check-results').textContent = 'Inserisci un hostname.';
+        return;
+      }
+      const r = await fetch('/api/network/dns?hostname=' + encodeURIComponent(hostname));
+      const j = await r.json();
+      renderNetworkResults({ lookups: [j], dns_servers: [], gateway: null });
+    };
+
     document.getElementById('reload').onclick = () => { loadConfig(); loadStatus(); };
     async function loadConfig() {
       document.getElementById('yaml').value = (await (await fetch('/api/config')).json()).yaml || '';
@@ -395,7 +552,7 @@
       msgEl.className = r.ok ? 'ok' : 'bad';
     };
 
-    loadVersion(); loadConfig(); loadStatus(); pollDiscover(); startDiscPoll();
+    loadVersion(); loadConfig(); loadStatus(); pollDiscover(); startDiscPoll(); loadScanProfiles();
     setInterval(loadStatus, 5000);
   </script>
 </body>

@@ -14,7 +14,10 @@ from ndp.core.ping_state import PingSuiteState
 from ndp.core.state import ProbeState
 from ndp.discovery.wizard import UpDownResult
 from ndp.ping.live import LivePingManager
-from ndp.ping.service import run_ping_hosts, run_ping_suite
+from ndp.ping.service import run_ping_hosts, run_ping_suite, validate_host
+from ndp.scan.dns import NetworkDiagnosticsResult, resolve_hostname, run_network_diagnostics
+from ndp.scan.ports import PortScanResult, parse_custom_ports, scan_ports
+from ndp.scan.profiles import profiles_catalog
 from ndp.ui.discovery_session import DiscoveryUISession
 from ndp.web.report import build_report
 
@@ -49,10 +52,25 @@ def create_app(
         interval: float = 1.0
         max_samples: int = 60
 
-    app = FastAPI(title="NDP", version="0.8")
+    class PortScanPayload(BaseModel):
+        host: str
+        profile: str = Field(..., pattern="^(standard|industrial|custom)$")
+        ports: str | list[int] | None = None
+        timeout_ms: int = Field(default=1500, ge=300, le=5000)
+
+    class DnsLookupPayload(BaseModel):
+        hostname: str
+
+    class NetworkCheckPayload(BaseModel):
+        hostnames: list[str] = Field(default_factory=list)
+        include_gateway: bool = True
+
+    app = FastAPI(title="NDP", version="0.9")
     discovery = DiscoveryUISession(config)
     live_pings = LivePingManager()
     discovery_result: UpDownResult | None = None
+    last_scan_result: PortScanResult | None = None
+    last_network_diag: NetworkDiagnosticsResult | None = None
 
     @app.get("/", response_class=HTMLResponse)
     def index() -> str:
@@ -89,6 +107,8 @@ def create_app(
             get_state(),
             section=section,
             discovery_result=discovery_result,
+            scan_result=last_scan_result,
+            network_diag=last_network_diag,
             version=__version__,
         )
 
@@ -217,6 +237,65 @@ def create_app(
         discovery.reset()
         discovery_result = None
         return discovery.to_api_dict()
+
+    @app.get("/api/scan/profiles")
+    def api_scan_profiles() -> dict[str, object]:
+        return profiles_catalog()
+
+    @app.post("/api/scan/ports")
+    def api_scan_ports(payload: PortScanPayload) -> dict[str, object]:
+        nonlocal last_scan_result
+        try:
+            validate_host(payload.host)
+            custom_ports = None
+            if payload.profile == "custom":
+                custom_ports = parse_custom_ports(payload.ports)
+                if not custom_ports:
+                    raise ValueError("specificare almeno una porta custom")
+            result = scan_ports(
+                payload.host,
+                payload.profile,
+                custom_ports=custom_ports,
+                timeout_seconds=payload.timeout_ms / 1000.0,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        last_scan_result = result
+        return result.to_dict()
+
+    @app.get("/api/network/dns")
+    def api_dns_lookup(hostname: str) -> dict[str, object]:
+        if not hostname.strip():
+            raise HTTPException(status_code=400, detail="hostname richiesto")
+        return resolve_hostname(hostname).to_dict()
+
+    @app.post("/api/network/check")
+    def api_network_check(payload: NetworkCheckPayload | None = None) -> dict[str, object]:
+        nonlocal last_network_diag
+        state = get_state()
+        hostnames = []
+        if payload and payload.hostnames:
+            hostnames = [name.strip() for name in payload.hostnames if name.strip()]
+        else:
+            hostnames = ["gateway"]
+        if payload is None or payload.include_gateway:
+            if state.ip.gateway and "gateway" not in hostnames:
+                hostnames.append(state.ip.gateway)
+
+        resolved_names: list[str] = []
+        for name in hostnames:
+            if name == "gateway" and state.ip.gateway:
+                resolved_names.append(state.ip.gateway)
+            else:
+                resolved_names.append(name)
+
+        diag = run_network_diagnostics(
+            hostnames=resolved_names,
+            dns_servers=state.ip.dns_servers,
+            gateway=state.ip.gateway if (payload is None or payload.include_gateway) else None,
+        )
+        last_network_diag = diag
+        return diag.to_dict()
 
     @app.on_event("shutdown")
     def _shutdown_live_ping() -> None:
