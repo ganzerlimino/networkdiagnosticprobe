@@ -219,6 +219,8 @@ discovery:
 
 ## Web UI (controllo da telefono)
 
+📖 **Guida dettagliata:** [docs/MANUALE-ACCESSO-TELEFONO.md](docs/MANUALE-ACCESSO-TELEFONO.md) — scenari Wi‑Fi, come trovare l’IP, troubleshooting.
+
 Con `web.enabled: true` apri `http://<ip-della-pi>:8080/` da browser sulla stessa rete:
 
 - **Stato** — link, IP, LLDP, sistema (aggiornamento automatico)
