@@ -9,38 +9,74 @@ Guida rapida per controllare il probe dal browser del cellulare (Stato, Ping, Di
 | Requisito | Note |
 |-----------|------|
 | NDP installato e attivo | `sudo systemctl status ndp` → `active (running)` |
-| Web abilitato | In `/etc/ndp/config.yaml`: `web.enabled: true` (default da v0.7) |
-| **Stessa rete IP** del probe | Telefono e Raspberry Pi devono raggiungersi a livello LAN |
+| Hotspot abilitato (consigliato) | `wifi_hotspot.enabled: true` in config (default da v0.10) |
+| Web abilitato | `web.enabled: true` (default) |
 | Browser sul telefono | Chrome, Safari, Firefox — nessuna app da installare |
 
-**Indirizzo da aprire:**
+**Indirizzo consigliato (hotspot):**
 
 ```
-http://<IP-DELLA-PI>:8080/
+http://192.168.50.1:8080/
 ```
 
-Esempio: `http://192.168.1.42:8080/`
+**Alternativa (stessa LAN del cliente):**
 
-> Sul display TFT, in basso, compare spesso `Telefono :8080` come promemoria della porta.
+```
+http://<IP-ETH0-DELLA-PI>:8080/
+```
 
 ---
 
-## Wi‑Fi e hotspot — cosa c’è oggi e cosa no
+## Modo consigliato: hotspot NDP (v0.10+)
+
+```
+[Telefono] ──Wi-Fi NDP-XXXX── [wlan0 Pi]     ← pannello di controllo
+                    │
+[NDP Probe] ──eth0── [Rete cliente]          ← diagnostica sul cavo
+```
+
+1. Accendi il probe e attendi ~1–2 minuti (hotspot parte con `ndp-hotspot.service`).
+2. Sul telefono, apri **Impostazioni Wi‑Fi** e cerca una rete tipo **NDP-3456**  
+   (prefisso `NDP` + ultime 4 cifre del MAC Wi‑Fi della Pi).
+3. Password predefinita: **`ndp-probe`** (modificabile in config).
+4. Apri il browser su:
+
+   ```
+   http://192.168.50.1:8080/
+   ```
+
+5. Nella tab **Stato** compare la scheda **Hotspot telefono** con SSID, URL e stato.
+
+### Verifica hotspot dalla Pi (SSH)
+
+```bash
+sudo systemctl status ndp-hotspot
+ndp hotspot status
+ndp hotspot status --json
+```
+
+Per riavviare manualmente:
+
+```bash
+sudo systemctl restart ndp-hotspot
+```
+
+---
+
+## Wi‑Fi e hotspot — riepilogo
 
 | Funzione | Stato |
 |----------|--------|
 | Web UI su porta **8080** | ✅ Disponibile |
+| **Hotspot Wi‑Fi integrato** (`wifi_hotspot`) | ✅ v0.10 |
 | Probe su **Ethernet** (`eth0`) | ✅ Uso normale in campo |
-| Telefono sulla **stessa LAN** del probe | ✅ Modo consigliato oggi |
-| **Hotspot Wi‑Fi integrato** sulla Pi (`wifi_hotspot`) | ❌ **Non ancora implementato** (previsto in roadmap) |
-
-Non esiste ancora una rete `NDP-XXXX` generata dal probe. Per ora il telefono deve collegarsi a una rete esistente che vede anche la Pi.
+| Telefono sulla **stessa LAN** del probe | ✅ Alternativa se hai Wi‑Fi cliente |
 
 ---
 
-## Scenari pratici (come collegarsi)
+## Scenari alternativi
 
-### 1. Rete del cliente (il più comune)
+### 1. Rete del cliente (senza hotspot)
 
 ```
 [Switch/LAN cliente] ──eth0── [NDP Probe]
@@ -49,62 +85,40 @@ Non esiste ancora una rete `NDP-XXXX` generata dal probe. Per ora il telefono de
 ```
 
 1. Colleghi il probe con il cavo Ethernet alla rete da diagnosticare.
-2. Il telefono si collega al **Wi‑Fi della stessa rete** (ufficio, impianto, guest Wi‑Fi se presente).
-3. Trovi l’IP del probe (vedi sotto).
-4. Apri `http://<IP>:8080/` sul telefono.
+2. Il telefono si collega al **Wi‑Fi della stessa rete**.
+3. Trovi l'IP Ethernet del probe (schermata HOME del TFT).
+4. Apri `http://<IP>:8080/`.
 
-Funziona se Wi‑Fi e porta Ethernet del probe sono sulla **stessa subnet** (es. entrambi `192.168.10.0/24`).
+Funziona se Wi‑Fi e porta Ethernet del probe sono sulla **stessa subnet**.
 
----
+### 2. Solo Ethernet, nessun Wi‑Fi cliente
 
-### 2. Pi con Wi‑Fi già configurato (Raspberry Pi OS)
+Usa l'**hotspot NDP** (modo consigliato): non serve la rete del sito per controllare il probe dal telefono.
 
-Se sulla SD hai configurato anche `wlan0` (stesso Wi‑Fi del telefono), puoi usare l’IP Wi‑Fi della Pi invece di quello Ethernet:
-
-```bash
-ip -4 addr show wlan0
-```
-
-Poi apri quell’IP sulla porta 8080.
+Se l'hotspot è disabilitato (`wifi_hotspot.enabled: false`), serve comunque una rete condivisa (Wi‑Fi cliente o router di servizio).
 
 ---
 
-### 3. Solo Ethernet sul probe, telefono senza Wi‑Fi del cliente
-
-In questo caso **non puoi** usare il telefono finché non condividi una rete con la Pi. Opzioni:
-
-- Chiedere accesso al Wi‑Fi LAN del sito.
-- Collegare temporaneamente un **router/AP di servizio** (telefono + probe sulla stessa rete di test).
-- Attendere la funzione **hotspot NDP** (futura): la Pi creerà una rete Wi‑Fi dedicata a cui ti colleghi col telefono.
-
----
-
-## Come trovare l’IP della Pi
+## Come trovare l'IP della Pi
 
 | Metodo | Dove |
 |--------|------|
-| **Display TFT** | Schermata **HOME** → riga `IP` |
-| **SSH** (se abilitato) | `hostname -I` sulla Pi |
-| **CLI** | `ndp --once` (mostra riepilogo rete) |
-| **Router/DHCP** | Lista lease del gateway (se hai accesso) |
-
-Annota l’indirizzo IPv4 (es. `192.168.10.50`), non l’IPv6 se non sei sicuro.
+| **Hotspot** | URL fisso `192.168.50.1` (non serve cercare l'IP) |
+| **Display TFT** | Schermata **HOME** → riga `IP` (indirizzo `eth0`) |
+| **SSH** | `hostname -I` o `ip -4 addr show eth0` |
+| **CLI** | `ndp --once` |
+| **Web UI** | Tab **Stato** → scheda Hotspot |
 
 ---
 
 ## Primo accesso — passo passo
 
 1. Accendi il probe e attendi lo splash (~1–2 minuti al primo avvio).
-2. Verifica che il link Ethernet sia **UP** (schermata HOME o Stato).
-3. Sul telefono, connetti il **Wi‑Fi della stessa rete**.
-4. Apri il browser e digita:
-
-   ```
-   http://IP_VISTO_SUL_DISPLAY:8080/
-   ```
-
+2. Collega il cavo Ethernet alla rete da diagnosticare (link UP sulla HOME).
+3. Sul telefono, connetti il Wi‑Fi **NDP-XXXX** (password `ndp-probe` se non cambiata).
+4. Apri `http://192.168.50.1:8080/`.
 5. Dovresti vedere **Network Diagnostic Probe** con le tab:
-   - **Stato** — link, IP, LLDP
+   - **Stato** — link, IP, LLDP, hotspot
    - **Ping** — grafico live e suite
    - **Discover** — wizard Up/Down
    - **Scan** — porte e DNS/gateway
@@ -115,41 +129,46 @@ Annota l’indirizzo IPv4 (es. `192.168.10.50`), non l’IPv6 se non sei sicuro.
 ## Verifica rapida dalla Pi (se hai SSH)
 
 ```bash
-sudo systemctl status ndp
+sudo systemctl status ndp ndp-hotspot
 curl -s http://127.0.0.1:8080/api/version
+curl -s http://127.0.0.1:8080/api/hotspot/status
 ```
 
 Risposta attesa (esempio):
 
 ```json
-{"version":"0.9.0","interface":"eth0"}
+{"version":"0.10.0","interface":"eth0"}
 ```
 
-Se funziona in locale ma non dal telefono, il problema è quasi sempre **rete diversa** o **firewall**.
+Se funziona in locale ma non dal telefono, controlla che il telefono sia sulla rete **NDP-XXXX** (o sulla stessa LAN del probe).
 
 ---
 
 ## Problemi frequenti
 
+### Il telefono non vede la rete NDP-XXXX
+
+| Causa probabile | Cosa fare |
+|-----------------|-----------|
+| Hotspot disabilitato | `wifi_hotspot.enabled: true` in config, poi `sudo systemctl restart ndp-hotspot` |
+| Servizio fermo | `sudo systemctl restart ndp-hotspot` |
+| `wlan0` assente | Verifica modulo Wi‑Fi sulla Pi 3 |
+| `hostapd`/`dnsmasq` non installati | `sudo ./scripts/install.sh` |
+| Conflitto con `wpa_supplicant` | L'install script disabilita il client Wi‑Fi su `wlan0`; riavvia `ndp-hotspot` |
+
 ### “Impossibile aprire la pagina” / timeout
 
 | Causa probabile | Cosa fare |
 |-----------------|-----------|
-| Telefono su rete diversa | Stesso Wi‑Fi/VLAN del probe; controlla IP e subnet |
-| IP sbagliato | Rileggi IP dalla schermata HOME del TFT |
-| `web.enabled: false` | In `/etc/ndp/config.yaml` metti `web.enabled: true`, poi `sudo systemctl restart ndp` |
+| Telefono non sull'hotspot NDP | Ricollega il Wi‑Fi **NDP-XXXX** |
+| URL sbagliato | Usa `http://192.168.50.1:8080/` (non l'IP eth0) |
+| `web.enabled: false` | Metti `web.enabled: true`, poi `sudo systemctl restart ndp` |
 | Servizio fermo | `sudo systemctl restart ndp` |
-| Firewall sulla Pi | Su Lite di solito non c’è; se hai `ufw`: `sudo ufw allow 8080/tcp` |
-
-### La pagina si apre ma i dati non si aggiornano
-
-- Attendi qualche secondo (aggiornamento automatico ogni 5 s sulla tab Stato).
-- Controlla che il cavo Ethernet sia collegato (link UP).
 
 ### Discover / Scan non funzionano
 
 - Richiedono privilegi di rete sulla Pi (il servizio `ndp` gira già come root).
-- Su alcune reti guest, **ARP scan** o **ping** possono essere filtrati dal firewall del cliente.
+- La diagnostica usa **eth0** verso la rete cliente; l'hotspot serve solo per il telefono.
 
 ---
 
@@ -163,40 +182,42 @@ ui:
 
 web:
   enabled: true
-  host: "0.0.0.0"    # ascolta su tutte le interfacce
+  host: "0.0.0.0"
   port: 8080
 
 wifi_hotspot:
-  enabled: false     # non ancora attivo — lasciare false
+  enabled: true
+  ssid_prefix: "NDP"
+  password: "ndp-probe"
+  interface: wlan0
+  ip: "192.168.50.1"
+  country: "IT"
 ```
 
 Dopo ogni modifica al config:
 
 ```bash
-sudo systemctl restart ndp
+sudo systemctl restart ndp-hotspot ndp
+```
+
+Per disabilitare l'hotspot (solo LAN cliente):
+
+```yaml
+wifi_hotspot:
+  enabled: false
 ```
 
 ---
 
 ## Segnalibro sul telefono
 
-Quando hai trovato l’IP, salva nei preferiti:
-
 - **Nome:** NDP probe
-- **URL:** `http://192.168.x.x:8080/`
+- **URL (hotspot):** `http://192.168.50.1:8080/`
 
-Se il probe riceve IP via DHCP e cambia tra un sito e l’altro, conviene controllare l’IP sul display HOME ogni volta.
-
----
-
-## Prossimo passo: hotspot Wi‑Fi NDP
-
-In roadmap è previsto `wifi_hotspot.enabled: true`: la Pi creerà una rete tipo **NDP-XXXX** e potrai collegare il telefono **direttamente** al probe **senza** Wi‑Fi del cliente.
-
-Fino ad allora: **Ethernet sul probe + telefono sulla stessa LAN**.
+L'IP `eth0` può cambiare tra un sito e l'altro; l'hotspot mantiene sempre lo stesso URL per il telefono.
 
 ---
 
 ## Riepilogo in una riga
 
-> Collega il probe al cavo, metti il telefono sul Wi‑Fi della stessa rete, leggi l’IP sul display HOME, apri `http://quell-IP:8080/`.
+> Accendi il probe, collega il cavo Ethernet, connetti il telefono al Wi‑Fi **NDP-XXXX**, apri `http://192.168.50.1:8080/`.

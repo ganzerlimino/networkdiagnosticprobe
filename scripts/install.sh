@@ -26,7 +26,12 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   python3-lgpio \
   python3-pygame \
   fonts-dejavu-core \
-  libsdl2-2.0-0
+  libsdl2-2.0-0 \
+  hostapd \
+  dnsmasq \
+  iw \
+  wireless-tools \
+  rfkill
 
 echo "==> Preparing install directory at ${NDP_ROOT}"
 systemctl stop ndp.service 2>/dev/null || true
@@ -73,14 +78,23 @@ fi
 echo "==> Enabling lldpd"
 systemctl enable --now lldpd
 
-echo "==> Installing systemd unit"
+echo "==> Preparing Wi-Fi hotspot tools (hostapd + dnsmasq)"
+systemctl unmask hostapd dnsmasq 2>/dev/null || true
+systemctl disable --now hostapd.service dnsmasq.service 2>/dev/null || true
+systemctl disable --now wpa_supplicant@wlan0.service 2>/dev/null || true
+
+echo "==> Installing systemd units"
+install -m 0644 "${NDP_ROOT}/systemd/ndp-hotspot.service" /etc/systemd/system/ndp-hotspot.service
 install -m 0644 "${NDP_ROOT}/systemd/ndp.service" /etc/systemd/system/ndp.service
 systemctl daemon-reload
+systemctl enable ndp-hotspot.service
 systemctl enable --now ndp.service
 
 echo
 echo "NDP installed successfully."
 echo "  Service : systemctl status ndp"
+echo "  Hotspot : systemctl status ndp-hotspot && ndp hotspot status"
+echo "  Phone   : connect to SSID NDP-XXXX, open http://192.168.50.1:8080/"
 echo "  One-shot: ${NDP_ROOT}/venv/bin/ndp --once"
 echo "  JSON    : ${NDP_ROOT}/venv/bin/ndp --once --json"
 echo "  Up/Down : ${NDP_ROOT}/venv/bin/ndp discover updown"

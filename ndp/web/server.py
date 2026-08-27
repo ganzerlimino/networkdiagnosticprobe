@@ -238,6 +238,12 @@ def create_app(
         discovery_result = None
         return discovery.to_api_dict()
 
+    @app.get("/api/hotspot/status")
+    def api_hotspot_status() -> dict[str, object]:
+        from ndp.network.hotspot import get_status
+
+        return get_status(config).to_dict()
+
     @app.get("/api/scan/profiles")
     def api_scan_profiles() -> dict[str, object]:
         return profiles_catalog()

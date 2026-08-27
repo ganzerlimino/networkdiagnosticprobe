@@ -66,6 +66,15 @@ class NdpConfig:
     ping_timeout_seconds: float = 3.0
     ping_custom_targets: list[dict[str, str]] = field(default_factory=list)
     ping_adhoc_path: str = "/var/lib/ndp/ping_adhoc.host"
+    wifi_hotspot_enabled: bool = True
+    wifi_hotspot_ssid_prefix: str = "NDP"
+    wifi_hotspot_password: str = "ndp-probe"
+    wifi_hotspot_interface: str = "wlan0"
+    wifi_hotspot_ip: str = "192.168.50.1"
+    wifi_hotspot_dhcp_start: str = "192.168.50.10"
+    wifi_hotspot_dhcp_end: str = "192.168.50.50"
+    wifi_hotspot_channel: int = 6
+    wifi_hotspot_country: str = "IT"
     source_path: Path | None = field(default=None, repr=False)
 
     @classmethod
@@ -77,6 +86,7 @@ class NdpConfig:
         logging_cfg = data.get("logging", {})
         discovery = data.get("discovery", {})
         ping = data.get("ping", {})
+        wifi_hotspot = data.get("wifi_hotspot", {})
         custom_targets = ping.get("custom_targets", [])
         if not isinstance(custom_targets, list):
             custom_targets = []
@@ -148,6 +158,15 @@ class NdpConfig:
                 if isinstance(item, dict) and item.get("host")
             ],
             ping_adhoc_path=str(ping.get("adhoc_path", "/var/lib/ndp/ping_adhoc.host")),
+            wifi_hotspot_enabled=bool(wifi_hotspot.get("enabled", True)),
+            wifi_hotspot_ssid_prefix=str(wifi_hotspot.get("ssid_prefix", "NDP")),
+            wifi_hotspot_password=str(wifi_hotspot.get("password", "ndp-probe")),
+            wifi_hotspot_interface=str(wifi_hotspot.get("interface", "wlan0")),
+            wifi_hotspot_ip=str(wifi_hotspot.get("ip", "192.168.50.1")),
+            wifi_hotspot_dhcp_start=str(wifi_hotspot.get("dhcp_start", "192.168.50.10")),
+            wifi_hotspot_dhcp_end=str(wifi_hotspot.get("dhcp_end", "192.168.50.50")),
+            wifi_hotspot_channel=int(wifi_hotspot.get("channel", 6)),
+            wifi_hotspot_country=str(wifi_hotspot.get("country", "IT")),
         )
 
 

@@ -1,0 +1,350 @@
+"""Wi-Fi hotspot for phone access (wlan0 AP + dnsmasq + hostapd)."""
+
+from __future__ import annotations
+
+import json
+import logging
+import re
+import shutil
+import signal
+import subprocess
+import time
+from dataclasses import asdict, dataclass
+from pathlib import Path
+
+from ndp.core.config import NdpConfig
+
+logger = logging.getLogger(__name__)
+
+HOTSPOT_DIR = Path("/etc/ndp/hotspot")
+RUN_DIR = Path("/run/ndp")
+
+
+def hostapd_conf_path() -> Path:
+    return HOTSPOT_DIR / "hostapd.conf"
+
+
+def dnsmasq_conf_path() -> Path:
+    return HOTSPOT_DIR / "dnsmasq.conf"
+
+
+def hostapd_pid_path() -> Path:
+    return RUN_DIR / "hostapd.pid"
+
+
+def dnsmasq_pid_path() -> Path:
+    return RUN_DIR / "dnsmasq.pid"
+
+
+def hotspot_state_path() -> Path:
+    return RUN_DIR / "hotspot.json"
+
+_SSID_SAFE = re.compile(r"[^A-Za-z0-9_-]")
+
+
+@dataclass
+class HotspotStatus:
+    enabled: bool
+    active: bool
+    interface: str
+    ssid: str | None = None
+    ip: str | None = None
+    web_url: str | None = None
+    password: str | None = None
+    open_network: bool = False
+    channel: int | None = None
+    message: str = ""
+
+    def to_dict(self) -> dict[str, object]:
+        data = asdict(self)
+        if data.get("password"):
+            data["password_hint"] = "configurata (WPA2)"
+            data["password"] = None
+        return data
+
+
+def _run(command: list[str], *, check: bool = False) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        check=check,
+    )
+
+
+def interface_exists(interface: str) -> bool:
+    return Path(f"/sys/class/net/{interface}").exists()
+
+
+def read_interface_mac(interface: str) -> str:
+    path = Path(f"/sys/class/net/{interface}/address")
+    if not path.is_file():
+        raise FileNotFoundError(f"interfaccia {interface} non trovata")
+    return path.read_text(encoding="utf-8").strip().upper()
+
+
+def build_ssid(prefix: str, interface: str) -> str:
+    safe_prefix = _SSID_SAFE.sub("", prefix.strip()) or "NDP"
+    mac = read_interface_mac(interface).replace(":", "")
+    suffix = mac[-4:]
+    return f"{safe_prefix}-{suffix}"[:32]
+
+
+def _prefix_to_netmask(prefix: int) -> str:
+    mask = (0xFFFFFFFF << (32 - prefix)) & 0xFFFFFFFF
+    return ".".join(str((mask >> shift) & 0xFF) for shift in (24, 16, 8, 0))
+
+
+def _parse_cidr(ip: str) -> tuple[str, int]:
+    if "/" in ip:
+        address, bits = ip.split("/", 1)
+        return address, int(bits)
+    return ip, 24
+
+
+def render_hostapd_conf(config: NdpConfig, ssid: str) -> str:
+    password = config.wifi_hotspot_password.strip()
+    lines = [
+        f"interface={config.wifi_hotspot_interface}",
+        "driver=nl80211",
+        f"ssid={ssid}",
+        "hw_mode=g",
+        f"channel={config.wifi_hotspot_channel}",
+        f"country_code={config.wifi_hotspot_country}",
+        "ieee80211n=1",
+        "wmm_enabled=0",
+        "macaddr_acl=0",
+        "auth_algs=1",
+        "ignore_broadcast_ssid=0",
+    ]
+    if password:
+        if len(password) < 8:
+            raise ValueError("wifi_hotspot.password deve avere almeno 8 caratteri per WPA2")
+        lines.extend(
+            [
+                "wpa=2",
+                f"wpa_passphrase={password}",
+                "wpa_key_mgmt=WPA-PSK",
+                "rsn_pairwise=CCMP",
+            ]
+        )
+    else:
+        lines.append("wpa=0")
+    return "\n".join(lines) + "\n"
+
+
+def render_dnsmasq_conf(config: NdpConfig) -> str:
+    address, prefix = _parse_cidr(config.wifi_hotspot_ip)
+    netmask = _prefix_to_netmask(prefix)
+    return (
+        f"interface={config.wifi_hotspot_interface}\n"
+        "bind-interfaces\n"
+        f"dhcp-range={config.wifi_hotspot_dhcp_start},"
+        f"{config.wifi_hotspot_dhcp_end},{netmask},24h\n"
+        f"dhcp-option=3,{address}\n"
+        f"dhcp-option=6,{address}\n"
+        "domain=ndp.local\n"
+        "log-queries\n"
+        "log-dhcp\n"
+    )
+
+
+def write_hotspot_configs(config: NdpConfig) -> str:
+    HOTSPOT_DIR.mkdir(parents=True, exist_ok=True)
+    RUN_DIR.mkdir(parents=True, exist_ok=True)
+    ssid = build_ssid(config.wifi_hotspot_ssid_prefix, config.wifi_hotspot_interface)
+    hostapd_conf_path().write_text(render_hostapd_conf(config, ssid), encoding="utf-8")
+    dnsmasq_conf_path().write_text(render_dnsmasq_conf(config), encoding="utf-8")
+    return ssid
+
+
+def _pid_running(pid_file: Path) -> bool:
+    if not pid_file.is_file():
+        return False
+    try:
+        pid = int(pid_file.read_text(encoding="utf-8").strip())
+    except ValueError:
+        return False
+    try:
+        import os
+
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+def _stop_pid(pid_file: Path, name: str) -> None:
+    if not _pid_running(pid_file):
+        pid_file.unlink(missing_ok=True)
+        return
+    pid = int(pid_file.read_text(encoding="utf-8").strip())
+    try:
+        import os
+
+        os.kill(pid, signal.SIGTERM)
+        for _ in range(20):
+            time.sleep(0.1)
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                break
+        else:
+            os.kill(pid, signal.SIGKILL)
+    except OSError:
+        pass
+    pid_file.unlink(missing_ok=True)
+    logger.info("Stopped %s (pid %s)", name, pid)
+
+
+def _unblock_wifi() -> None:
+    if shutil.which("rfkill"):
+        _run(["rfkill", "unblock", "wifi"], check=False)
+        _run(["rfkill", "unblock", "wlan"], check=False)
+
+
+def _prepare_interface(config: NdpConfig) -> None:
+    iface = config.wifi_hotspot_interface
+    address, prefix = _parse_cidr(config.wifi_hotspot_ip)
+    _unblock_wifi()
+    if shutil.which("iw"):
+        _run(["iw", "reg", "set", config.wifi_hotspot_country], check=False)
+    _run(["systemctl", "stop", f"wpa_supplicant@{iface}.service"], check=False)
+    _run(["systemctl", "stop", "wpa_supplicant.service"], check=False)
+    _run(["pkill", "-f", f"wpa_supplicant.*{iface}"], check=False)
+    _run(["ip", "link", "set", iface, "down"], check=False)
+    _run(["ip", "addr", "flush", "dev", iface], check=False)
+    _run(["ip", "addr", "add", f"{address}/{prefix}", "dev", iface], check=False)
+    _run(["ip", "link", "set", iface, "up"], check=False)
+
+
+def get_status(config: NdpConfig) -> HotspotStatus:
+    address, _ = _parse_cidr(config.wifi_hotspot_ip)
+    web_url = f"http://{address}:{config.web_port}/"
+    if not config.wifi_hotspot_enabled:
+        return HotspotStatus(
+            enabled=False,
+            active=False,
+            interface=config.wifi_hotspot_interface,
+            ip=address,
+            web_url=web_url,
+            message="Hotspot disabilitato in config",
+        )
+    if not interface_exists(config.wifi_hotspot_interface):
+        return HotspotStatus(
+            enabled=True,
+            active=False,
+            interface=config.wifi_hotspot_interface,
+            ip=address,
+            web_url=web_url,
+            message=f"Interfaccia {config.wifi_hotspot_interface} assente",
+        )
+    try:
+        ssid = build_ssid(config.wifi_hotspot_ssid_prefix, config.wifi_hotspot_interface)
+    except FileNotFoundError as exc:
+        return HotspotStatus(
+            enabled=True,
+            active=False,
+            interface=config.wifi_hotspot_interface,
+            ip=address,
+            web_url=web_url,
+            message=str(exc),
+        )
+
+    active = _pid_running(hostapd_pid_path()) and _pid_running(dnsmasq_pid_path())
+    state_file = hotspot_state_path()
+    if state_file.is_file():
+        try:
+            saved = json.loads(state_file.read_text(encoding="utf-8"))
+            ssid = str(saved.get("ssid", ssid))
+        except json.JSONDecodeError:
+            pass
+
+    password = config.wifi_hotspot_password.strip()
+    return HotspotStatus(
+        enabled=True,
+        active=active,
+        interface=config.wifi_hotspot_interface,
+        ssid=ssid,
+        ip=address,
+        web_url=web_url,
+        password=password or None,
+        open_network=not bool(password),
+        channel=config.wifi_hotspot_channel,
+        message="Attivo" if active else "Non attivo",
+    )
+
+
+def stop_hotspot(config: NdpConfig | None = None) -> None:
+    _stop_pid(hostapd_pid_path(), "hostapd")
+    _stop_pid(dnsmasq_pid_path(), "dnsmasq")
+    hotspot_state_path().unlink(missing_ok=True)
+    if config is not None and interface_exists(config.wifi_hotspot_interface):
+        _run(["ip", "addr", "flush", "dev", config.wifi_hotspot_interface], check=False)
+        _run(["ip", "link", "set", config.wifi_hotspot_interface, "down"], check=False)
+
+
+def start_hotspot(config: NdpConfig) -> HotspotStatus:
+    status = get_status(config)
+    if not config.wifi_hotspot_enabled:
+        return status
+    if not interface_exists(config.wifi_hotspot_interface):
+        status.message = f"Interfaccia {config.wifi_hotspot_interface} assente"
+        return status
+    if not shutil.which("hostapd") or not shutil.which("dnsmasq"):
+        status.message = "Installa hostapd e dnsmasq (sudo ./scripts/install.sh)"
+        return status
+
+    stop_hotspot(config)
+    try:
+        ssid = write_hotspot_configs(config)
+    except ValueError as exc:
+        status.message = str(exc)
+        return status
+
+    _prepare_interface(config)
+
+    dnsmasq = subprocess.Popen(
+        [
+            "dnsmasq",
+            "-C",
+            str(dnsmasq_conf_path()),
+            "-x",
+            str(dnsmasq_pid_path()),
+        ],
+    )
+    if dnsmasq.poll() is not None:
+        status.message = "dnsmasq non avviato"
+        return status
+
+    hostapd = _run(
+        ["hostapd", "-B", str(hostapd_conf_path()), "-P", str(hostapd_pid_path())],
+        check=False,
+    )
+    if hostapd.returncode != 0 or not _pid_running(hostapd_pid_path()):
+        stop_hotspot(config)
+        detail = (hostapd.stderr or hostapd.stdout or "").strip()[:120]
+        status.message = f"hostapd non avviato: {detail or 'errore sconosciuto'}"
+        return status
+
+    address, _ = _parse_cidr(config.wifi_hotspot_ip)
+    hotspot_state_path().write_text(
+        json.dumps(
+            {
+                "ssid": ssid,
+                "ip": address,
+                "interface": config.wifi_hotspot_interface,
+            }
+        ),
+        encoding="utf-8",
+    )
+    logger.info("Hotspot attivo: SSID=%s IP=%s", ssid, address)
+    return get_status(config)
+
+
+def ensure_hotspot(config: NdpConfig) -> HotspotStatus:
+    """Start hotspot if enabled and not already running."""
+    status = get_status(config)
+    if status.active or not config.wifi_hotspot_enabled:
+        return status
+    return start_hotspot(config)

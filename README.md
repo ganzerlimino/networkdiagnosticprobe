@@ -6,6 +6,14 @@ Collegando il probe a una porta switch, NDP mostra informazioni L2 (LLDP/CDP) e 
 
 ## Stato del progetto
 
+**v0.10 — Hotspot Wi-Fi per accesso telefono**
+
+- Rete Wi-Fi dedicata **NDP-XXXX** (`hostapd` + `dnsmasq`) su `wlan0`
+- Avvio automatico con `ndp-hotspot.service` prima di `ndp.service`
+- CLI `ndp hotspot start|stop|status|ensure` e API `/api/hotspot/status`
+- Scheda hotspot nella tab **Stato** della Web UI mobile
+- URL fisso dal telefono: `http://192.168.50.1:8080/` (senza Wi-Fi del cliente)
+
 **v0.9 — Port scan + DNS/gateway**
 
 - Scan TCP **porte standard**, **industriali** (Modbus, MQTT, OPC UA, S7, PROFINET…) e **custom**
@@ -60,7 +68,7 @@ Collegando il probe a una porta switch, NDP mostra informazioni L2 (LLDP/CDP) e 
 - Script di installazione per Raspberry Pi OS Lite
 - Unit file systemd per avvio automatico
 
-Prossime milestone: immagine SD pronta al flash, hotspot Wi-Fi per accesso remoto.
+Prossima milestone: immagine SD pronta al flash (pi-gen).
 
 ## Hardware di riferimento
 
@@ -77,20 +85,13 @@ Il Pi 3 è scelto per il **basso costo**. Un boot di 60–90 secondi è accettab
 ## Architettura software
 
 ```
-                    ┌─────────────────┐
-  Smartphone  ─────►│  Web UI :8080   │  ping, discover, config
-                    └────────┬────────┘
-                             │
-ndp-core (polling) ◄─────────┤
-    ├── collectors/          │
-    └── engine               ▼
-                    ┌─────────────────┐
-                    │  TFT /dev/fb1   │  mirror read-only, auto-cycle
-                    └─────────────────┘
+  Smartphone ──Wi-Fi hotspot (NDP-XXXX)──► Web UI :8080   ping, discover, config
+  eth0 ────────────────────────────────► rete cliente     diagnostica L2/L3
+  TFT /dev/fb1 ◄────────────────────── mirror read-only, auto-cycle
 ```
 
 Il display mostra i risultati in rotazione (Home → Switch → Network → Ping → System).  
-Tutta l'interazione (ping, scan rete, configurazione) avviene dal **telefono** sulla stessa rete.
+Tutta l'interazione (ping, scan rete, configurazione) avviene dal **telefono**, di norma collegato all'**hotspot integrato** del probe.
 
 ```
 ndp-core (polling)
@@ -122,9 +123,15 @@ ui:
 web:
   enabled: true
   port: 8080
+
+wifi_hotspot:
+  enabled: true
+  ssid_prefix: "NDP"
+  password: "ndp-probe"
 ```
 
-Apri `http://<ip-della-pi>:8080/` dal telefono (stessa rete Ethernet/Wi-Fi della Pi).
+Collega il telefono alla rete **NDP-XXXX** e apri `http://192.168.50.1:8080/`.  
+In alternativa, usa la stessa LAN del cliente: `http://<ip-eth0>:8080/`.
 
 > Il touchscreen resistivo del Joy-it non è utilizzato da NDP. Non serve calibrarlo né abilitare driver touch.
 
@@ -140,10 +147,10 @@ sudo ./scripts/install.sh
 
 Lo script:
 
-1. Installa `lldpd`, `iproute2`, `ethtool`, `arp-scan`
+1. Installa `lldpd`, `hostapd`, `dnsmasq`, `iproute2`, `ethtool`, `arp-scan`
 2. Crea un virtualenv in `/opt/ndp`
 3. Copia la configurazione in `/etc/ndp/config.yaml`
-4. Abilita e avvia `lldpd` e `ndp`
+4. Abilita `ndp-hotspot`, `lldpd` e `ndp`
 
 ### Verifica
 
@@ -232,7 +239,8 @@ Con `web.enabled: true` apri `http://<ip-della-pi>:8080/` da browser sulla stess
 
 Dopo modifiche al config: `sudo systemctl restart ndp`
 
-Il Wi-Fi hotspot è previsto in una fase successiva; per ora usa Ethernet o la rete Wi-Fi già configurata sulla Pi.
+Con `wifi_hotspot.enabled: true` (default), la Pi espone la rete **NDP-XXXX** all'avvio.  
+Verifica con `ndp hotspot status` o dalla tab **Stato** della Web UI. Vedi `docs/MANUALE-ACCESSO-TELEFONO.md`.
 
 ### Input opzionale sul dispositivo
 
@@ -260,8 +268,8 @@ La fase successiva automatizzerà questi passi con una stage **pi-gen** dedicata
 | 2b | Splash + schermate TFT | ✅ v0.4 |
 | 2c | Display read-only + web mobile | ✅ v0.7 |
 | 3 | Immagine SD custom (pi-gen) | Prossima |
-| 4 | Web config HTTP | ✅ v0.4 (senza hotspot) |
-| 4b | Hotspot Wi-Fi | Ultima — dopo funzioni core |
+| 4 | Web config HTTP | ✅ v0.4 |
+| 4b | Hotspot Wi-Fi | ✅ v0.10 |
 | 5 | Case 3D | Pianificata |
 
 ## Licenza

@@ -138,11 +138,26 @@ web:
   # Porta TCP del server web; apri http://<ip-pi>:8080/ per configurare.
 
 wifi_hotspot:
-  enabled: false
-  # true = attiva hotspot Wi-Fi per accesso remoto (funzionalità futura).
+  enabled: true
+  # true = crea rete Wi-Fi NDP-XXXX per collegare il telefono senza Wi-Fi cliente.
 
   ssid_prefix: "NDP"
-  # Prefisso del nome rete Wi-Fi dell'hotspot (es. NDP-XXXX).
+  # Prefisso SSID; suffisso = ultime 4 cifre MAC Wi-Fi (es. NDP-A3F2).
+
+  password: "ndp-probe"
+  # Password WPA2 (min 8 caratteri). Stringa vuota = rete aperta (sconsigliato).
+
+  interface: wlan0
+  # Interfaccia Wi-Fi della Raspberry Pi (di solito wlan0).
+
+  ip: "192.168.50.1"
+  # IP del probe sulla rete hotspot; apri http://192.168.50.1:8080/ dal telefono.
+
+  dhcp_start: "192.168.50.10"
+  dhcp_end: "192.168.50.50"
+  channel: 6
+  country: "IT"
+  # Codice paese regolatorio Wi-Fi (iw reg / hostapd).
 
 discovery:
   disconnect_wait_seconds: 8

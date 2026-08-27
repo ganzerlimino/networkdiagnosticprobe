@@ -65,6 +65,7 @@
   </nav>
   <main>
     <section class="panel active" id="panel-status">
+      <div class="card"><h2>Hotspot telefono</h2><div id="status-hotspot"></div></div>
       <div class="card"><h2>Link</h2><div id="status-link"></div></div>
       <div class="card"><h2>Rete</h2><div id="status-network"></div></div>
       <div class="card"><h2>Switch</h2><div id="status-switch"></div></div>
@@ -221,8 +222,26 @@
       document.getElementById('version').textContent = `v${j.version} · ${j.interface}`;
     }
 
+    async function loadHotspot() {
+      try {
+        const j = await (await fetch('/api/hotspot/status')).json();
+        const auth = j.open_network ? 'rete aperta' : (j.password_hint || 'WPA2');
+        const cls = j.active ? 'ok' : 'bad';
+        document.getElementById('status-hotspot').innerHTML = [
+          row('Stato', j.active ? 'Attivo' : 'Spento', cls),
+          row('SSID', j.ssid || 'n/a'),
+          row('URL', j.web_url || 'n/a'),
+          row('Auth', auth),
+          row('Nota', j.message || ''),
+        ].join('');
+      } catch (e) {
+        document.getElementById('status-hotspot').innerHTML = row('Stato', 'n/d', 'bad');
+      }
+    }
+
     function renderStatus(data) {
       statusData = data;
+      loadHotspot();
       const link = data.link || {}, ip = data.ip || {}, n = data.neighbor || {}, s = data.system || {};
       document.getElementById('status-link').innerHTML = [
         row('Stato', link.carrier ? 'UP' : 'DOWN', link.carrier ? 'ok' : 'bad'),

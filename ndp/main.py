@@ -13,6 +13,7 @@ from pathlib import Path
 
 from ndp import __version__
 from ndp.cli.discover import add_discover_subparser, run_discover_command
+from ndp.cli.hotspot import add_hotspot_subparser, run_hotspot_command
 from ndp.cli.test_display import add_test_subparser, run_test_command
 from ndp.console import render_status
 from ndp.core.config import load_config
@@ -159,6 +160,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command")
     add_discover_subparser(subparsers)
+    add_hotspot_subparser(subparsers)
     add_test_subparser(subparsers)
     return parser
 
@@ -169,6 +171,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "discover":
         return run_discover_command(args, args.config)
+
+    if args.command == "hotspot":
+        return run_hotspot_command(args, args.config)
 
     if args.command == "test":
         return run_test_command(args, args.config)
