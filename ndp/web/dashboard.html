@@ -413,16 +413,45 @@
       renderPingResults(data.ping || {});
     }
 
+    let pingResultsOverride = null;
+
     function renderPingResults(ping) {
       const el = document.getElementById('ping-results');
-      if (ping.running) { el.innerHTML = row('Stato', ping.message || 'In corso...'); return; }
-      const results = ping.results || [];
+      const data = pingResultsOverride || ping;
+      if (data.running) { el.innerHTML = row('Stato', data.message || 'In corso...'); return; }
+      const results = data.results || [];
       if (!results.length) { el.innerHTML = '<div class="sub">Nessun risultato.</div>'; return; }
       el.innerHTML = results.map(item => {
         const ok = item.reachable;
         const rtt = item.rtt_ms != null ? item.rtt_ms.toFixed(0) + ' ms' : 'FAIL';
-        return row(item.label || item.host, `${item.host} · ${rtt}`, ok ? 'ok' : 'bad');
+        const stats = item.samples ? ` · ${item.samples} campioni` : '';
+        return row(item.label || item.host, `${item.host} · ${rtt}${stats}`, ok ? 'ok' : 'bad');
       }).join('');
+    }
+
+    function summarizeLivePingResults() {
+      return chartHosts.map(host => {
+        const points = chartSeries[host] || [];
+        if (!points.length) return null;
+        const okPoints = points.filter(p => p.reachable && p.rtt_ms != null);
+        const avg = okPoints.length
+          ? okPoints.reduce((sum, p) => sum + p.rtt_ms, 0) / okPoints.length
+          : null;
+        return {
+          label: host,
+          host,
+          reachable: okPoints.length > 0,
+          rtt_ms: avg,
+          samples: `${okPoints.length}/${points.length}`,
+        };
+      }).filter(Boolean);
+    }
+
+    function applyLivePingSummary() {
+      const results = summarizeLivePingResults();
+      if (!results.length) return;
+      pingResultsOverride = { running: false, results };
+      renderPingResults({});
     }
 
     async function loadStatus() {
@@ -486,7 +515,8 @@
       ctx.fillText(Math.round(maxRtt) + ' ms', 4, 24);
     }
 
-    function stopLive() {
+    function stopLive(options = {}) {
+      const silent = options.silent === true;
       if (liveSource) { liveSource.close(); liveSource = null; }
       if (liveSessionId) {
         fetch('/api/ping/live/' + liveSessionId + '/stop', {method: 'POST'});
@@ -494,6 +524,13 @@
       }
       document.getElementById('live-start').disabled = false;
       document.getElementById('live-stop').disabled = true;
+      const msg = document.getElementById('ping-msg');
+      if (!silent && msg) {
+        msg.textContent = options.message || 'Ping live fermato.';
+      }
+      if (!silent) {
+        applyLivePingSummary();
+      }
     }
 
     let mtuSessionId = null;
@@ -571,7 +608,8 @@
     document.getElementById('live-start').onclick = async () => {
       const hosts = readHostInputs();
       if (!hosts.length) { document.getElementById('ping-msg').textContent = 'Inserisci almeno un host.'; return; }
-      stopLive();
+      stopLive({ silent: true });
+      pingResultsOverride = null;
       resetChart(hosts);
       const msg = document.getElementById('ping-msg');
       msg.textContent = 'Avvio ping live...';
@@ -598,23 +636,24 @@
             if (chartSeries[data.host].length > 60) chartSeries[data.host].shift();
             drawChart();
           }
-          if (data.type === 'done') stopLive();
+          if (data.type === 'done') stopLive({ message: 'Ping live completato.' });
         };
         liveSource.onerror = () => {
-          msg.textContent = 'Connessione grafico interrotta.';
-          stopLive();
+          document.getElementById('ping-msg').textContent = 'Connessione grafico interrotta.';
+          stopLive({ message: 'Ping live interrotto.' });
         };
       } catch (e) {
         msg.textContent = 'Errore rete: ' + e;
       }
     };
 
-    document.getElementById('live-stop').onclick = stopLive;
+    document.getElementById('live-stop').onclick = () => stopLive({ message: 'Ping live fermato.' });
 
     document.getElementById('suite-run').onclick = async () => {
       const hosts = readHostInputs();
       const msg = document.getElementById('ping-msg');
       msg.textContent = 'Suite in corso...';
+      pingResultsOverride = null;
       const r = await fetch('/api/ping/run', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
