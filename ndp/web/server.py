@@ -26,6 +26,18 @@ from ndp.web.config_schema import (
     get_nested_value,
     set_nested_value,
 )
+from ndp.web.api_models import (
+    AdhocPayload,
+    ConfigPayload,
+    ConfigValuesPayload,
+    DnsLookupPayload,
+    LivePingPayload,
+    MtuDiscoverPayload,
+    NetworkCheckPayload,
+    PingRunPayload,
+    PortScanPayload,
+    ServiceRestartPayload,
+)
 from ndp.web.report import build_report
 
 logger = logging.getLogger(__name__)
@@ -43,47 +55,8 @@ def create_app(
 ) -> object:
     from fastapi import Body, FastAPI, HTTPException
     from fastapi.responses import HTMLResponse, StreamingResponse
-    from pydantic import BaseModel, Field
 
-    class ConfigPayload(BaseModel):
-        yaml: str
-
-    class AdhocPayload(BaseModel):
-        host: str
-
-    class ConfigValuesPayload(BaseModel):
-        values: dict[str, object]
-
-    class ServiceRestartPayload(BaseModel):
-        services: list[str] = Field(default_factory=lambda: ["ndp"])
-
-    class PingRunPayload(BaseModel):
-        hosts: list[str] | None = None
-
-    class LivePingPayload(BaseModel):
-        hosts: list[str] = Field(..., min_length=1, max_length=3)
-        interval: float = Field(default=1.0, ge=0.2, le=10.0)
-        max_samples: int = Field(default=60, ge=1, le=300)
-
-    class PortScanPayload(BaseModel):
-        host: str
-        profile: str = Field(..., pattern="^(standard|industrial|custom)$")
-        ports: str | list[int] | None = None
-        timeout_ms: int = Field(default=1500, ge=300, le=5000)
-
-    class DnsLookupPayload(BaseModel):
-        hostname: str
-
-    class NetworkCheckPayload(BaseModel):
-        hostnames: list[str] = Field(default_factory=list)
-        include_gateway: bool = True
-
-    class MtuDiscoverPayload(BaseModel):
-        host: str
-        start_mtu: int = Field(default=1500, ge=576, le=9000)
-        min_mtu: int = Field(default=576, ge=576, le=9000)
-
-    app = FastAPI(title="NDP", version="0.12")
+    app = FastAPI(title="NDP", version="0.13")
     discovery = DiscoveryUISession(config)
     live_pings = LivePingManager()
     mtu_discovery = MtuDiscoveryManager()
@@ -284,8 +257,27 @@ def create_app(
         try:
             snapshot = scan_hosts(config.interface)
         except OSError as exc:
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         return snapshot.to_dict()
+
+    @app.get("/api/discover/protocols")
+    def api_discover_protocols() -> dict[str, object]:
+        from ndp.discovery.protocols import protocol_catalog
+
+        return protocol_catalog()
+
+    @app.get("/api/discover/services")
+    def api_discover_services() -> dict[str, object]:
+        from ndp.discovery.ethertype_probe import probe_l2_snapshot
+        from ndp.discovery.mdns import discover_mdns_snapshot
+        from ndp.discovery.ssdp import discover_ssdp_snapshot
+
+        return {
+            "interface": config.interface,
+            "mdns": discover_mdns_snapshot(config.interface),
+            "ssdp": discover_ssdp_snapshot(config.interface),
+            "l2_probes": probe_l2_snapshot(config.interface),
+        }
 
     @app.get("/api/discover/updown")
     def api_discover_updown_status() -> dict[str, object]:

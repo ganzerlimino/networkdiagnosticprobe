@@ -68,6 +68,54 @@ def _normalize_interface_entries(interfaces: object) -> list[dict[str, Any]]:
     return [item for item in interfaces if isinstance(item, dict)]
 
 
+def _parse_float(value: str | None) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
+def _extract_med(chassis: dict[str, Any], port: dict[str, Any]) -> tuple[str | None, str | None]:
+    med_device_type: str | None = None
+    med_capabilities: str | None = None
+
+    for node in (chassis.get("med"), port.get("med")):
+        if not isinstance(node, dict):
+            continue
+        device = node.get("device")
+        if isinstance(device, dict):
+            med_device_type = med_device_type or _first_value(device.get("type")) or _first_value(device)
+        capabilities = node.get("capability")
+        if isinstance(capabilities, list):
+            names = []
+            for item in capabilities:
+                if isinstance(item, dict):
+                    name = _first_value(item.get("type")) or _first_value(item)
+                    if name:
+                        names.append(name)
+            if names:
+                med_capabilities = ", ".join(names)
+        elif isinstance(capabilities, dict):
+            med_capabilities = med_capabilities or _first_value(capabilities.get("type")) or _first_value(
+                capabilities
+            )
+
+    return med_device_type, med_capabilities
+
+
+def _extract_poe(port: dict[str, Any]) -> tuple[float | None, float | None, str | None]:
+    power = port.get("power")
+    if not isinstance(power, dict):
+        return None, None, None
+
+    allocated = _parse_float(_first_value(power.get("allocated")))
+    requested = _parse_float(_first_value(power.get("requested")))
+    status = _first_value(power.get("status")) or _first_value(power.get("supported"))
+    return allocated, requested, status
+
+
 def _parse_neighbor_payload(payload: dict[str, Any], interface: str) -> NeighborState:
     lldp_root = payload.get("lldp", {})
     interfaces = _normalize_interface_entries(lldp_root.get("interface", []))
@@ -91,6 +139,8 @@ def _parse_neighbor_payload(payload: dict[str, Any], interface: str) -> Neighbor
     vlan_id = _extract_vlan(port_entries)
     system_description = _first_value(chassis.get("descr"))
     age_seconds = _parse_age_seconds(iface_entry.get("age"))
+    med_device_type, med_capabilities = _extract_med(chassis, port)
+    poe_allocated_w, poe_requested_w, poe_status = _extract_poe(port)
 
     if not any([switch_name, port_id, chassis_id, vlan_id]):
         return NeighborState(
@@ -107,13 +157,18 @@ def _parse_neighbor_payload(payload: dict[str, Any], interface: str) -> Neighbor
         vlan_id=vlan_id,
         system_description=system_description,
         age_seconds=age_seconds,
+        med_device_type=med_device_type,
+        med_capabilities=med_capabilities,
+        poe_allocated_w=poe_allocated_w,
+        poe_requested_w=poe_requested_w,
+        poe_status=poe_status,
         last_seen=datetime.now(timezone.utc),
         available=True,
         message="ok",
     )
 
 
-def collect_neighbor_state(interface: str) -> NeighborState:
+def collect_lldp_neighbor_state(interface: str) -> NeighborState:
     try:
         payload = run_json_command(["lldpctl", "-f", "json", interface])
     except CommandError:
@@ -125,3 +180,7 @@ def collect_neighbor_state(interface: str) -> NeighborState:
         return NeighborState(available=False, message="invalid lldpctl response")
 
     return _parse_neighbor_payload(payload, interface)
+
+
+# Backward-compatible alias
+collect_neighbor_state = collect_lldp_neighbor_state

@@ -1,3 +1,4 @@
+from ndp.core.collectors.neighbors import NeighborCollection
 from ndp.core.config import NdpConfig
 from ndp.core.engine import ProbeEngine
 from ndp.core.state import LinkState, NeighborState
@@ -18,11 +19,12 @@ def test_neighbor_cache_keeps_last_good_value(monkeypatch) -> None:
 
     calls = {"count": 0}
 
-    def fake_collect(_interface: str) -> NeighborState:
+    def fake_collect(_interface: str) -> NeighborCollection:
         calls["count"] += 1
-        return good if calls["count"] == 1 else empty
+        neighbor = good if calls["count"] == 1 else empty
+        return NeighborCollection(primary=neighbor, entries=[neighbor])
 
-    monkeypatch.setattr("ndp.core.engine.collect_neighbor_state", fake_collect)
+    monkeypatch.setattr("ndp.core.engine.collect_neighbors", fake_collect)
     monkeypatch.setattr(
         "ndp.core.engine.collect_link_state",
         lambda _interface: LinkState(operstate="up", carrier=True),

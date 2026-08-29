@@ -83,15 +83,20 @@ def lines_for_screen(
             return ["Link down", "Collega il cavo"]
         if not state.neighbor.available:
             return [
-                "No LLDP/CDP",
+                "No neighbor",
                 _fmt(state.neighbor.message, "waiting"),
             ]
-        return [
+        lines = [
             f"Proto  {_fmt(state.neighbor.protocol)}",
             f"Switch {_fmt(state.neighbor.switch_name)}",
             f"Port   {_fmt(state.neighbor.port_id)}",
             f"VLAN   {_fmt(state.neighbor.vlan_id)}",
         ]
+        if state.neighbor.med_capabilities:
+            lines.append(f"MED    {_fmt(state.neighbor.med_capabilities)}")
+        if state.neighbor.poe_status:
+            lines.append(f"PoE    {_fmt(state.neighbor.poe_status)}")
+        return lines
 
     if screen == ScreenId.NETWORK:
         lines = []

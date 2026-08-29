@@ -159,6 +159,12 @@
         <div class="actions"><button class="secondary" id="discover-scan">Scansiona rete</button></div>
         <div id="discover-scan-results" class="log"></div>
       </div>
+      <div class="card">
+        <h2>Servizi LAN (mDNS / SSDP / L2)</h2>
+        <p class="sub">mDNS, SSDP e rilevamento passivo FDP/EDP/LLTD (ethertype).</p>
+        <div class="actions"><button class="secondary" id="discover-services">Scansiona servizi</button></div>
+        <div id="discover-services-results" class="log"></div>
+      </div>
     </section>
 
     <section class="panel" id="panel-scan">
@@ -283,6 +289,24 @@
       return String(detail);
     }
 
+    async function parseJsonResponse(response) {
+      const text = await response.text();
+      if (!text) return { ok: response.ok, data: null, raw: '' };
+      try {
+        return { ok: response.ok, data: JSON.parse(text), raw: text };
+      } catch (e) {
+        const snippet = text.length > 120 ? text.slice(0, 120) + '…' : text;
+        return {
+          ok: false,
+          data: null,
+          raw: text,
+          error: response.ok
+            ? 'Risposta non JSON dal server'
+            : `Errore server (${response.status}): ${snippet.trim()}`
+        };
+      }
+    }
+
     function normalizeHost(value) {
       return String(value || '').trim().replace(/^https?:\/\//i, '').split('/')[0].trim();
     }
@@ -345,7 +369,12 @@
       document.getElementById('status-switch').innerHTML = n.available ? [
         row('Protocollo', n.protocol || 'n/a'), row('Switch', n.switch_name || 'n/a'),
         row('Porta', n.port_id || 'n/a'), row('VLAN', n.vlan_id || 'n/a'),
-      ].join('') : row('Stato', n.message || 'In attesa', 'bad');
+        n.med_capabilities ? row('LLDP-MED', n.med_capabilities) : '',
+        n.poe_status ? row('PoE', [n.poe_status, n.poe_allocated_w != null ? n.poe_allocated_w + ' W' : ''].filter(Boolean).join(' · ')) : '',
+        (data.neighbors || []).filter(x => x.available && x.protocol !== n.protocol).map(
+          alt => row(alt.protocol || 'Alt', [alt.switch_name, alt.port_id].filter(Boolean).join(' · ') || 'ok')
+        ).join(''),
+      ].filter(Boolean).join('') : row('Stato', n.message || 'In attesa', 'bad');
       document.getElementById('status-system').innerHTML = [
         row('Hostname', s.hostname || 'n/a'),
         row('Uptime', s.uptime_seconds != null ? Math.round(s.uptime_seconds) + ' s' : 'n/a'),
@@ -471,8 +500,10 @@
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({host, start_mtu: 1500, min_mtu: 576})
         });
-        const j = await r.json();
-        if (!r.ok) { msg.textContent = formatApiError(j); return; }
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { msg.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
         mtuSessionId = j.session_id;
         document.getElementById('mtu-start').disabled = true;
         document.getElementById('mtu-stop').disabled = false;
@@ -520,8 +551,10 @@
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({hosts, interval: 1, max_samples: 60})
         });
-        const j = await r.json();
-        if (!r.ok) { msg.textContent = formatApiError(j); return; }
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { msg.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
         liveSessionId = j.session_id;
         msg.textContent = 'Ping live attivo...';
         document.getElementById('live-start').disabled = true;
@@ -557,9 +590,11 @@
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({hosts: hosts.length ? hosts : null})
       });
-      const j = await r.json();
-      msg.textContent = r.ok ? 'Completato.' : formatApiError(j);
-      if (r.ok) renderPingResults(j);
+      const parsed = await parseJsonResponse(r);
+      if (parsed.error) { msg.textContent = parsed.error; return; }
+      const j = parsed.data;
+      msg.textContent = parsed.ok ? 'Completato.' : formatApiError(j);
+      if (parsed.ok) renderPingResults(j);
       loadStatus();
     };
 
@@ -618,12 +653,41 @@
       const el = document.getElementById('discover-scan-results');
       el.textContent = 'Scansione...';
       const r = await fetch('/api/discover/scan');
-      const j = await r.json();
-      if (!r.ok) { el.textContent = formatApiError(j); return; }
+      const parsed = await parseJsonResponse(r);
+      if (parsed.error) { el.textContent = parsed.error; return; }
+      const j = parsed.data;
+      if (!parsed.ok) { el.textContent = formatApiError(j); return; }
       const hosts = j.hosts || [];
       el.innerHTML = hosts.slice(0, 30).map(h => `<div>${h.ip} · ${h.mac}</div>`).join('') ||
         '<div>Nessun host</div>';
     };
+
+    document.getElementById('discover-services').onclick = async () => {
+      const el = document.getElementById('discover-services-results');
+      el.textContent = 'Scansione mDNS/SSDP/L2...';
+      const r = await fetch('/api/discover/services');
+      const parsed = await parseJsonResponse(r);
+      if (parsed.error) { el.textContent = parsed.error; return; }
+      const j = parsed.data;
+      if (!parsed.ok) { el.textContent = formatApiError(j); return; }
+      let html = '';
+      const mdns = (j.mdns && j.mdns.services) || [];
+      html += `<div class="ok">mDNS: ${mdns.length} servizi</div>`;
+      mdns.slice(0, 10).forEach(s => {
+        html += `<div>${s.name || s.service_type} · ${s.host || ''}${s.port ? ':' + s.port : ''}</div>`;
+      });
+      const ssdp = (j.ssdp && j.ssdp.devices) || [];
+      html += `<div class="ok">SSDP: ${ssdp.length} dispositivi</div>`;
+      ssdp.slice(0, 10).forEach(d => {
+        html += `<div>${d.usn} · ${d.host || ''}</div>`;
+      });
+      const l2 = (j.l2_probes && j.l2_probes.hits) || [];
+      if (l2.length) {
+        html += `<div class="ok">L2 probe: ${l2.map(h => h.protocol + ' ' + h.frame_count).join(', ')}</div>`;
+      } else {
+        html += '<div class="sub">Nessun frame FDP/EDP/LLTD rilevato</div>';
+      }
+      el.innerHTML = html || '<div>Nessun servizio trovato</div>';
 
     function renderPortResults(el, data) {
       if (!data || !data.entries) { el.innerHTML = '<div class="sub">Nessun risultato</div>'; return; }
@@ -652,8 +716,10 @@
           method: 'POST', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify(body)
         });
-        const j = await r.json();
-        if (!r.ok) { el.textContent = formatApiError(j); return; }
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { el.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { el.textContent = formatApiError(j); return; }
         renderPortResults(el, j);
       } catch (e) {
         el.textContent = 'Errore rete: ' + e;

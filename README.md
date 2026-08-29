@@ -6,6 +6,13 @@ Collegando il probe a una porta switch, NDP mostra informazioni L2 (LLDP/CDP) e 
 
 ## Stato del progetto
 
+**v0.12 — MTU discovery + fix API ping/scan**
+
+- Tab **MTU**: test decrementale da 1500 con ping DF (ideale per VPN site-to-site)
+- Fix `query.payload: Field required` su Ping live e Scan (FastAPI `Body()`)
+- Ping via **eth0** (`-I interface`) — evita fail quando l'hotspot è attivo su wlan0
+- Config: **dimensione pacchetto ICMP** (`ping.packet_size`)
+
 **v0.11 — Web UI: config guidata + hotspot**
 
 - Tab **Hotspot** dedicata (password WPA2, SSID, canale, paese)

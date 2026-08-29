@@ -9,7 +9,7 @@ from dataclasses import replace
 from ndp.core.collectors import (
     collect_ip_state,
     collect_link_state,
-    collect_neighbor_state,
+    collect_neighbors,
     collect_system_state,
 )
 from ndp.core.config import NdpConfig
@@ -31,34 +31,37 @@ class ProbeEngine:
         self.state.link = collect_link_state(interface)
         self.state.ip = collect_ip_state(interface)
         self.state.system = collect_system_state()
-        self.state.neighbor = self._resolve_neighbor(interface)
+        self.state.neighbor, self.state.neighbors = self._resolve_neighbors(interface)
         self.state.touch()
 
         return self.state
 
-    def _resolve_neighbor(self, interface: str) -> NeighborState:
+    def _resolve_neighbors(self, interface: str) -> tuple[NeighborState, list[NeighborState]]:
         if not self.state.link.carrier:
-            return NeighborState(available=False, message="link down")
+            empty = NeighborState(available=False, message="link down")
+            return empty, []
 
-        neighbor = collect_neighbor_state(interface)
+        collection = collect_neighbors(interface)
         now = time.monotonic()
+        primary = collection.primary
 
-        if neighbor.available:
-            self._cached_neighbor = neighbor
+        if primary.available:
+            self._cached_neighbor = primary
             self._cached_neighbor_at = now
-            return neighbor
+            return primary, collection.entries
 
         if (
             self._cached_neighbor
             and (now - self._cached_neighbor_at) <= self.config.lldp_cache_ttl_seconds
         ):
             age = int(now - self._cached_neighbor_at)
-            return replace(
+            cached = replace(
                 self._cached_neighbor,
                 message=f"cached ({age}s ago)",
             )
+            return cached, collection.entries
 
-        return neighbor
+        return primary, collection.entries
 
     def poll_interval(self) -> float:
         if self.state.link.carrier:

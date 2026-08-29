@@ -1,0 +1,35 @@
+{
+  "lldp": {
+    "interface": [
+      {
+        "name": "eth0",
+        "via": "LLDP",
+        "age": "0:00:05",
+        "chassis": [
+          {
+            "name": {"value": "sw-med-01"},
+            "id": {"type": "mac", "value": "aa:bb:cc:dd:ee:ff"},
+            "med": {
+              "device": {"type": {"value": "Endpoint Class I"}}
+            }
+          }
+        ],
+        "port": [
+          {
+            "id": {"type": "ifname", "value": "Gi1/0/24"},
+            "med": {
+              "capability": [
+                {"type": {"value": "Capabilities"}}
+              ]
+            },
+            "power": {
+              "status": {"value": "delivering"},
+              "allocated": {"value": "15.4"},
+              "requested": {"value": "13.0"}
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
