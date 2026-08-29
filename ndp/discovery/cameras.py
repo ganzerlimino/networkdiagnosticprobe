@@ -1,4 +1,4 @@
-"""IP camera discovery (ONVIF, mDNS, SSDP)."""
+"""IP camera discovery (ONVIF, SADP, Dahua, mDNS, SSDP)."""
 
 from __future__ import annotations
 
@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from typing import Any
 from xml.etree import ElementTree
 
+from ndp.discovery.dahua_discover import discover_dahua_cameras
+from ndp.discovery.hikvision_sadp import discover_hikvision_sadp
 from ndp.discovery.mdns import discover_mdns_services
 from ndp.discovery.ssdp import discover_ssdp_devices
 
@@ -189,6 +191,16 @@ def discover_cameras(
         key = f"onvif|{device.host}|{device.service_url}"
         found[key] = device
 
+    for sadp in discover_hikvision_sadp(interface, timeout_seconds=timeout_seconds):
+        fields = sadp.to_camera_fields()
+        key = f"sadp|{fields['host']}|{fields.get('model')}"
+        found[key] = CameraDevice(**fields)
+
+    for dahua in discover_dahua_cameras(interface, timeout_seconds=timeout_seconds):
+        fields = dahua.to_camera_fields()
+        key = f"dahua|{fields['host']}|{dahua.serial or fields.get('model')}"
+        found[key] = CameraDevice(**fields)
+
     for service in discover_mdns_services(interface, timeout_seconds=timeout_seconds):
         device = _camera_from_mdns(service)
         if device is None:
@@ -213,10 +225,16 @@ def discover_cameras_snapshot(interface: str, *, timeout_seconds: float = _DEFAU
         "timeout_seconds": timeout_seconds,
         "scanned_at": datetime.now(timezone.utc).isoformat(),
         "device_count": len(devices),
-        "protocols": ["ONVIF WS-Discovery", "mDNS (_onvif/_rtsp/_axis-video)", "SSDP/UPnP"],
+        "protocols": [
+            "ONVIF WS-Discovery",
+            "Hikvision SADP (UDP/37020)",
+            "Dahua DHDiscover (UDP/37810)",
+            "mDNS (_onvif/_rtsp/_axis-video)",
+            "SSDP/UPnP",
+        ],
         "devices": [device.to_dict() for device in devices],
         "note": (
-            "Hikvision SADP e Dahua discovery proprietari non sono ancora inclusi; "
-            "molte telecamere rispondono comunque a ONVIF e/o mDNS."
+            "SADP e DHDiscover trovano telecamere anche con ONVIF disabilitato. "
+            "Risultati deduplicati per host/protocollo."
         ),
     }

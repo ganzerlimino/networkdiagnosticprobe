@@ -216,7 +216,7 @@
     <section class="panel" id="panel-cameras">
       <div class="card">
         <h2>Telecamere IP</h2>
-        <p class="sub">ONVIF WS-Discovery, mDNS (_onvif/_rtsp) e SSDP/UPnP. Non include ancora SADP Hikvision/Dahua proprietari.</p>
+        <p class="sub">ONVIF, Hikvision SADP (UDP/37020), Dahua DHDiscover (UDP/37810), mDNS e SSDP/UPnP.</p>
         <div class="actions"><button class="primary" id="cameras-scan">Scansiona telecamere</button></div>
         <p id="cameras-msg" class="sub"></p>
         <div id="cameras-results" class="log"></div>
@@ -226,7 +226,7 @@
     <section class="panel" id="panel-nas">
       <div class="card">
         <h2>NAS</h2>
-        <p class="sub">Synology (UDP/9997), QNAP (UDP/7777), più mDNS/SSDP per altri brand (es. Synology senza risposta UDP).</p>
+        <p class="sub">Synology (9997), QNAP (7777), ASUSTOR (8888/8889), ReadyNAS RAIDar (22081), WS-Discovery, mDNS e SSDP.</p>
         <div class="actions"><button class="primary" id="nas-scan">Scansiona NAS</button></div>
         <p id="nas-msg" class="sub"></p>
         <div id="nas-results" class="log"></div>
