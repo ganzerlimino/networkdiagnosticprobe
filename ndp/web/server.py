@@ -56,7 +56,7 @@ def create_app(
     from fastapi import Body, FastAPI, HTTPException
     from fastapi.responses import HTMLResponse, StreamingResponse
 
-    app = FastAPI(title="NDP", version="0.13")
+    app = FastAPI(title="NDP", version="0.14")
     discovery = DiscoveryUISession(config)
     live_pings = LivePingManager()
     mtu_discovery = MtuDiscoveryManager()
