@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from queue import Empty, Queue
 
 from ndp.core.collectors.ping import ping_host
+from ndp.ping.service import validate_host
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,7 @@ class LivePingManager:
         interval_seconds: float = DEFAULT_INTERVAL_SECONDS,
         max_samples: int = DEFAULT_MAX_SAMPLES,
     ) -> LivePingSession:
-        cleaned = [host.strip() for host in hosts if host.strip()]
+        cleaned = [validate_host(host) for host in hosts if str(host).strip()]
         if not cleaned:
             raise ValueError("almeno un host richiesto")
         if len(cleaned) > MAX_HOSTS:

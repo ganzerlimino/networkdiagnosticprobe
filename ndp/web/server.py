@@ -9,7 +9,7 @@ from collections.abc import Callable, Iterator
 from pathlib import Path
 
 from ndp.core.config import DEFAULT_CONFIG_PATH, NdpConfig
-from ndp.core.config_io import load_config_text, save_config_text
+from ndp.core.config_io import load_config_mapping, load_config_text, save_config_mapping, save_config_text
 from ndp.core.ping_state import PingSuiteState
 from ndp.core.state import ProbeState
 from ndp.discovery.wizard import UpDownResult
@@ -19,7 +19,12 @@ from ndp.scan.dns import NetworkDiagnosticsResult, resolve_hostname, run_network
 from ndp.scan.ports import PortScanResult, parse_custom_ports, scan_ports
 from ndp.scan.profiles import profiles_catalog
 from ndp.ui.discovery_session import DiscoveryUISession
-from ndp.web.report import build_report
+from ndp.web.config_schema import (
+    coerce_field_value,
+    config_sections,
+    get_nested_value,
+    set_nested_value,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +49,19 @@ def create_app(
     class AdhocPayload(BaseModel):
         host: str
 
+    class ConfigValuesPayload(BaseModel):
+        values: dict[str, object]
+
+    class ServiceRestartPayload(BaseModel):
+        services: list[str] = Field(default_factory=lambda: ["ndp"])
+
     class PingRunPayload(BaseModel):
         hosts: list[str] | None = None
 
     class LivePingPayload(BaseModel):
         hosts: list[str] = Field(..., min_length=1, max_length=3)
-        interval: float = 1.0
-        max_samples: int = 60
+        interval: float = Field(default=1.0, ge=0.2, le=10.0)
+        max_samples: int = Field(default=60, ge=1, le=300)
 
     class PortScanPayload(BaseModel):
         host: str
@@ -65,7 +76,7 @@ def create_app(
         hostnames: list[str] = Field(default_factory=list)
         include_gateway: bool = True
 
-    app = FastAPI(title="NDP", version="0.9")
+    app = FastAPI(title="NDP", version="0.11")
     discovery = DiscoveryUISession(config)
     live_pings = LivePingManager()
     discovery_result: UpDownResult | None = None
@@ -93,6 +104,65 @@ def create_app(
         logger.info("Configuration updated via web UI at %s", config_path)
         return {"ok": True, "path": str(config_path)}
 
+    @app.get("/api/config/schema")
+    def api_config_schema() -> dict[str, object]:
+        return {"sections": config_sections()}
+
+    @app.get("/api/config/values")
+    def api_config_values() -> dict[str, object]:
+        data = load_config_mapping(config_path)
+        values: dict[str, object] = {}
+        for section in config_sections():
+            for field in section["fields"]:  # type: ignore[index]
+                key = str(field["key"])
+                values[key] = get_nested_value(data, key)
+        return {"values": values, "yaml": load_config_text(config_path)}
+
+    @app.put("/api/config/values")
+    def api_put_config_values(payload: ConfigValuesPayload) -> dict[str, object]:
+        data = load_config_mapping(config_path)
+        try:
+            for section in config_sections():
+                for field in section["fields"]:  # type: ignore[index]
+                    key = str(field["key"])
+                    if key not in payload.values:
+                        continue
+                    set_nested_value(
+                        data,
+                        key,
+                        coerce_field_value(str(field["type"]), payload.values[key]),
+                    )
+            password = get_nested_value(data, "wifi_hotspot.password")
+            if password is not None:
+                cleaned = str(password).strip()
+                if cleaned and len(cleaned) < 8:
+                    raise ValueError("Password hotspot: minimo 8 caratteri (o lascia vuoto per rete aperta)")
+            save_config_mapping(config_path, data)
+        except (ValueError, OSError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"ok": True, "path": str(config_path), "restart_services": ["ndp", "ndp-hotspot"]}
+
+    @app.post("/api/services/restart")
+    def api_services_restart(payload: ServiceRestartPayload) -> dict[str, object]:
+        import subprocess
+
+        for service in payload.services:
+            subprocess.run(["systemctl", "restart", service], check=False)
+        return {"ok": True, "services": payload.services}
+
+    @app.post("/api/hotspot/restart")
+    def api_hotspot_restart() -> dict[str, object]:
+        import subprocess
+
+        from ndp.core.config import load_config
+        from ndp.network.hotspot import ensure_hotspot, stop_hotspot
+
+        fresh = load_config(config_path)
+        stop_hotspot(fresh)
+        subprocess.run(["rfkill", "unblock", "all"], check=False)
+        status = ensure_hotspot(fresh)
+        return status.to_dict()
+
     @app.get("/api/version")
     def api_version() -> dict[str, str]:
         from ndp import __version__
@@ -119,7 +189,12 @@ def create_app(
     @app.post("/api/ping/run")
     def api_ping_run(payload: PingRunPayload | None = None) -> dict[str, object]:
         state = get_state()
-        hosts = payload.hosts if payload and payload.hosts else None
+        hosts = None
+        if payload and payload.hosts:
+            try:
+                hosts = [validate_host(host) for host in payload.hosts if str(host).strip()]
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
         if hosts:
             suite = run_ping_hosts(config, hosts, gateway=state.ip.gateway)
         else:
@@ -135,8 +210,9 @@ def create_app(
     @app.post("/api/ping/live/start")
     def api_ping_live_start(payload: LivePingPayload) -> dict[str, object]:
         try:
+            hosts = [validate_host(host) for host in payload.hosts]
             session = live_pings.create(
-                payload.hosts,
+                hosts,
                 interval_seconds=payload.interval,
                 max_samples=payload.max_samples,
             )

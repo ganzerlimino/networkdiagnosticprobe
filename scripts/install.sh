@@ -137,6 +137,10 @@ if [[ ! -x "${NDP_ROOT}/venv/bin/ndp" ]]; then
   exit 1
 fi
 
+echo "==> Installing ndp CLI symlink"
+install -d -m 0755 /usr/local/bin
+ln -sf "${NDP_ROOT}/venv/bin/ndp" /usr/local/bin/ndp
+
 echo "==> Installing configuration"
 install -d -m 0755 "${NDP_CONFIG_DIR}"
 install -m 0644 "${NDP_ROOT}/ndp/config/default.yaml" "${NDP_CONFIG_DIR}/config.yaml.example"

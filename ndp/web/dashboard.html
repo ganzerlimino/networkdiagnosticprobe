@@ -49,6 +49,15 @@
     .chip { font-size: .75rem; padding: .2rem .45rem; border-radius: 6px; background: #0f1728; color: var(--muted); }
     .open { color: var(--accent); font-weight: 600; }
     .closed { color: var(--muted); }
+    .field { margin-bottom: .85rem; }
+    .field label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .2rem; }
+    .field-help { margin: 0 0 .35rem; color: var(--muted); font-size: .78rem; line-height: 1.35; }
+    .section-title { margin: 1rem 0 .5rem; font-size: .85rem; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+    .section-title:first-child { margin-top: 0; }
+    .config-advanced { margin-top: 1rem; }
+    input[type="checkbox"] { width: auto; margin: 0; }
+    .field-check { display: flex; align-items: flex-start; gap: .55rem; }
+    .field-check input { margin-top: .2rem; }
   </style>
 </head>
 <body>
@@ -61,6 +70,7 @@
     <button data-panel="ping">Ping</button>
     <button data-panel="discover">Discover</button>
     <button data-panel="scan">Scan</button>
+    <button data-panel="hotspot">Hotspot</button>
     <button data-panel="config">Config</button>
   </nav>
   <main>
@@ -184,12 +194,43 @@
       </div>
     </section>
 
+    <section class="panel" id="panel-hotspot">
+      <div class="card">
+        <h2>Stato hotspot</h2>
+        <div id="hotspot-status-panel"></div>
+      </div>
+      <div class="card">
+        <h2>Impostazioni Wi-Fi</h2>
+        <p class="sub">Modifica password e parametri della rete NDP-XXXX. Dopo il salvataggio riavvia l'hotspot.</p>
+        <div id="hotspot-form"></div>
+        <div class="actions">
+          <button class="primary" id="hotspot-save">Salva e riavvia hotspot</button>
+        </div>
+        <p id="hotspot-msg" class="sub"></p>
+      </div>
+    </section>
+
     <section class="panel" id="panel-config">
       <div class="card">
-        <h2>config.yaml</h2>
+        <h2>Configurazione guidata</h2>
+        <p class="sub">Ogni voce include una spiegazione. Per backup o profili rete usa Esporta / Invia mail.</p>
+        <div id="config-form"></div>
+        <div class="actions">
+          <button class="primary" id="config-save">Salva configurazione</button>
+          <button class="secondary" id="config-export">Esporta YAML</button>
+          <button class="secondary" id="config-email">📧 Invia backup mail</button>
+          <label class="secondary" style="display:inline-flex;align-items:center;gap:.35rem;padding:.7rem .9rem;border:1px solid var(--border);border-radius:10px;">
+            Importa<input type="file" id="config-import" accept=".yaml,.yml,.txt" style="display:none;width:auto;margin:0;padding:0;border:0;">
+          </label>
+        </div>
+        <p id="config-msg" class="sub"></p>
+      </div>
+      <div class="card config-advanced">
+        <h2>YAML avanzato</h2>
+        <p class="sub">Modifica diretta del file (perde i commenti al salvataggio da form).</p>
         <textarea id="yaml"></textarea>
         <div class="actions">
-          <button class="primary" id="save">Salva</button>
+          <button class="primary" id="save">Salva YAML</button>
           <button class="secondary" id="reload">Ricarica</button>
         </div>
         <p id="msg"></p>
@@ -203,6 +244,34 @@
     let chartSeries = {};
     let chartHosts = [];
     let statusData = null;
+    let configSchema = [];
+    let configValues = {};
+
+    function formatApiError(payload, fallback='Errore') {
+      if (!payload) return fallback;
+      const detail = payload.detail ?? payload.message ?? payload.error;
+      if (!detail) return fallback;
+      if (typeof detail === 'string') return detail;
+      if (Array.isArray(detail)) {
+        return detail.map(item => {
+          if (typeof item === 'string') return item;
+          const loc = Array.isArray(item.loc) ? item.loc.join('.') : '';
+          return `${loc}: ${item.msg || JSON.stringify(item)}`.trim();
+        }).join(' · ');
+      }
+      if (typeof detail === 'object') return JSON.stringify(detail);
+      return String(detail);
+    }
+
+    function normalizeHost(value) {
+      return String(value || '').trim().replace(/^https?:\/\//i, '').split('/')[0].trim();
+    }
+
+    function readHostInputs() {
+      return ['host1','host2','host3']
+        .map(id => normalizeHost(document.getElementById(id).value))
+        .filter(Boolean);
+    }
 
     document.querySelectorAll('nav button').forEach(btn => {
       btn.onclick = () => {
@@ -349,38 +418,48 @@
     }
 
     document.getElementById('live-start').onclick = async () => {
-      const hosts = ['host1','host2','host3'].map(id => document.getElementById(id).value.trim()).filter(Boolean);
+      const hosts = readHostInputs();
       if (!hosts.length) { document.getElementById('ping-msg').textContent = 'Inserisci almeno un host.'; return; }
       stopLive();
       resetChart(hosts);
-      const r = await fetch('/api/ping/live/start', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({hosts, interval: 1.0, max_samples: 60})
-      });
-      const j = await r.json();
-      if (!r.ok) { document.getElementById('ping-msg').textContent = j.detail || 'Errore'; return; }
-      liveSessionId = j.session_id;
-      document.getElementById('ping-msg').textContent = 'Ping live attivo...';
-      document.getElementById('live-start').disabled = true;
-      document.getElementById('live-stop').disabled = false;
-      liveSource = new EventSource('/api/ping/live/' + liveSessionId + '/events');
-      liveSource.onmessage = (ev) => {
-        const data = JSON.parse(ev.data);
-        if (data.type === 'sample') {
-          if (!chartSeries[data.host]) chartSeries[data.host] = [];
-          chartSeries[data.host].push(data);
-          if (chartSeries[data.host].length > 60) chartSeries[data.host].shift();
-          drawChart();
-        }
-        if (data.type === 'done') stopLive();
-      };
+      const msg = document.getElementById('ping-msg');
+      msg.textContent = 'Avvio ping live...';
+      try {
+        const r = await fetch('/api/ping/live/start', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({hosts, interval: 1, max_samples: 60})
+        });
+        const j = await r.json();
+        if (!r.ok) { msg.textContent = formatApiError(j); return; }
+        liveSessionId = j.session_id;
+        msg.textContent = 'Ping live attivo...';
+        document.getElementById('live-start').disabled = true;
+        document.getElementById('live-stop').disabled = false;
+        liveSource = new EventSource('/api/ping/live/' + liveSessionId + '/events');
+        liveSource.onmessage = (ev) => {
+          const data = JSON.parse(ev.data);
+          if (data.type === 'sample') {
+            if (!chartSeries[data.host]) chartSeries[data.host] = [];
+            chartSeries[data.host].push(data);
+            if (chartSeries[data.host].length > 60) chartSeries[data.host].shift();
+            drawChart();
+          }
+          if (data.type === 'done') stopLive();
+        };
+        liveSource.onerror = () => {
+          msg.textContent = 'Connessione grafico interrotta.';
+          stopLive();
+        };
+      } catch (e) {
+        msg.textContent = 'Errore rete: ' + e;
+      }
     };
 
     document.getElementById('live-stop').onclick = stopLive;
 
     document.getElementById('suite-run').onclick = async () => {
-      const hosts = ['host1','host2','host3'].map(id => document.getElementById(id).value.trim()).filter(Boolean);
+      const hosts = readHostInputs();
       const msg = document.getElementById('ping-msg');
       msg.textContent = 'Suite in corso...';
       const r = await fetch('/api/ping/run', {
@@ -389,8 +468,8 @@
         body: JSON.stringify({hosts: hosts.length ? hosts : null})
       });
       const j = await r.json();
-      msg.textContent = r.ok ? 'Completato.' : (j.detail || 'Errore');
-      renderPingResults(j);
+      msg.textContent = r.ok ? 'Completato.' : formatApiError(j);
+      if (r.ok) renderPingResults(j);
       loadStatus();
     };
 
@@ -450,7 +529,7 @@
       el.textContent = 'Scansione...';
       const r = await fetch('/api/discover/scan');
       const j = await r.json();
-      if (!r.ok) { el.textContent = j.detail || 'Errore'; return; }
+      if (!r.ok) { el.textContent = formatApiError(j); return; }
       const hosts = j.hosts || [];
       el.innerHTML = hosts.slice(0, 30).map(h => `<div>${h.ip} · ${h.mac}</div>`).join('') ||
         '<div>Nessun host</div>';
@@ -470,7 +549,7 @@
     }
 
     async function runPortScan(profile, resultId) {
-      const host = document.getElementById('scan-host').value.trim();
+      const host = normalizeHost(document.getElementById('scan-host').value);
       if (!host) { document.getElementById(resultId).textContent = 'Inserisci un host.'; return; }
       const el = document.getElementById(resultId);
       el.textContent = 'Scansione in corso...';
@@ -478,13 +557,17 @@
       if (profile === 'custom') {
         body.ports = document.getElementById('scan-custom-ports').value.trim();
       }
-      const r = await fetch('/api/scan/ports', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(body)
-      });
-      const j = await r.json();
-      if (!r.ok) { el.textContent = j.detail || 'Errore'; return; }
-      renderPortResults(el, j);
+      try {
+        const r = await fetch('/api/scan/ports', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body)
+        });
+        const j = await r.json();
+        if (!r.ok) { el.textContent = formatApiError(j); return; }
+        renderPortResults(el, j);
+      } catch (e) {
+        el.textContent = 'Errore rete: ' + e;
+      }
     }
 
     function renderChips(containerId, ports) {
@@ -541,7 +624,7 @@
         body: JSON.stringify({ hostnames, include_gateway: true })
       });
       const j = await r.json();
-      if (!r.ok) { el.textContent = j.detail || 'Errore'; return; }
+      if (!r.ok) { el.textContent = formatApiError(j); return; }
       renderNetworkResults(j);
     };
 
@@ -556,10 +639,144 @@
       renderNetworkResults({ lookups: [j], dns_servers: [], gateway: null });
     };
 
-    document.getElementById('reload').onclick = () => { loadConfig(); loadStatus(); };
-    async function loadConfig() {
-      document.getElementById('yaml').value = (await (await fetch('/api/config')).json()).yaml || '';
+    function fieldInputId(key) {
+      return 'cfg-' + key.replace(/\./g, '-');
     }
+
+    function renderConfigField(field, value) {
+      const id = fieldInputId(field.key);
+      const help = `<p class="field-help">${field.help}</p>`;
+      if (field.type === 'bool') {
+        return `<div class="field field-check"><input type="checkbox" id="${id}" data-key="${field.key}" ${value ? 'checked' : ''}><div><label for="${id}">${field.label}</label>${help}</div></div>`;
+      }
+      if (field.type === 'select') {
+        const opts = (field.options || []).map(opt => `<option value="${opt}" ${String(value) === opt ? 'selected' : ''}>${opt}</option>`).join('');
+        return `<div class="field"><label for="${id}">${field.label}</label>${help}<select id="${id}" data-key="${field.key}">${opts}</select></div>`;
+      }
+      const inputType = field.key.includes('password') ? 'text' : (field.type === 'int' || field.type === 'float' ? 'number' : 'text');
+      const step = field.type === 'float' ? 'any' : '1';
+      const val = value == null ? '' : String(value);
+      return `<div class="field"><label for="${id}">${field.label}</label>${help}<input id="${id}" data-key="${field.key}" type="${inputType}" ${field.type === 'int' || field.type === 'float' ? `step="${step}"` : ''} value="${val.replace(/"/g, '&quot;')}"></div>`;
+    }
+
+    function renderConfigForm(containerId, sectionFilter=null, sectionExclude=null) {
+      const el = document.getElementById(containerId);
+      if (!configSchema.length) { el.innerHTML = '<div class="sub">Caricamento...</div>'; return; }
+      el.innerHTML = configSchema
+        .filter(section => (!sectionFilter || section.id === sectionFilter) && (!sectionExclude || section.id !== sectionExclude))
+        .map(section => {
+          const fields = (section.fields || []).map(field => renderConfigField(field, configValues[field.key])).join('');
+          return `<div class="section-title">${section.title}</div>${fields}`;
+        }).join('');
+    }
+
+    function collectConfigValues(containerId) {
+      const values = {...configValues};
+      document.querySelectorAll(`#${containerId} [data-key]`).forEach(node => {
+        const key = node.getAttribute('data-key');
+        if (!key) return;
+        if (node.type === 'checkbox') values[key] = node.checked;
+        else if (node.type === 'number') values[key] = node.value === '' ? '' : Number(node.value);
+        else values[key] = node.value;
+      });
+      return values;
+    }
+
+    async function renderHotspotStatusPanel() {
+      try {
+        const j = await (await fetch('/api/hotspot/status')).json();
+        const auth = j.open_network ? 'Rete aperta (nessuna password)' : (j.password_hint || 'WPA2');
+        document.getElementById('hotspot-status-panel').innerHTML = [
+          row('Stato', j.active ? 'Attivo' : 'Spento', j.active ? 'ok' : 'bad'),
+          row('SSID', j.ssid || 'n/a'),
+          row('URL', j.web_url || 'n/a'),
+          row('Auth', auth),
+        ].join('');
+      } catch (e) {
+        document.getElementById('hotspot-status-panel').innerHTML = row('Stato', 'n/d', 'bad');
+      }
+    }
+
+    async function loadConfigForm() {
+      const schemaResp = await fetch('/api/config/schema');
+      const schemaJson = await schemaResp.json();
+      configSchema = schemaJson.sections || [];
+      const valuesResp = await fetch('/api/config/values');
+      const valuesJson = await valuesResp.json();
+      configValues = valuesJson.values || {};
+      document.getElementById('yaml').value = valuesJson.yaml || '';
+      renderConfigForm('config-form', null, 'hotspot');
+      renderConfigForm('hotspot-form', 'hotspot');
+      renderHotspotStatusPanel();
+    }
+
+    document.getElementById('config-save').onclick = async () => {
+      const msg = document.getElementById('config-msg');
+      msg.textContent = 'Salvataggio...';
+      const values = collectConfigValues('config-form');
+      const r = await fetch('/api/config/values', {
+        method: 'PUT', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({values})
+      });
+      const j = await r.json();
+      if (!r.ok) { msg.textContent = formatApiError(j); return; }
+      await fetch('/api/services/restart', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({services: j.restart_services || ['ndp','ndp-hotspot']})});
+      msg.textContent = 'Salvato. Servizi riavviati.';
+      loadConfigForm(); loadStatus();
+    };
+
+    document.getElementById('hotspot-save').onclick = async () => {
+      const msg = document.getElementById('hotspot-msg');
+      msg.textContent = 'Salvataggio...';
+      const values = collectConfigValues('hotspot-form');
+      const r = await fetch('/api/config/values', {
+        method: 'PUT', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({values})
+      });
+      const j = await r.json();
+      if (!r.ok) { msg.textContent = formatApiError(j); return; }
+      const hr = await fetch('/api/hotspot/restart', {method:'POST'});
+      const hj = await hr.json();
+      msg.textContent = hr.ok ? 'Hotspot aggiornato.' : formatApiError(hj);
+      loadHotspot(); renderHotspotStatusPanel();
+    };
+
+    document.getElementById('config-export').onclick = async () => {
+      const yaml = document.getElementById('yaml').value || (await (await fetch('/api/config')).json()).yaml;
+      const blob = new Blob([yaml], {type: 'text/yaml'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ndp-config.yaml';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+
+    document.getElementById('config-email').onclick = async () => {
+      const yaml = document.getElementById('yaml').value || (await (await fetch('/api/config')).json()).yaml;
+      const subject = encodeURIComponent('NDP — backup config.yaml');
+      const body = encodeURIComponent('Backup configurazione NDP\n\n' + yaml);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    };
+
+    document.getElementById('config-import').onchange = async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      document.getElementById('yaml').value = text;
+      const msg = document.getElementById('config-msg');
+      const r = await fetch('/api/config', {
+        method: 'PUT', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({yaml: text})
+      });
+      const j = await r.json();
+      msg.textContent = r.ok ? 'Import completato.' : formatApiError(j);
+      if (r.ok) loadConfigForm();
+      ev.target.value = '';
+    };
+
+    document.getElementById('reload').onclick = () => { loadConfigForm(); loadStatus(); };
+    async function loadConfig() { await loadConfigForm(); }
+
     document.getElementById('save').onclick = async () => {
       const msgEl = document.getElementById('msg');
       const r = await fetch('/api/config', {
@@ -567,8 +784,9 @@
         body: JSON.stringify({yaml: document.getElementById('yaml').value})
       });
       const j = await r.json();
-      msgEl.textContent = r.ok ? 'Salvato.' : (j.detail || 'Errore');
+      msgEl.textContent = r.ok ? 'Salvato.' : formatApiError(j);
       msgEl.className = r.ok ? 'ok' : 'bad';
+      if (r.ok) loadConfigForm();
     };
 
     loadVersion(); loadConfig(); loadStatus(); pollDiscover(); startDiscPoll(); loadScanProfiles();
