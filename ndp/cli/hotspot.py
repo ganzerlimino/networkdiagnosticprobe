@@ -34,10 +34,17 @@ def add_hotspot_subparser(subparsers: argparse._SubParsersAction) -> None:
     )
     ensure = hotspot_sub.add_parser(
         "ensure",
-        help="Avvia solo se abilitato e non attivo",
+        help="Avvia o ripara hotspot se non operativo",
         parents=[config_parent],
     )
     ensure.add_argument("--json", action="store_true")
+
+    restart = hotspot_sub.add_parser(
+        "restart",
+        help="Ferma e riavvia hotspot",
+        parents=[config_parent],
+    )
+    restart.add_argument("--json", action="store_true")
 
     status = hotspot_sub.add_parser(
         "status",
@@ -73,6 +80,9 @@ def run_hotspot_command(args: Namespace, config_path) -> int:
         status = get_status(config)
     elif args.hotspot_command == "ensure":
         status = ensure_hotspot(config)
+    elif args.hotspot_command == "restart":
+        stop_hotspot(config)
+        status = start_hotspot(config)
     elif args.hotspot_command == "status":
         status = get_status(config)
     else:

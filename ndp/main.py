@@ -56,11 +56,19 @@ def run_web_only(config_path: Path | None) -> int:
     config = load_config(config_path)
     _configure_logging(config.log_level)
 
+    from ndp.network.hotspot import maintain_hotspot, start_hotspot_watchdog
     from ndp.web.server import resolve_config_path, start_web_server
+
+    if config.wifi_hotspot_enabled:
+        maintain_hotspot(config)
 
     engine = ProbeEngine(config)
     lock = threading.Lock()
     state = engine.refresh()
+    stop_event = threading.Event()
+
+    if config.wifi_hotspot_enabled:
+        start_hotspot_watchdog(config, stop_event)
 
     def get_state() -> ProbeState:
         with lock:
@@ -89,6 +97,7 @@ def run_web_only(config_path: Path | None) -> int:
             state = engine.refresh()
         time.sleep(engine.poll_interval())
 
+    stop_event.set()
     logger.info("NDP stopped")
     return 0
 

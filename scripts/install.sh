@@ -174,6 +174,7 @@ install -m 0644 "${NDP_ROOT}/systemd/ndp-hotspot.service" /etc/systemd/system/nd
 install -m 0644 "${NDP_ROOT}/systemd/ndp.service" /etc/systemd/system/ndp.service
 systemctl daemon-reload
 systemctl enable ndp-hotspot.service
+systemctl restart ndp-hotspot.service
 systemctl enable --now ndp.service
 
 maybe_install_display

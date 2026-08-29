@@ -361,6 +361,13 @@ class ProbeUI:
                 on_adhoc_changed=self.refresh_adhoc_host,
             )
 
+        self._hotspot_stop = threading.Event()
+        if self.config.wifi_hotspot_enabled:
+            from ndp.network.hotspot import maintain_hotspot, start_hotspot_watchdog
+
+            maintain_hotspot(self.config)
+            start_hotspot_watchdog(self.config, self._hotspot_stop)
+
         if self.config.ui_backlight_enabled:
             enable_backlight(self.config.ui_backlight_gpio)
 
@@ -391,6 +398,7 @@ class ProbeUI:
             else:
                 self._main_loop(screen, raw_fb, title_font, body_font, hint_font)
         finally:
+            self._hotspot_stop.set()
             if raw_fb is not None:
                 raw_fb.close()
             pygame.quit()

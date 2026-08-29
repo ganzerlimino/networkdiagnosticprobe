@@ -9,7 +9,7 @@ Wants=network-pre.target
 Type=oneshot
 RemainAfterExit=yes
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/opt/ndp/venv/bin/ndp hotspot ensure --config /etc/ndp/config.yaml
+ExecStart=/opt/ndp/venv/bin/ndp hotspot start --config /etc/ndp/config.yaml
 ExecStop=/opt/ndp/venv/bin/ndp hotspot stop --config /etc/ndp/config.yaml
 
 [Install]

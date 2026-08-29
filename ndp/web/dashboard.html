@@ -251,6 +251,9 @@
       <div class="card">
         <h2>Stato hotspot</h2>
         <div id="hotspot-status-panel"></div>
+        <div class="actions">
+          <button class="secondary" id="hotspot-restart">Riavvia hotspot</button>
+        </div>
       </div>
       <div class="card">
         <h2>Impostazioni Wi-Fi</h2>
@@ -940,11 +943,25 @@
           row('SSID', j.ssid || 'n/a'),
           row('URL', j.web_url || 'n/a'),
           row('Auth', auth),
+          row('Interfaccia', [j.interface, j.interface_mode, j.operstate].filter(Boolean).join(' · ') || 'n/a'),
+          row('Nota', j.message || ''),
         ].join('');
       } catch (e) {
         document.getElementById('hotspot-status-panel').innerHTML = row('Stato', 'n/d', 'bad');
       }
     }
+
+    document.getElementById('hotspot-restart').onclick = async () => {
+      const msg = document.getElementById('hotspot-msg');
+      msg.textContent = 'Riavvio hotspot...';
+      const r = await fetch('/api/hotspot/restart', {method: 'POST'});
+      const parsed = await parseJsonResponse(r);
+      if (parsed.error) { msg.textContent = parsed.error; return; }
+      const j = parsed.data;
+      msg.textContent = j.active ? 'Hotspot attivo.' : (j.message || 'Hotspot non attivo');
+      renderHotspotStatusPanel();
+      loadStatus();
+    };
 
     async function loadConfigForm() {
       const schemaResp = await fetch('/api/config/schema');

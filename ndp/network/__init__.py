@@ -5,7 +5,9 @@ from ndp.network.hotspot import (
     build_ssid,
     ensure_hotspot,
     get_status,
+    maintain_hotspot,
     start_hotspot,
+    start_hotspot_watchdog,
     stop_hotspot,
 )
 
@@ -14,6 +16,8 @@ __all__ = [
     "build_ssid",
     "ensure_hotspot",
     "get_status",
+    "maintain_hotspot",
     "start_hotspot",
+    "start_hotspot_watchdog",
     "stop_hotspot",
 ]
