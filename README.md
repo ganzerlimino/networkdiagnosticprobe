@@ -140,9 +140,18 @@ In alternativa, usa la stessa LAN del cliente: `http://<ip-eth0>:8080/`.
 Su Raspberry Pi OS Lite (64-bit), con rete disponibile:
 
 ```bash
-git clone https://github.com/networkdiagnosticprobe/networkdiagnosticprobe.git
+git clone https://github.com/ganzerlimino/networkdiagnosticprobe.git
 cd networkdiagnosticprobe
+git checkout cursor/ndp-core-skeleton-c93b
 sudo ./scripts/install.sh
+```
+
+Con display Joy-it RB-TFT3.2 (installa driver LCD-show e **riavvia** la Pi):
+
+```bash
+sudo ./scripts/install.sh --with-display
+# oppure, senza prompt interattivo:
+sudo NDP_INSTALL_DISPLAY=1 ./scripts/install.sh
 ```
 
 Lo script:

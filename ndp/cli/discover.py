@@ -7,6 +7,7 @@ import json
 from argparse import Namespace
 from pathlib import Path
 
+from ndp.cli.parser_common import config_parent_parser
 from ndp.core.config import NdpConfig, load_config
 from ndp.discovery.arp import flush_arp_cache, scan_hosts
 from ndp.discovery.console import render_diff, render_snapshot, render_updown_result
@@ -34,28 +35,43 @@ def _load_snapshot(path: Path) -> ScanSnapshot:
 
 
 def add_discover_subparser(subparsers: argparse._SubParsersAction) -> None:
+    config_parent = config_parent_parser()
     discover = subparsers.add_parser(
         "discover",
         help="Network host discovery utilities",
+        parents=[config_parent],
     )
     discover_sub = discover.add_subparsers(dest="discover_command", required=True)
 
-    scan = discover_sub.add_parser("scan", help="Run a single ARP/network scan")
+    scan = discover_sub.add_parser(
+        "scan",
+        help="Run a single ARP/network scan",
+        parents=[config_parent],
+    )
     scan.add_argument("--interface", help="Network interface (default: from config)")
     scan.add_argument("--json", action="store_true", help="JSON output")
     scan.add_argument("--save", type=Path, help="Save snapshot JSON to file")
 
-    diff_cmd = discover_sub.add_parser("diff", help="Diff two saved snapshots")
+    diff_cmd = discover_sub.add_parser(
+        "diff",
+        help="Diff two saved snapshots",
+        parents=[config_parent],
+    )
     diff_cmd.add_argument("baseline", type=Path, help="Baseline snapshot JSON")
     diff_cmd.add_argument("current", type=Path, help="Current snapshot JSON")
     diff_cmd.add_argument("--json", action="store_true", help="JSON diff output")
 
-    flush = discover_sub.add_parser("flush-arp", help="Flush ARP cache on interface")
+    flush = discover_sub.add_parser(
+        "flush-arp",
+        help="Flush ARP cache on interface",
+        parents=[config_parent],
+    )
     flush.add_argument("--interface", help="Network interface (default: from config)")
 
     updown = discover_sub.add_parser(
         "updown",
         help="Guided Up/Down wizard (baseline → unplug → flush → rescan → verify)",
+        parents=[config_parent],
     )
     updown.add_argument("--interface", help="Network interface (default: from config)")
     updown.add_argument("--json", action="store_true", help="JSON result output")
@@ -67,6 +83,7 @@ def add_discover_subparser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run_discover_command(args: Namespace, config_path: Path | None) -> int:
+    config_path = config_path or getattr(args, "config", None)
     config = load_config(config_path)
     interface = getattr(args, "interface", None) or config.interface
 

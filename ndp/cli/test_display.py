@@ -11,6 +11,7 @@ from argparse import Namespace
 from pathlib import Path
 
 from ndp.core.config import load_config
+from ndp.cli.parser_common import config_parent_parser
 from ndp.cli.test_ping import add_ping_test_subparser, run_ping_test_command
 from ndp.ui.backlight import enable_backlight
 from ndp.ui.framebuffer import RawFramebuffer
@@ -26,10 +27,19 @@ COLOR_MAP = {
 
 
 def add_test_subparser(subparsers) -> None:
-    test = subparsers.add_parser("test", help="Hardware diagnostic tests")
+    config_parent = config_parent_parser()
+    test = subparsers.add_parser(
+        "test",
+        help="Hardware diagnostic tests",
+        parents=[config_parent],
+    )
     test_sub = test.add_subparsers(dest="test_command", required=True)
 
-    display = test_sub.add_parser("display", help="Fill TFT with solid test colors")
+    display = test_sub.add_parser(
+        "display",
+        help="Fill TFT with solid test colors",
+        parents=[config_parent],
+    )
     display.add_argument(
         "--device",
         help="Framebuffer device (default: from config or /dev/fb1)",
@@ -57,10 +67,11 @@ def add_test_subparser(subparsers) -> None:
         help="Render via temporary PNG + fbi (diagnostic fallback)",
     )
 
-    add_ping_test_subparser(test_sub)
+    add_ping_test_subparser(test_sub, config_parent)
 
 
 def run_test_command(args: Namespace, config_path) -> int:
+    config_path = config_path or getattr(args, "config", None)
     if args.test_command == "ping":
         return run_ping_test_command(args, config_path, getattr(args, "json", False))
 

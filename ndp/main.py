@@ -13,6 +13,7 @@ from pathlib import Path
 
 from ndp import __version__
 from ndp.cli.discover import add_discover_subparser, run_discover_command
+from ndp.cli.parser_common import add_config_argument
 from ndp.cli.hotspot import add_hotspot_subparser, run_hotspot_command
 from ndp.cli.test_display import add_test_subparser, run_test_command
 from ndp.console import render_status
@@ -142,11 +143,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Network Diagnostic Probe service",
     )
     parser.add_argument("--version", action="version", version=f"ndp {__version__}")
-    parser.add_argument(
-        "--config",
-        type=Path,
-        help="Path to config YAML (default: /etc/ndp/config.yaml or bundled default)",
-    )
+    add_config_argument(parser)
     parser.add_argument(
         "--once",
         action="store_true",
@@ -170,21 +167,21 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "discover":
-        return run_discover_command(args, args.config)
+        return run_discover_command(args, getattr(args, "config", None))
 
     if args.command == "hotspot":
-        return run_hotspot_command(args, args.config)
+        return run_hotspot_command(args, getattr(args, "config", None))
 
     if args.command == "test":
-        return run_test_command(args, args.config)
+        return run_test_command(args, getattr(args, "config", None))
 
     if args.once:
-        return run_once(args.config, args.json)
+        return run_once(getattr(args, "config", None), args.json)
 
     if args.command is not None:
         parser.error(f"Unknown command: {args.command}")
 
-    return run_service(args.config)
+    return run_service(getattr(args, "config", None))
 
 
 if __name__ == "__main__":

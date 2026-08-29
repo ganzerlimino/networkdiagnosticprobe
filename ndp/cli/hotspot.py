@@ -6,22 +6,44 @@ import argparse
 import json
 from argparse import Namespace
 
+from ndp.cli.parser_common import config_parent_parser
 from ndp.core.config import load_config
 from ndp.network.hotspot import ensure_hotspot, get_status, start_hotspot, stop_hotspot
 
 
 def add_hotspot_subparser(subparsers: argparse._SubParsersAction) -> None:
-    hotspot = subparsers.add_parser("hotspot", help="Wi-Fi hotspot per accesso telefono")
+    config_parent = config_parent_parser()
+    hotspot = subparsers.add_parser(
+        "hotspot",
+        help="Wi-Fi hotspot per accesso telefono",
+        parents=[config_parent],
+    )
     hotspot_sub = hotspot.add_subparsers(dest="hotspot_command", required=True)
 
-    start = hotspot_sub.add_parser("start", help="Avvia hotspot (hostapd + dnsmasq)")
+    start = hotspot_sub.add_parser(
+        "start",
+        help="Avvia hotspot (hostapd + dnsmasq)",
+        parents=[config_parent],
+    )
     start.add_argument("--json", action="store_true", help="Output JSON")
 
-    stop = hotspot_sub.add_parser("stop", help="Ferma hotspot")
-    ensure = hotspot_sub.add_parser("ensure", help="Avvia solo se abilitato e non attivo")
+    hotspot_sub.add_parser(
+        "stop",
+        help="Ferma hotspot",
+        parents=[config_parent],
+    )
+    ensure = hotspot_sub.add_parser(
+        "ensure",
+        help="Avvia solo se abilitato e non attivo",
+        parents=[config_parent],
+    )
     ensure.add_argument("--json", action="store_true")
 
-    status = hotspot_sub.add_parser("status", help="Stato hotspot")
+    status = hotspot_sub.add_parser(
+        "status",
+        help="Stato hotspot",
+        parents=[config_parent],
+    )
     status.add_argument("--json", action="store_true")
 
 
@@ -42,6 +64,7 @@ def _print_status(status: object, as_json: bool) -> None:
 
 
 def run_hotspot_command(args: Namespace, config_path) -> int:
+    config_path = config_path or getattr(args, "config", None)
     config = load_config(config_path)
     if args.hotspot_command == "start":
         status = start_hotspot(config)

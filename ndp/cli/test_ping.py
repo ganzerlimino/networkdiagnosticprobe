@@ -7,14 +7,20 @@ import logging
 from argparse import Namespace
 from pathlib import Path
 
+from ndp.cli.parser_common import config_parent_parser
 from ndp.core.config import load_config
 from ndp.ping.service import read_adhoc_host, run_ping_suite, validate_host, write_adhoc_host
 
 logger = logging.getLogger(__name__)
 
 
-def add_ping_test_subparser(test_sub) -> None:
-    ping = test_sub.add_parser("ping", help="ICMP ping verso destinazioni configurate")
+def add_ping_test_subparser(test_sub, config_parent=None) -> None:
+    parents = [config_parent] if config_parent is not None else []
+    ping = test_sub.add_parser(
+        "ping",
+        help="ICMP ping verso destinazioni configurate",
+        parents=parents,
+    )
     ping.add_argument(
         "--adhoc",
         metavar="HOST",
@@ -43,6 +49,7 @@ def add_ping_test_subparser(test_sub) -> None:
 
 
 def run_ping_test_command(args: Namespace, config_path: Path | None, as_json: bool) -> int:
+    config_path = config_path or getattr(args, "config", None)
     config = load_config(config_path)
     adhoc_path = Path(config.ping_adhoc_path)
     emit_json = as_json or bool(getattr(args, "json", False))

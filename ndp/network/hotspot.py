@@ -199,6 +199,7 @@ def _stop_pid(pid_file: Path, name: str) -> None:
 
 def _unblock_wifi() -> None:
     if shutil.which("rfkill"):
+        _run(["rfkill", "unblock", "all"], check=False)
         _run(["rfkill", "unblock", "wifi"], check=False)
         _run(["rfkill", "unblock", "wlan"], check=False)
 
