@@ -6,6 +6,14 @@ Collegando il probe a una porta switch, NDP mostra informazioni L2 (LLDP/CDP) e 
 
 ## Stato del progetto
 
+**v0.11 — Web UI: config guidata + hotspot**
+
+- Tab **Hotspot** dedicata (password WPA2, SSID, canale, paese)
+- Tab **Config** con form guidato, spiegazioni per ogni voce, export/import YAML
+- Backup config via mail o download file
+- Fix messaggi errore `[object Object]` su Ping live e Scan porte
+- Comando `ndp` in PATH (`/usr/local/bin/ndp`)
+
 **v0.10 — Hotspot Wi-Fi per accesso telefono**
 
 - Rete Wi-Fi dedicata **NDP-XXXX** (`hostapd` + `dnsmasq`) su `wlan0`

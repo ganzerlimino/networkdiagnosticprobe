@@ -73,6 +73,7 @@ def _config_fields() -> tuple[ConfigField, ...]:
         ConfigField("wifi_hotspot.country", "Paese regolatorio", "Codice ISO (es. IT).", "string", section="hotspot"),
         ConfigField("ping.count", "Pacchetti ICMP", "Numero ping per destinazione.", "int", section="ping"),
         ConfigField("ping.timeout_seconds", "Timeout ping (s)", "Timeout per host.", "float", section="ping"),
+        ConfigField("ping.packet_size", "Dimensione pacchetto (byte)", "Payload ICMP (-s). Default 56.", "int", section="ping"),
         ConfigField("discovery.disconnect_wait_seconds", "Attesa scollegamento (s)", "Wizard Discover Up/Down.", "float", section="discovery"),
         ConfigField("discovery.flush_arp_before_second_scan", "Flush ARP", "Svuota cache prima della 2ª scansione.", "bool", section="discovery"),
         ConfigField("discovery.verify_replug", "Verifica ricollegamento", "Passo finale wizard Up/Down.", "bool", section="discovery"),

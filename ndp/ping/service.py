@@ -114,6 +114,8 @@ def run_ping_suite(
         count=config.ping_count,
         timeout_seconds=config.ping_timeout_seconds,
         max_workers=3,
+        interface=config.interface,
+        packet_size=config.ping_packet_size,
     )
 
     results: list[PingTargetResult] = []
@@ -162,6 +164,8 @@ def run_ping_hosts(
         count=config.ping_count,
         timeout_seconds=config.ping_timeout_seconds,
         max_workers=3,
+        interface=config.interface,
+        packet_size=config.ping_packet_size,
     )
 
     results: list[PingTargetResult] = []

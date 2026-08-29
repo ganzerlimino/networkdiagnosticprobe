@@ -13,6 +13,7 @@ from ndp.core.config_io import load_config_mapping, load_config_text, save_confi
 from ndp.core.ping_state import PingSuiteState
 from ndp.core.state import ProbeState
 from ndp.discovery.wizard import UpDownResult
+from ndp.mtu.discover import MtuDiscoveryManager
 from ndp.ping.live import LivePingManager
 from ndp.ping.service import run_ping_hosts, run_ping_suite, validate_host
 from ndp.scan.dns import NetworkDiagnosticsResult, resolve_hostname, run_network_diagnostics
@@ -25,6 +26,7 @@ from ndp.web.config_schema import (
     get_nested_value,
     set_nested_value,
 )
+from ndp.web.report import build_report
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +41,7 @@ def create_app(
     on_ping_complete: Callable[[PingSuiteState], None] | None = None,
     on_adhoc_changed: Callable[[], None] | None = None,
 ) -> object:
-    from fastapi import FastAPI, HTTPException
+    from fastapi import Body, FastAPI, HTTPException
     from fastapi.responses import HTMLResponse, StreamingResponse
     from pydantic import BaseModel, Field
 
@@ -76,9 +78,15 @@ def create_app(
         hostnames: list[str] = Field(default_factory=list)
         include_gateway: bool = True
 
-    app = FastAPI(title="NDP", version="0.11")
+    class MtuDiscoverPayload(BaseModel):
+        host: str
+        start_mtu: int = Field(default=1500, ge=576, le=9000)
+        min_mtu: int = Field(default=576, ge=576, le=9000)
+
+    app = FastAPI(title="NDP", version="0.12")
     discovery = DiscoveryUISession(config)
     live_pings = LivePingManager()
+    mtu_discovery = MtuDiscoveryManager()
     discovery_result: UpDownResult | None = None
     last_scan_result: PortScanResult | None = None
     last_network_diag: NetworkDiagnosticsResult | None = None
@@ -96,9 +104,9 @@ def create_app(
         return {"yaml": load_config_text(config_path)}
 
     @app.put("/api/config")
-    def api_put_config(payload: ConfigPayload) -> dict[str, object]:
+    def api_put_config(body: ConfigPayload = Body()) -> dict[str, object]:
         try:
-            save_config_text(config_path, payload.yaml)
+            save_config_text(config_path, body.yaml)
         except (ValueError, OSError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         logger.info("Configuration updated via web UI at %s", config_path)
@@ -119,18 +127,18 @@ def create_app(
         return {"values": values, "yaml": load_config_text(config_path)}
 
     @app.put("/api/config/values")
-    def api_put_config_values(payload: ConfigValuesPayload) -> dict[str, object]:
+    def api_put_config_values(body: ConfigValuesPayload = Body()) -> dict[str, object]:
         data = load_config_mapping(config_path)
         try:
             for section in config_sections():
                 for field in section["fields"]:  # type: ignore[index]
                     key = str(field["key"])
-                    if key not in payload.values:
+                    if key not in body.values:
                         continue
                     set_nested_value(
                         data,
                         key,
-                        coerce_field_value(str(field["type"]), payload.values[key]),
+                        coerce_field_value(str(field["type"]), body.values[key]),
                     )
             password = get_nested_value(data, "wifi_hotspot.password")
             if password is not None:
@@ -143,12 +151,12 @@ def create_app(
         return {"ok": True, "path": str(config_path), "restart_services": ["ndp", "ndp-hotspot"]}
 
     @app.post("/api/services/restart")
-    def api_services_restart(payload: ServiceRestartPayload) -> dict[str, object]:
+    def api_services_restart(body: ServiceRestartPayload = Body()) -> dict[str, object]:
         import subprocess
 
-        for service in payload.services:
+        for service in body.services:
             subprocess.run(["systemctl", "restart", service], check=False)
-        return {"ok": True, "services": payload.services}
+        return {"ok": True, "services": body.services}
 
     @app.post("/api/hotspot/restart")
     def api_hotspot_restart() -> dict[str, object]:
@@ -187,12 +195,12 @@ def create_app(
         return get_state().ping.to_dict()
 
     @app.post("/api/ping/run")
-    def api_ping_run(payload: PingRunPayload | None = None) -> dict[str, object]:
+    def api_ping_run(body: PingRunPayload | None = Body(default=None)) -> dict[str, object]:
         state = get_state()
         hosts = None
-        if payload and payload.hosts:
+        if body and body.hosts:
             try:
-                hosts = [validate_host(host) for host in payload.hosts if str(host).strip()]
+                hosts = [validate_host(host) for host in body.hosts if str(host).strip()]
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
         if hosts:
@@ -208,13 +216,16 @@ def create_app(
         return suite.to_dict()
 
     @app.post("/api/ping/live/start")
-    def api_ping_live_start(payload: LivePingPayload) -> dict[str, object]:
+    def api_ping_live_start(body: LivePingPayload = Body()) -> dict[str, object]:
         try:
-            hosts = [validate_host(host) for host in payload.hosts]
+            hosts = [validate_host(host) for host in body.hosts]
             session = live_pings.create(
                 hosts,
-                interval_seconds=payload.interval,
-                max_samples=payload.max_samples,
+                interval_seconds=body.interval,
+                max_samples=body.max_samples,
+                interface=config.interface,
+                packet_size=config.ping_packet_size,
+                timeout_seconds=config.ping_timeout_seconds,
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -245,11 +256,11 @@ def create_app(
         return {"ok": True}
 
     @app.put("/api/ping/adhoc")
-    def api_ping_set_adhoc(payload: AdhocPayload) -> dict[str, object]:
+    def api_ping_set_adhoc(body: AdhocPayload = Body()) -> dict[str, object]:
         from ndp.ping.service import validate_host, write_adhoc_host
 
         try:
-            host = validate_host(payload.host)
+            host = validate_host(body.host)
             write_adhoc_host(host, Path(config.ping_adhoc_path))
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -325,20 +336,20 @@ def create_app(
         return profiles_catalog()
 
     @app.post("/api/scan/ports")
-    def api_scan_ports(payload: PortScanPayload) -> dict[str, object]:
+    def api_scan_ports(body: PortScanPayload = Body()) -> dict[str, object]:
         nonlocal last_scan_result
         try:
-            validate_host(payload.host)
+            validate_host(body.host)
             custom_ports = None
-            if payload.profile == "custom":
-                custom_ports = parse_custom_ports(payload.ports)
+            if body.profile == "custom":
+                custom_ports = parse_custom_ports(body.ports)
                 if not custom_ports:
                     raise ValueError("specificare almeno una porta custom")
             result = scan_ports(
-                payload.host,
-                payload.profile,
+                body.host,
+                body.profile,
                 custom_ports=custom_ports,
-                timeout_seconds=payload.timeout_ms / 1000.0,
+                timeout_seconds=body.timeout_ms / 1000.0,
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -352,15 +363,15 @@ def create_app(
         return resolve_hostname(hostname).to_dict()
 
     @app.post("/api/network/check")
-    def api_network_check(payload: NetworkCheckPayload | None = None) -> dict[str, object]:
+    def api_network_check(body: NetworkCheckPayload | None = Body(default=None)) -> dict[str, object]:
         nonlocal last_network_diag
         state = get_state()
         hostnames = []
-        if payload and payload.hostnames:
-            hostnames = [name.strip() for name in payload.hostnames if name.strip()]
+        if body and body.hostnames:
+            hostnames = [name.strip() for name in body.hostnames if name.strip()]
         else:
             hostnames = ["gateway"]
-        if payload is None or payload.include_gateway:
+        if body is None or body.include_gateway:
             if state.ip.gateway and "gateway" not in hostnames:
                 hostnames.append(state.ip.gateway)
 
@@ -374,14 +385,54 @@ def create_app(
         diag = run_network_diagnostics(
             hostnames=resolved_names,
             dns_servers=state.ip.dns_servers,
-            gateway=state.ip.gateway if (payload is None or payload.include_gateway) else None,
+            gateway=state.ip.gateway if (body is None or body.include_gateway) else None,
         )
         last_network_diag = diag
         return diag.to_dict()
 
+    @app.post("/api/mtu/discover/start")
+    def api_mtu_discover_start(body: MtuDiscoverPayload = Body()) -> dict[str, object]:
+        try:
+            host = validate_host(body.host)
+            session = mtu_discovery.create(
+                host,
+                interface=config.interface,
+                start_mtu=body.start_mtu,
+                min_mtu=body.min_mtu,
+                timeout_seconds=config.ping_timeout_seconds,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"session_id": session.session_id, "host": host, "interface": config.interface}
+
+    @app.get("/api/mtu/discover/{session_id}/events")
+    def api_mtu_discover_events(session_id: str) -> StreamingResponse:
+        session = mtu_discovery.get(session_id)
+        if session is None:
+            raise HTTPException(status_code=404, detail="sessione non trovata")
+
+        def generate() -> Iterator[str]:
+            for event in session.iter_events():
+                yield f"data: {json.dumps(event, default=str)}\n\n"
+                if event.get("type") in {"done", "stopped"}:
+                    break
+
+        return StreamingResponse(
+            generate(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
+    @app.post("/api/mtu/discover/{session_id}/stop")
+    def api_mtu_discover_stop(session_id: str) -> dict[str, object]:
+        if not mtu_discovery.stop(session_id):
+            raise HTTPException(status_code=404, detail="sessione non trovata")
+        return {"ok": True}
+
     @app.on_event("shutdown")
     def _shutdown_live_ping() -> None:
         live_pings.stop_all()
+        mtu_discovery.stop_all()
 
     return app
 

@@ -21,6 +21,8 @@ def ping_host(
     *,
     count: int = 2,
     timeout_seconds: float = 2.0,
+    interface: str | None = None,
+    packet_size: int = 56,
 ) -> PingResult:
     if not shutil.which("ping"):
         return PingResult(
@@ -40,8 +42,12 @@ def ping_host(
         str(max(1, count)),
         "-W",
         str(wait_seconds),
-        host,
+        "-s",
+        str(max(0, int(packet_size))),
     ]
+    if interface:
+        command.extend(["-I", interface])
+    command.append(host)
 
     try:
         completed = subprocess.run(
@@ -96,12 +102,81 @@ def _parse_ping_output(host: str, count: int, output: str, returncode: int) -> P
     )
 
 
+def ping_mtu_probe(
+    host: str,
+    *,
+    payload_size: int,
+    interface: str | None = None,
+    timeout_seconds: float = 2.0,
+) -> PingResult:
+    """Single ping with DF (do not fragment) for MTU discovery."""
+    if not shutil.which("ping"):
+        return PingResult(
+            host=host,
+            reachable=False,
+            packets_sent=0,
+            packets_received=0,
+            packet_loss_pct=100.0,
+            rtt_ms=None,
+            message="ping command not found",
+        )
+
+    wait_seconds = max(1, int(timeout_seconds))
+    command = [
+        "ping",
+        "-c",
+        "1",
+        "-W",
+        str(wait_seconds),
+        "-M",
+        "do",
+        "-s",
+        str(max(0, int(payload_size))),
+    ]
+    if interface:
+        command.extend(["-I", interface])
+    command.append(host)
+
+    try:
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=max(timeout_seconds + 2.0, 5.0),
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return PingResult(
+            host=host,
+            reachable=False,
+            packets_sent=1,
+            packets_received=0,
+            packet_loss_pct=100.0,
+            rtt_ms=None,
+            message="timeout",
+        )
+
+    output = f"{completed.stdout}\n{completed.stderr}"
+    result = _parse_ping_output(host, 1, output, completed.returncode)
+    if result.reachable:
+        return result
+
+    lowered = output.lower()
+    if "message too long" in lowered or "frag needed" in lowered or "packet too big" in lowered:
+        result.message = "troppo grande (DF)"
+    elif "100% packet loss" in lowered or not result.reachable:
+        result.message = "non raggiungibile"
+    return result
+
+
 def ping_hosts_parallel(
     hosts: list[str],
     *,
     count: int = 2,
     timeout_seconds: float = 2.0,
     max_workers: int = 3,
+    interface: str | None = None,
+    packet_size: int = 56,
 ) -> dict[str, PingResult]:
     """Ping up to max_workers hosts concurrently."""
     unique_hosts = list(dict.fromkeys(host.strip() for host in hosts if host.strip()))
@@ -118,6 +193,8 @@ def ping_hosts_parallel(
                 host,
                 count=count,
                 timeout_seconds=timeout_seconds,
+                interface=interface,
+                packet_size=packet_size,
             ): host
             for host in unique_hosts
         }

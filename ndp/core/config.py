@@ -64,6 +64,7 @@ class NdpConfig:
     discovery_verify_replug: bool = True
     ping_count: int = 2
     ping_timeout_seconds: float = 3.0
+    ping_packet_size: int = 56
     ping_custom_targets: list[dict[str, str]] = field(default_factory=list)
     ping_adhoc_path: str = "/var/lib/ndp/ping_adhoc.host"
     wifi_hotspot_enabled: bool = True
@@ -149,6 +150,7 @@ class NdpConfig:
             discovery_verify_replug=bool(discovery.get("verify_replug", True)),
             ping_count=int(ping.get("count", 2)),
             ping_timeout_seconds=float(ping.get("timeout_seconds", 3)),
+            ping_packet_size=int(ping.get("packet_size", 56)),
             ping_custom_targets=[
                 {
                     "label": str(item.get("label", "Custom")),

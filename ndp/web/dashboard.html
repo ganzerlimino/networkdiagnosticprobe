@@ -68,6 +68,7 @@
   <nav>
     <button class="active" data-panel="status">Stato</button>
     <button data-panel="ping">Ping</button>
+    <button data-panel="mtu">MTU</button>
     <button data-panel="discover">Discover</button>
     <button data-panel="scan">Scan</button>
     <button data-panel="hotspot">Hotspot</button>
@@ -114,6 +115,25 @@
         <div class="actions">
           <button class="secondary" onclick="sendReport('ping')">📧 Report ping</button>
         </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-mtu">
+      <div class="card">
+        <h2>MTU path discovery</h2>
+        <p class="sub">Test decrementale da 1500 verso il basso con ping DF (no fragment). Utile per VPN site-to-site.</p>
+        <label class="field">
+          <span>Host remoto</span>
+          <input id="mtu-host" placeholder="es. gateway o IP peer VPN">
+        </label>
+        <div class="actions">
+          <button class="primary" id="mtu-start">Avvia test MTU</button>
+          <button class="secondary" id="mtu-stop" disabled>Ferma</button>
+          <button class="secondary" id="mtu-use-gateway">Usa gateway</button>
+        </div>
+        <p id="mtu-msg" class="sub"></p>
+        <div id="mtu-result" class="prompt" style="display:none"></div>
+        <div class="log" id="mtu-log"></div>
       </div>
     </section>
 
@@ -416,6 +436,76 @@
       document.getElementById('live-start').disabled = false;
       document.getElementById('live-stop').disabled = true;
     }
+
+    let mtuSessionId = null;
+    let mtuSource = null;
+
+    function stopMtu() {
+      if (mtuSource) { mtuSource.close(); mtuSource = null; }
+      if (mtuSessionId) {
+        fetch('/api/mtu/discover/' + mtuSessionId + '/stop', {method: 'POST'});
+        mtuSessionId = null;
+      }
+      document.getElementById('mtu-start').disabled = false;
+      document.getElementById('mtu-stop').disabled = true;
+    }
+
+    document.getElementById('mtu-use-gateway').onclick = () => {
+      const gw = statusData && statusData.ip && statusData.ip.gateway;
+      if (gw) document.getElementById('mtu-host').value = gw;
+    };
+
+    document.getElementById('mtu-start').onclick = async () => {
+      const host = normalizeHost(document.getElementById('mtu-host').value);
+      const msg = document.getElementById('mtu-msg');
+      const log = document.getElementById('mtu-log');
+      const resultEl = document.getElementById('mtu-result');
+      if (!host) { msg.textContent = 'Inserisci un host.'; return; }
+      stopMtu();
+      log.innerHTML = '';
+      resultEl.style.display = 'none';
+      msg.textContent = 'Test MTU in corso (da 1500)...';
+      try {
+        const r = await fetch('/api/mtu/discover/start', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({host, start_mtu: 1500, min_mtu: 576})
+        });
+        const j = await r.json();
+        if (!r.ok) { msg.textContent = formatApiError(j); return; }
+        mtuSessionId = j.session_id;
+        document.getElementById('mtu-start').disabled = true;
+        document.getElementById('mtu-stop').disabled = false;
+        mtuSource = new EventSource('/api/mtu/discover/' + mtuSessionId + '/events');
+        mtuSource.onmessage = (ev) => {
+          const data = JSON.parse(ev.data);
+          if (data.type === 'probe') {
+            const cls = data.reachable ? 'ok' : 'bad';
+            const line = document.createElement('div');
+            line.className = cls;
+            line.textContent = `MTU ${data.mtu} · payload ${data.payload_size}B · ${data.reachable ? 'OK' : data.message}`;
+            log.prepend(line);
+          }
+          if (data.type === 'result') {
+            resultEl.style.display = 'block';
+            if (data.mtu) {
+              resultEl.innerHTML = `<div class="ok">MTU massimo: <strong>${data.mtu}</strong> verso ${data.host}</div>`;
+              msg.textContent = 'Test completato.';
+            } else {
+              resultEl.innerHTML = `<div class="bad">${data.message}</div>`;
+              msg.textContent = 'Nessun MTU valido trovato.';
+            }
+            stopMtu();
+          }
+          if (data.type === 'done' || data.type === 'stopped') stopMtu();
+        };
+        mtuSource.onerror = () => { msg.textContent = 'Connessione test MTU interrotta.'; stopMtu(); };
+      } catch (e) {
+        msg.textContent = 'Errore rete: ' + e;
+      }
+    };
+
+    document.getElementById('mtu-stop').onclick = stopMtu;
 
     document.getElementById('live-start').onclick = async () => {
       const hosts = readHostInputs();

@@ -180,6 +180,9 @@ ping:
   timeout_seconds: 3
   # Timeout massimo in secondi per ogni singolo host.
 
+  packet_size: 56
+  # Dimensione payload ICMP in byte (-s di ping). Default Linux: 56 (64 byte on wire).
+
   adhoc_path: "/var/lib/ndp/ping_adhoc.host"
   # File con un solo host temporaneo (uno alla volta), impostabile al volo.
 

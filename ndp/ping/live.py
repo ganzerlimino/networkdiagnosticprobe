@@ -46,6 +46,9 @@ class LivePingSession:
     hosts: list[str]
     interval_seconds: float = DEFAULT_INTERVAL_SECONDS
     max_samples: int = DEFAULT_MAX_SAMPLES
+    interface: str | None = None
+    packet_size: int = 56
+    timeout_seconds: float = 2.0
     events: Queue[dict[str, object]] = field(default_factory=Queue)
     active: bool = True
     _stop: threading.Event = field(default_factory=threading.Event)
@@ -71,7 +74,13 @@ class LivePingSession:
         seq = 0
         while not self._stop.is_set() and seq < self.max_samples:
             started = time.monotonic()
-            result = ping_host(host, count=1, timeout_seconds=2.0)
+            result = ping_host(
+                host,
+                count=1,
+                timeout_seconds=self.timeout_seconds,
+                interface=self.interface,
+                packet_size=self.packet_size,
+            )
             seq += 1
             sample = LivePingSample(
                 host=host,
@@ -110,6 +119,9 @@ class LivePingManager:
         *,
         interval_seconds: float = DEFAULT_INTERVAL_SECONDS,
         max_samples: int = DEFAULT_MAX_SAMPLES,
+        interface: str | None = None,
+        packet_size: int = 56,
+        timeout_seconds: float = 2.0,
     ) -> LivePingSession:
         cleaned = [validate_host(host) for host in hosts if str(host).strip()]
         if not cleaned:
@@ -123,6 +135,9 @@ class LivePingManager:
             hosts=cleaned,
             interval_seconds=max(0.2, interval_seconds),
             max_samples=max(1, min(max_samples, 300)),
+            interface=interface,
+            packet_size=max(0, int(packet_size)),
+            timeout_seconds=max(0.5, timeout_seconds),
         )
         with self._lock:
             self._sessions[session.session_id] = session
