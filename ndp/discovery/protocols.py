@@ -71,5 +71,47 @@ def protocol_catalog() -> dict[str, Any]:
                 "mode": "n/a",
                 "notes": "BFD è un protocollo di sessione router-router, non neighbor discovery L2.",
             },
+            {
+                "id": "stp",
+                "name": "STP/RSTP/MSTP",
+                "status": "active",
+                "mode": "passive",
+                "notes": "Sniff BPDU bridge-group su eth0 (tab Passive check).",
+            },
+            {
+                "id": "lacp",
+                "name": "LACP",
+                "status": "active",
+                "mode": "passive",
+                "notes": "Sniff slow-protocols multicast 01:80:c2:00:00:02.",
+            },
+            {
+                "id": "vlan",
+                "name": "VLAN/ISL/VTP",
+                "status": "active",
+                "mode": "passive",
+                "notes": "802.1Q/Q-in-Q, ISL e VTP Cisco via sniff passivo.",
+            },
+            {
+                "id": "igmp",
+                "name": "IGMP",
+                "status": "active",
+                "mode": "passive",
+                "notes": "Membership query/report IPv4 multicast.",
+            },
+            {
+                "id": "snmp",
+                "name": "SNMP",
+                "status": "active",
+                "mode": "active",
+                "notes": "GET sysDescr UDP/161; verifica UDP/162.",
+            },
+            {
+                "id": "dhcp82",
+                "name": "DHCP Option 82",
+                "status": "active",
+                "mode": "passive",
+                "notes": "Sniff Relay Agent Information nei pacchetti DHCP.",
+            },
         ]
     }

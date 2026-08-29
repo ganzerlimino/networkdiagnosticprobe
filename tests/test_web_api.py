@@ -52,4 +52,14 @@ def test_discover_protocols_catalog() -> None:
     response = client.get("/api/discover/protocols")
     assert response.status_code == 200
     names = {item["id"] for item in response.json()["protocols"]}
-    assert {"lldp", "mndp", "mdns", "ssdp", "bfd"}.issubset(names)
+    assert {"lldp", "mndp", "mdns", "ssdp", "bfd", "stp", "snmp", "dhcp82"}.issubset(names)
+
+
+def test_passive_check_endpoint_returns_json() -> None:
+    client = _client()
+    response = client.get("/api/discover/passive-check?listen_seconds=1")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "l2_passive" in payload
+    assert "dhcp_option82" in payload
+    assert "snmp" in payload

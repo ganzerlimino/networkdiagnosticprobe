@@ -279,6 +279,23 @@ def create_app(
             "l2_probes": probe_l2_snapshot(config.interface),
         }
 
+    @app.get("/api/discover/passive-check")
+    def api_discover_passive_check(
+        listen_seconds: float = 3.0,
+        snmp_host: str = "",
+    ) -> dict[str, object]:
+        from ndp.discovery.passive_suite import run_passive_check_suite
+
+        state = get_state()
+        bounded = min(max(listen_seconds, 1.0), 15.0)
+        target = snmp_host.strip() or None
+        return run_passive_check_suite(
+            config.interface,
+            listen_seconds=bounded,
+            snmp_host=target,
+            gateway=state.ip.gateway,
+        )
+
     @app.get("/api/discover/updown")
     def api_discover_updown_status() -> dict[str, object]:
         nonlocal discovery_result
