@@ -296,6 +296,35 @@ def create_app(
             gateway=state.ip.gateway,
         )
 
+    @app.get("/api/discover/mikrotik")
+    def api_discover_mikrotik(listen_seconds: float = 3.0) -> dict[str, object]:
+        from ndp.core.collectors.mndp import discover_mndp_snapshot
+        from ndp.discovery.neigh import lookup_neighbor_mac
+
+        state = get_state()
+        bounded = min(max(listen_seconds, 1.0), 15.0)
+        gateway = state.ip.gateway
+        return discover_mndp_snapshot(
+            config.interface,
+            listen_seconds=bounded,
+            gateway_ip=gateway,
+            gateway_mac=lookup_neighbor_mac(config.interface, gateway or "") if gateway else None,
+        )
+
+    @app.get("/api/discover/cameras")
+    def api_discover_cameras(timeout_seconds: float = 3.0) -> dict[str, object]:
+        from ndp.discovery.cameras import discover_cameras_snapshot
+
+        bounded = min(max(timeout_seconds, 1.0), 15.0)
+        return discover_cameras_snapshot(config.interface, timeout_seconds=bounded)
+
+    @app.get("/api/discover/nas")
+    def api_discover_nas(timeout_seconds: float = 3.0) -> dict[str, object]:
+        from ndp.discovery.nas import discover_nas_snapshot
+
+        bounded = min(max(timeout_seconds, 1.0), 15.0)
+        return discover_nas_snapshot(config.interface, timeout_seconds=bounded)
+
     @app.get("/api/discover/updown")
     def api_discover_updown_status() -> dict[str, object]:
         nonlocal discovery_result

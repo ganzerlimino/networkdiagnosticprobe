@@ -70,7 +70,10 @@
     <button data-panel="ping">Ping</button>
     <button data-panel="mtu">MTU</button>
     <button data-panel="discover">Discover</button>
-    <button data-panel="passive">Passive</button>
+    <button data-panel="passive">Sniff</button>
+    <button data-panel="mikrotik">MikroTik</button>
+    <button data-panel="cameras">Camere</button>
+    <button data-panel="nas">NAS</button>
     <button data-panel="scan">Scan</button>
     <button data-panel="hotspot">Hotspot</button>
     <button data-panel="config">Config</button>
@@ -170,8 +173,8 @@
 
     <section class="panel" id="panel-passive">
       <div class="card">
-        <h2>Passive check</h2>
-        <p class="sub">Sniff passivo su eth0: STP/RSTP/MSTP, LACP, VLAN (802.1Q/ISL/VTP), IGMP membership query. Include anche probe SNMP (UDP 161/162) e sniff DHCP Option 82.</p>
+        <h2>Sniff passivo (riepilogo)</h2>
+        <p class="sub">Riepilogo protocolli L2/L3 rilevati: STP/LACP/VLAN/IGMP, FDP/EDP/LLTD, mDNS, SSDP, DHCP Option 82, SNMP.</p>
         <label class="field">
           <span>Durata ascolto (secondi)</span>
           <input id="passive-seconds" type="number" min="1" max="15" value="3">
@@ -185,12 +188,48 @@
           <button class="secondary" id="passive-use-gateway">Usa gateway SNMP</button>
         </div>
         <p id="passive-msg" class="sub"></p>
-        <div class="section-title">Frame L2 passivi</div>
+        <div class="section-title">Riepilogo protocolli</div>
+        <div id="passive-summary-results" class="log"></div>
+        <div class="section-title">Frame L2 broadcast</div>
         <div id="passive-l2-results" class="log"></div>
+        <div class="section-title">L2 ethertype (FDP/EDP/LLTD)</div>
+        <div id="passive-l2probe-results" class="log"></div>
+        <div class="section-title">mDNS / SSDP</div>
+        <div id="passive-service-results" class="log"></div>
         <div class="section-title">DHCP Option 82</div>
         <div id="passive-dhcp-results" class="log"></div>
         <div class="section-title">SNMP probe</div>
         <div id="passive-snmp-results" class="log"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-mikrotik">
+      <div class="card">
+        <h2>MikroTik (MNDP)</h2>
+        <p class="sub">Elenco di tutti i dispositivi MikroTik visibili via broadcast MNDP. La card Switch mostra solo quello collegato (match MAC/IP gateway).</p>
+        <div class="actions"><button class="primary" id="mikrotik-scan">Scansiona MikroTik</button></div>
+        <p id="mikrotik-msg" class="sub"></p>
+        <div id="mikrotik-results" class="log"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-cameras">
+      <div class="card">
+        <h2>Telecamere IP</h2>
+        <p class="sub">ONVIF WS-Discovery, mDNS (_onvif/_rtsp) e SSDP/UPnP. Non include ancora SADP Hikvision/Dahua proprietari.</p>
+        <div class="actions"><button class="primary" id="cameras-scan">Scansiona telecamere</button></div>
+        <p id="cameras-msg" class="sub"></p>
+        <div id="cameras-results" class="log"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-nas">
+      <div class="card">
+        <h2>NAS</h2>
+        <p class="sub">Synology (UDP/9997), QNAP (UDP/7777), più mDNS/SSDP per altri brand (es. Synology senza risposta UDP).</p>
+        <div class="actions"><button class="primary" id="nas-scan">Scansiona NAS</button></div>
+        <p id="nas-msg" class="sub"></p>
+        <div id="nas-results" class="log"></div>
       </div>
     </section>
 
@@ -401,9 +440,7 @@
         row('Porta', n.port_id || 'n/a'), row('VLAN', n.vlan_id || 'n/a'),
         n.med_capabilities ? row('LLDP-MED', n.med_capabilities) : '',
         n.poe_status ? row('PoE', [n.poe_status, n.poe_allocated_w != null ? n.poe_allocated_w + ' W' : ''].filter(Boolean).join(' · ')) : '',
-        (data.neighbors || []).filter(x => x.available && x.protocol !== n.protocol).map(
-          alt => row(alt.protocol || 'Alt', [alt.switch_name, alt.port_id].filter(Boolean).join(' · ') || 'ok')
-        ).join(''),
+        n.protocol === 'MNDP' ? row('Nota', 'Solo dispositivo collegato · elenco LAN in tab MikroTik') : '',
       ].filter(Boolean).join('') : row('Stato', n.message || 'In attesa', 'bad');
       document.getElementById('status-system').innerHTML = [
         row('Hostname', s.hostname || 'n/a'),
@@ -766,15 +803,16 @@
 
     document.getElementById('passive-run').onclick = async () => {
       const msg = document.getElementById('passive-msg');
+      const summaryEl = document.getElementById('passive-summary-results');
       const l2El = document.getElementById('passive-l2-results');
+      const l2probeEl = document.getElementById('passive-l2probe-results');
+      const serviceEl = document.getElementById('passive-service-results');
       const dhcpEl = document.getElementById('passive-dhcp-results');
       const snmpEl = document.getElementById('passive-snmp-results');
       const seconds = Math.min(15, Math.max(1, Number(document.getElementById('passive-seconds').value) || 3));
       const snmpHost = normalizeHost(document.getElementById('passive-snmp-host').value);
       msg.textContent = `Sniff passivo in corso (${seconds}s)...`;
-      l2El.textContent = '...';
-      dhcpEl.textContent = '...';
-      snmpEl.textContent = '...';
+      [summaryEl, l2El, l2probeEl, serviceEl, dhcpEl, snmpEl].forEach(el => el.textContent = '...');
       try {
         const params = new URLSearchParams({listen_seconds: String(seconds)});
         if (snmpHost) params.set('snmp_host', snmpHost);
@@ -784,44 +822,105 @@
         const j = parsed.data;
         if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
 
+        const summary = j.summary || [];
+        summaryEl.innerHTML = summary.length
+          ? summary.map(row => `<div class="${row.status === 'detected' || row.status === 'ok' ? 'ok' : 'sub'}">${row.protocol} · ${row.category} · ${row.detail}</div>`).join('')
+          : '<div class="sub">Nessun protocollo rilevato</div>';
+
         const l2 = (j.l2_passive && j.l2_passive.hits) || [];
-        if (l2.length) {
-          l2El.innerHTML = l2.map(hit => {
-            const variant = hit.variant ? ` (${hit.variant})` : '';
-            const samples = (hit.samples || []).slice(0, 2).join(' · ');
-            return `<div class="ok">${hit.protocol}${variant}: ${hit.frame_count} frame${samples ? ' · ' + samples : ''}</div>`;
-          }).join('');
-        } else {
-          l2El.innerHTML = `<div class="sub">${(j.l2_passive && j.l2_passive.message) || 'Nessun frame rilevato'}</div>`;
-        }
+        l2El.innerHTML = l2.length
+          ? l2.map(hit => `<div class="ok">${hit.protocol}${hit.variant ? ' (' + hit.variant + ')' : ''}: ${hit.frame_count} frame</div>`).join('')
+          : `<div class="sub">${(j.l2_passive && j.l2_passive.message) || 'Nessun frame'}</div>`;
+
+        const l2p = (j.l2_probes && j.l2_probes.hits) || [];
+        l2probeEl.innerHTML = l2p.length
+          ? l2p.map(hit => `<div class="ok">${hit.protocol} ${hit.ethertype}: ${hit.frame_count} frame</div>`).join('')
+          : '<div class="sub">Nessun frame FDP/EDP/LLTD</div>';
+
+        const mdns = (j.mdns && j.mdns.services) || [];
+        const ssdp = (j.ssdp && j.ssdp.devices) || [];
+        serviceEl.innerHTML = [
+          `<div class="ok">mDNS: ${mdns.length} servizi</div>`,
+          mdns.slice(0, 8).map(s => `<div>${s.name || s.service_type} · ${s.host || ''}${s.port ? ':' + s.port : ''}</div>`).join(''),
+          `<div class="ok">SSDP: ${ssdp.length} dispositivi</div>`,
+          ssdp.slice(0, 8).map(d => `<div>${d.usn} · ${d.host || ''}</div>`).join(''),
+        ].join('');
 
         const dhcp = (j.dhcp_option82 && j.dhcp_option82.samples) || [];
-        if (dhcp.length) {
-          dhcpEl.innerHTML = dhcp.map(s => {
-            const parts = [s.message_type, s.circuit_id ? 'circuit=' + s.circuit_id : '', s.remote_id ? 'remote=' + s.remote_id : ''].filter(Boolean);
-            return `<div class="ok">${parts.join(' · ')}</div>`;
-          }).join('');
-        } else {
-          dhcpEl.innerHTML = `<div class="sub">${(j.dhcp_option82 && j.dhcp_option82.message) || 'Nessun Option 82'}</div>`;
-        }
+        dhcpEl.innerHTML = dhcp.length
+          ? dhcp.map(s => `<div class="ok">${[s.message_type, s.circuit_id, s.remote_id].filter(Boolean).join(' · ')}</div>`).join('')
+          : `<div class="sub">${(j.dhcp_option82 && j.dhcp_option82.message) || 'Nessun Option 82'}</div>`;
 
         const snmp = j.snmp && j.snmp.result;
         if (snmp && snmp.reachable) {
-          snmpEl.innerHTML = [
-            `<div class="ok">${snmp.host}:161 · community ${snmp.community || 'n/a'}</div>`,
-            snmp.sys_descr ? `<div>${snmp.sys_descr}</div>` : '',
-            snmp.trap_port_open ? '<div>UDP 162: raggiungibile</div>' : '<div class="sub">UDP 162: non verificato</div>',
-          ].filter(Boolean).join('');
+          snmpEl.innerHTML = `<div class="ok">${snmp.host}:161 · ${snmp.community || 'n/a'}</div>${snmp.sys_descr ? '<div>' + snmp.sys_descr + '</div>' : ''}`;
         } else if (snmp) {
           snmpEl.innerHTML = `<div class="bad">${snmp.host}:161 · ${snmp.error || 'no response'}</div>`;
         } else {
           snmpEl.innerHTML = `<div class="sub">${(j.snmp && j.snmp.message) || 'SNMP non eseguito'}</div>`;
         }
 
-        msg.textContent = 'Passive check completato.';
+        msg.textContent = 'Sniff completato.';
       } catch (e) {
         msg.textContent = 'Errore rete: ' + e;
       }
+    };
+
+    document.getElementById('mikrotik-scan').onclick = async () => {
+      const msg = document.getElementById('mikrotik-msg');
+      const el = document.getElementById('mikrotik-results');
+      msg.textContent = 'Scansione MNDP...';
+      el.textContent = '...';
+      const r = await fetch('/api/discover/mikrotik?listen_seconds=3');
+      const parsed = await parseJsonResponse(r);
+      if (parsed.error) { msg.textContent = parsed.error; return; }
+      const j = parsed.data;
+      if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
+      const devices = j.devices || [];
+      if (!devices.length) {
+        el.innerHTML = '<div class="sub">Nessun MikroTik rilevato.</div>';
+      } else {
+        el.innerHTML = devices.map(d => {
+          const cls = d.connected ? 'ok' : '';
+          const tag = d.connected ? 'COLLEGATO · ' : '';
+          return `<div class="${cls}">${tag}${d.identity || d.board || 'MikroTik'} · ${d.ipv4 || 'n/a'} · ${d.mac || 'n/a'} · ${d.interface || 'n/a'}</div>`;
+        }).join('');
+      }
+      msg.textContent = `${devices.length} dispositivo/i trovato/i.`;
+    };
+
+    document.getElementById('cameras-scan').onclick = async () => {
+      const msg = document.getElementById('cameras-msg');
+      const el = document.getElementById('cameras-results');
+      msg.textContent = 'Scansione telecamere...';
+      el.textContent = '...';
+      const r = await fetch('/api/discover/cameras?timeout_seconds=3');
+      const parsed = await parseJsonResponse(r);
+      if (parsed.error) { msg.textContent = parsed.error; return; }
+      const j = parsed.data;
+      if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
+      const devices = j.devices || [];
+      el.innerHTML = devices.length
+        ? devices.map(d => `<div class="ok">${d.name} · ${d.source} · ${d.host || ''}${d.port ? ':' + d.port : ''} · ${(d.protocols || []).join(', ')}</div>`).join('')
+        : '<div class="sub">Nessuna telecamera rilevata.</div>';
+      msg.textContent = `${devices.length} telecamera/e trovata/e.`;
+    };
+
+    document.getElementById('nas-scan').onclick = async () => {
+      const msg = document.getElementById('nas-msg');
+      const el = document.getElementById('nas-results');
+      msg.textContent = 'Scansione NAS...';
+      el.textContent = '...';
+      const r = await fetch('/api/discover/nas?timeout_seconds=3');
+      const parsed = await parseJsonResponse(r);
+      if (parsed.error) { msg.textContent = parsed.error; return; }
+      const j = parsed.data;
+      if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
+      const devices = j.devices || [];
+      el.innerHTML = devices.length
+        ? devices.map(d => `<div class="ok">${d.name} · ${d.source} · ${d.host || 'n/a'} · ${d.model || ''} ${(d.protocols || []).join(', ')}</div>`).join('')
+        : '<div class="sub">Nessun NAS rilevato.</div>';
+      msg.textContent = `${devices.length} NAS trovato/i.`;
     };
 
     function renderPortResults(el, data) {

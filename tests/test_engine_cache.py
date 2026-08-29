@@ -19,7 +19,7 @@ def test_neighbor_cache_keeps_last_good_value(monkeypatch) -> None:
 
     calls = {"count": 0}
 
-    def fake_collect(_interface: str) -> NeighborCollection:
+    def fake_collect(_interface: str, **kwargs: object) -> NeighborCollection:
         calls["count"] += 1
         neighbor = good if calls["count"] == 1 else empty
         return NeighborCollection(primary=neighbor, entries=[neighbor])

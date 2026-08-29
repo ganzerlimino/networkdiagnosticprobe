@@ -27,7 +27,7 @@ def protocol_catalog() -> dict[str, Any]:
                 "name": "MNDP",
                 "status": "active",
                 "mode": "passive",
-                "notes": "Ascolto UDP/5678 per dispositivi MikroTik.",
+                "notes": "Card Switch = solo dispositivo collegato (match gateway). Tab MikroTik = tutta la LAN.",
             },
             {
                 "id": "mdns",

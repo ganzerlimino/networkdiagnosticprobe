@@ -26,16 +26,34 @@ def _pick_primary(neighbors: list[NeighborState]) -> NeighborState:
     return available[0]
 
 
-def collect_neighbor_state(interface: str) -> NeighborState:
+def collect_neighbor_state(
+    interface: str,
+    *,
+    gateway_ip: str | None = None,
+    gateway_mac: str | None = None,
+) -> NeighborState:
     """Return the best available neighbor (LLDP/CDP preferred over MNDP)."""
-    return collect_neighbors(interface).primary
+    return collect_neighbors(
+        interface,
+        gateway_ip=gateway_ip,
+        gateway_mac=gateway_mac,
+    ).primary
 
 
-def collect_neighbors(interface: str) -> "NeighborCollection":
+def collect_neighbors(
+    interface: str,
+    *,
+    gateway_ip: str | None = None,
+    gateway_mac: str | None = None,
+) -> "NeighborCollection":
     lldp = collect_lldp_neighbor_state(interface)
-    mndp = collect_mndp_neighbor(interface)
-    entries = [lldp, mndp]
-    primary = _pick_primary(entries)
+    mndp = collect_mndp_neighbor(
+        interface,
+        gateway_ip=gateway_ip,
+        gateway_mac=gateway_mac,
+    )
+    entries = [entry for entry in (lldp, mndp) if entry.available]
+    primary = _pick_primary([lldp, mndp])
     return NeighborCollection(primary=primary, entries=entries)
 
 

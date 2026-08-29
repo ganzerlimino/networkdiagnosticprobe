@@ -14,6 +14,7 @@ from ndp.core.collectors import (
 )
 from ndp.core.config import NdpConfig
 from ndp.core.state import NeighborState, ProbeState
+from ndp.discovery.neigh import lookup_neighbor_mac
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,11 @@ class ProbeEngine:
             empty = NeighborState(available=False, message="link down")
             return empty, []
 
-        collection = collect_neighbors(interface)
+        collection = collect_neighbors(
+            interface,
+            gateway_ip=self.state.ip.gateway,
+            gateway_mac=lookup_neighbor_mac(interface, self.state.ip.gateway or ""),
+        )
         now = time.monotonic()
         primary = collection.primary
 
