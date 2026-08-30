@@ -298,7 +298,7 @@ def create_app(
         from ndp.discovery.passive_suite import run_passive_check_suite
 
         state = get_state()
-        bounded = min(max(listen_seconds, 1.0), 15.0)
+        bounded = min(max(listen_seconds, 1.0), 60.0)
         target = snmp_host.strip() or None
         return run_passive_check_suite(
             config.interface,
@@ -313,7 +313,7 @@ def create_app(
         from ndp.discovery.neigh import lookup_neighbor_mac
 
         state = get_state()
-        bounded = min(max(listen_seconds, 1.0), 15.0)
+        bounded = min(max(listen_seconds, 1.0), 60.0)
         gateway = state.ip.gateway
         return discover_mndp_snapshot(
             config.interface,

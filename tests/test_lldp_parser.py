@@ -20,6 +20,17 @@ def test_parse_neighbor_payload_from_fixture() -> None:
     assert neighbor.age_seconds == 12
 
 
+def test_parse_neighbor_payload_prefers_mikrotik_switch_over_stale_server() -> None:
+    payload = json.loads((FIXTURES / "lldpctl_mikrotik_multi.json").read_text(encoding="utf-8"))
+    neighbor = _parse_neighbor_payload(payload, "eth0")
+
+    assert neighbor.available is True
+    assert neighbor.switch_name == "sw01"
+    assert neighbor.port_id == "br1/ether21"
+    assert neighbor.chassis_id == "6c:3b:6b:aa:bb:cc"
+    assert "CRS326" in (neighbor.system_description or "")
+
+
 def test_parse_neighbor_payload_missing_interface() -> None:
     neighbor = _parse_neighbor_payload({"lldp": {"interface": []}}, "eth0")
     assert neighbor.available is False

@@ -55,11 +55,11 @@ class MndpDevice:
             switch_name=switch_name,
             port_id=self.interface,
             chassis_id=self.mac,
+            identity=self.identity,
             system_description=", ".join(description_parts) or None,
             software_version=self.version,
             platform=self.platform,
             board=self.board,
-            identity=self.identity,
             ipv4_address=self.ipv4,
             age_seconds=self.uptime_seconds,
             last_seen=self.last_seen or datetime.now(timezone.utc),
@@ -138,10 +138,17 @@ def pick_connected_mndp_device(
     *,
     gateway_ip: str | None = None,
     gateway_mac: str | None = None,
+    lldp_chassis_mac: str | None = None,
 ) -> MndpDevice | None:
     """Pick the MikroTik device most likely on the NDP Ethernet hop (not whole LAN)."""
     if not devices:
         return None
+
+    if lldp_chassis_mac:
+        for device in devices:
+            if device.mac and normalize_mac(device.mac) == normalize_mac(lldp_chassis_mac):
+                device.connected = True
+                return device
 
     gw_mac = normalize_mac(gateway_mac) if gateway_mac else None
     if gw_mac:
@@ -156,7 +163,21 @@ def pick_connected_mndp_device(
                 device.connected = True
                 return device
 
+    switch_like = [device for device in devices if _looks_like_switch(device)]
+    if len(switch_like) == 1:
+        switch_like[0].connected = True
+        return switch_like[0]
+
     return None
+
+
+def _looks_like_switch(device: MndpDevice) -> bool:
+    blob = " ".join(
+        part
+        for part in (device.board, device.platform, device.identity, device.interface)
+        if part
+    ).upper()
+    return any(token in blob for token in ("CRS", "CSS", "RB260", "RB250", "SWITCH", "NETPOWER"))
 
 
 def _configure_mndp_socket(sock: socket.socket, interface: str) -> None:
@@ -187,6 +208,7 @@ def discover_mndp_devices(
     listen_seconds: float = _SCAN_LISTEN_SECONDS,
     gateway_ip: str | None = None,
     gateway_mac: str | None = None,
+    lldp_chassis_mac: str | None = None,
 ) -> list[MndpDevice]:
     """Discover MikroTik devices via MNDP refresh probes and broadcast replies."""
     devices: dict[str, MndpDevice] = {}
@@ -227,7 +249,12 @@ def discover_mndp_devices(
         sock.close()
 
     found = list(devices.values())
-    connected = pick_connected_mndp_device(found, gateway_ip=gateway_ip, gateway_mac=gateway_mac)
+    connected = pick_connected_mndp_device(
+        found,
+        gateway_ip=gateway_ip,
+        gateway_mac=gateway_mac,
+        lldp_chassis_mac=lldp_chassis_mac,
+    )
     if connected is not None:
         for device in found:
             device.connected = _device_key(device) == _device_key(connected)
@@ -240,6 +267,7 @@ def collect_mndp_neighbor(
     listen_seconds: float = _DEFAULT_LISTEN_SECONDS,
     gateway_ip: str | None = None,
     gateway_mac: str | None = None,
+    lldp_chassis_mac: str | None = None,
 ) -> NeighborState:
     """Return only the MikroTik device on the local Ethernet hop (if identifiable)."""
     devices = discover_mndp_devices(
@@ -247,6 +275,7 @@ def collect_mndp_neighbor(
         listen_seconds=listen_seconds,
         gateway_ip=gateway_ip,
         gateway_mac=gateway_mac,
+        lldp_chassis_mac=lldp_chassis_mac,
     )
     if not devices:
         return NeighborState(protocol="MNDP", available=False, message="no mndp neighbor")

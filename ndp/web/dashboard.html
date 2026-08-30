@@ -23,8 +23,10 @@
     header { position: sticky; top: 0; z-index: 3; background: rgba(12,18,32,.96); border-bottom: 1px solid var(--border); padding: .85rem 1rem; }
     h1 { margin: 0; font-size: 1.1rem; }
     .sub { color: var(--muted); font-size: .82rem; margin-top: .2rem; }
-    nav { display: flex; gap: .35rem; padding: .55rem 1rem; overflow-x: auto; border-bottom: 1px solid var(--border); position: sticky; top: 3.4rem; z-index: 2; background: var(--bg); }
-    nav button { flex: 1; min-width: 3.6rem; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 999px; padding: .5rem .55rem; font-size: .8rem; }
+    nav { display: flex; flex-direction: column; gap: .45rem; padding: .55rem 1rem; border-bottom: 1px solid var(--border); position: sticky; top: 3.4rem; z-index: 2; background: var(--bg); }
+    .nav-group { display: flex; align-items: center; gap: .35rem; overflow-x: auto; }
+    .nav-label { flex: 0 0 auto; font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; min-width: 3.4rem; }
+    nav button { flex: 0 0 auto; min-width: 3.6rem; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 999px; padding: .45rem .65rem; font-size: .78rem; white-space: nowrap; }
     nav button.active { border-color: var(--accent); color: var(--accent); }
     main { padding: 1rem; }
     .panel { display: none; } .panel.active { display: block; }
@@ -82,17 +84,29 @@
     <div class="sub" id="version">...</div>
   </header>
   <nav>
-    <button class="active" data-panel="status">Stato</button>
-    <button data-panel="ping">Ping</button>
-    <button data-panel="mtu">MTU</button>
-    <button data-panel="discover">Discover</button>
-    <button data-panel="passive">Sniff</button>
-    <button data-panel="mikrotik">MikroTik</button>
-    <button data-panel="cameras">Camere</button>
-    <button data-panel="nas">NAS</button>
-    <button data-panel="scan">Scan</button>
-    <button data-panel="hotspot">Hotspot</button>
-    <button data-panel="config">Config</button>
+    <div class="nav-group">
+      <span class="nav-label">Monitor</span>
+      <button class="active" data-panel="status">Stato</button>
+      <button data-panel="ping">Ping</button>
+      <button data-panel="mtu">MTU</button>
+    </div>
+    <div class="nav-group">
+      <span class="nav-label">LAN</span>
+      <button data-panel="discover">Discover</button>
+      <button data-panel="passive">Sniff</button>
+      <button data-panel="scan">Scan</button>
+    </div>
+    <div class="nav-group">
+      <span class="nav-label">OT</span>
+      <button data-panel="mikrotik">MikroTik</button>
+      <button data-panel="cameras">Camere</button>
+      <button data-panel="nas">NAS</button>
+    </div>
+    <div class="nav-group">
+      <span class="nav-label">Sistema</span>
+      <button data-panel="hotspot">Hotspot</button>
+      <button data-panel="config">Config</button>
+    </div>
   </nav>
   <main>
     <section class="panel active" id="panel-status">
@@ -230,7 +244,7 @@
         <p class="sub">Riepilogo protocolli L2/L3 rilevati: STP/LACP/VLAN/IGMP, FDP/EDP/LLTD, mDNS, SSDP, DHCP Option 82, SNMP.</p>
         <label class="field">
           <span>Durata ascolto (secondi)</span>
-          <input id="passive-seconds" type="number" min="1" max="15" value="3">
+          <input id="passive-seconds" type="number" min="1" max="60" value="3">
         </label>
         <label class="field">
           <span>Host SNMP (opzionale)</span>
@@ -267,7 +281,7 @@
         <p class="sub">Probe attivo UDP/5678 + ascolto risposte. La card Switch mostra solo il dispositivo collegato (match MAC/IP gateway).</p>
         <label class="field">
           <span>Durata ascolto (secondi)</span>
-          <input id="mikrotik-seconds" type="number" min="2" max="15" value="6">
+          <input id="mikrotik-seconds" type="number" min="2" max="60" value="6">
         </label>
         <div class="actions">
           <button class="primary" id="mikrotik-scan">Scansiona MikroTik</button>
@@ -569,7 +583,7 @@
     }
 
     function activatePanel(panelId) {
-      document.querySelectorAll('nav button').forEach(btn => {
+      document.querySelectorAll('nav button[data-panel]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.panel === panelId);
       });
       document.querySelectorAll('.panel').forEach(panel => {
@@ -584,7 +598,7 @@
 
     ['discover-scan', 'discover-services', 'passive', 'mikrotik', 'cameras', 'nas', 'scan-industrial'].forEach(wireExportButtons);
 
-    document.querySelectorAll('nav button').forEach(btn => {
+    document.querySelectorAll('nav button[data-panel]').forEach(btn => {
       btn.onclick = () => activatePanel(btn.dataset.panel);
     });
 
@@ -629,11 +643,16 @@
         row('DNS', (ip.dns_servers || []).join(', ') || 'n/a'),
       ].join('');
       document.getElementById('status-switch').innerHTML = n.available ? [
-        row('Protocollo', n.protocol || 'n/a'), row('Switch', n.switch_name || 'n/a'),
-        row('Porta', n.port_id || 'n/a'), row('VLAN', n.vlan_id || 'n/a'),
+        row('Dispositivo', n.identity || n.switch_name || 'n/a'),
+        row('Protocollo', n.protocol || 'n/a'),
+        row('Porta', n.port_id || 'n/a'),
+        row('VLAN', n.vlan_id || 'n/a'),
+        n.board ? row('Modello', n.board) : '',
+        n.system_description ? row('Descrizione', n.system_description) : '',
+        n.chassis_id ? row('MAC chassis', n.chassis_id) : '',
         n.med_capabilities ? row('LLDP-MED', n.med_capabilities) : '',
         n.poe_status ? row('PoE', [n.poe_status, n.poe_allocated_w != null ? n.poe_allocated_w + ' W' : ''].filter(Boolean).join(' · ')) : '',
-        n.protocol === 'MNDP' ? row('Nota', 'Solo dispositivo collegato · elenco LAN in tab MikroTik') : '',
+        n.protocol === 'MNDP' ? row('Nota', 'Elenco completo LAN in tab MikroTik') : '',
       ].filter(Boolean).join('') : row('Stato', n.message || 'In attesa', 'bad');
       document.getElementById('status-system').innerHTML = [
         row('Hostname', s.hostname || 'n/a'),
@@ -1065,7 +1084,7 @@
       const dhcpEl = document.getElementById('passive-dhcp-results');
       const snmpEl = document.getElementById('passive-snmp-results');
       const scanBtn = document.getElementById('passive-run');
-      const seconds = Math.min(15, Math.max(1, Number(document.getElementById('passive-seconds').value) || 3));
+      const seconds = Math.min(60, Math.max(1, Number(document.getElementById('passive-seconds').value) || 3));
       const snmpHost = normalizeHost(document.getElementById('passive-snmp-host').value);
       const controller = beginScan('passive-stop');
       scanBtn.disabled = true;
@@ -1166,7 +1185,7 @@
       const msg = document.getElementById('mikrotik-msg');
       const el = document.getElementById('mikrotik-results');
       const scanBtn = document.getElementById('mikrotik-scan');
-      const seconds = Math.min(15, Math.max(2, Number(document.getElementById('mikrotik-seconds').value) || 6));
+      const seconds = Math.min(60, Math.max(2, Number(document.getElementById('mikrotik-seconds').value) || 6));
       const controller = beginScan('mikrotik-stop');
       scanBtn.disabled = true;
       msg.textContent = `Scansione MNDP (${seconds}s)...`;

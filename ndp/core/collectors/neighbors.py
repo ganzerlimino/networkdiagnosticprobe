@@ -2,28 +2,36 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from ndp.core.collectors.lldp import collect_lldp_neighbor_state
 from ndp.core.collectors.mndp import collect_mndp_neighbor
 from ndp.core.state import NeighborState
 
-_PROTOCOL_PRIORITY = {
-    "LLDP": 0,
-    "CDP": 1,
-    "MNDP": 2,
-}
 
-
-def _priority(neighbor: NeighborState) -> int:
-    protocol = (neighbor.protocol or "").upper()
-    return _PROTOCOL_PRIORITY.get(protocol, 99)
-
-
-def _pick_primary(neighbors: list[NeighborState]) -> NeighborState:
-    available = [neighbor for neighbor in neighbors if neighbor.available]
-    if not available:
-        return NeighborState(available=False, message="no neighbor")
-    available.sort(key=_priority)
-    return available[0]
+def _merge_neighbor_details(primary: NeighborState, secondary: NeighborState) -> NeighborState:
+    if not secondary.available:
+        return primary
+    return replace(
+        primary,
+        switch_name=primary.switch_name or secondary.switch_name or secondary.identity,
+        port_id=primary.port_id or secondary.port_id,
+        vlan_id=primary.vlan_id or secondary.vlan_id,
+        chassis_id=primary.chassis_id or secondary.chassis_id,
+        system_description=primary.system_description or secondary.system_description,
+        identity=primary.identity or secondary.identity,
+        software_version=primary.software_version or secondary.software_version,
+        platform=primary.platform or secondary.platform,
+        board=primary.board or secondary.board,
+        ipv4_address=primary.ipv4_address or secondary.ipv4_address,
+        med_capabilities=primary.med_capabilities or secondary.med_capabilities,
+        med_device_type=primary.med_device_type or secondary.med_device_type,
+        poe_allocated_w=primary.poe_allocated_w if primary.poe_allocated_w is not None else secondary.poe_allocated_w,
+        poe_requested_w=primary.poe_requested_w if primary.poe_requested_w is not None else secondary.poe_requested_w,
+        poe_status=primary.poe_status or secondary.poe_status,
+        available=True,
+        message=primary.message if primary.available else secondary.message,
+    )
 
 
 def collect_neighbor_state(
@@ -47,13 +55,22 @@ def collect_neighbors(
     gateway_mac: str | None = None,
 ) -> "NeighborCollection":
     lldp = collect_lldp_neighbor_state(interface)
+    lldp_chassis = lldp.chassis_id if lldp.chassis_id or lldp.system_description else None
     mndp = collect_mndp_neighbor(
         interface,
         gateway_ip=gateway_ip,
         gateway_mac=gateway_mac,
+        lldp_chassis_mac=lldp_chassis,
     )
+
+    if lldp.available:
+        primary = _merge_neighbor_details(lldp, mndp)
+    elif mndp.available:
+        primary = mndp
+    else:
+        primary = lldp if lldp.message not in {"waiting", "no neighbor data"} else mndp
+
     entries = [entry for entry in (lldp, mndp) if entry.available]
-    primary = _pick_primary([lldp, mndp])
     return NeighborCollection(primary=primary, entries=entries)
 
 

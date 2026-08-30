@@ -1,16 +1,34 @@
-from ndp.core.collectors.neighbors import _pick_primary
+from ndp.core.collectors.neighbors import _merge_neighbor_details
 from ndp.core.state import NeighborState
 
 
-def test_pick_primary_prefers_lldp_over_mndp() -> None:
-    lldp = NeighborState(protocol="LLDP", available=True, switch_name="sw1")
-    mndp = NeighborState(protocol="MNDP", available=True, switch_name="mt1")
-    primary = _pick_primary([mndp, lldp])
-    assert primary.protocol == "LLDP"
+def test_merge_neighbor_details_keeps_lldp_port_and_mndp_identity() -> None:
+    lldp = NeighborState(
+        protocol="LLDP",
+        available=True,
+        switch_name="sw01",
+        port_id="br1/ether21",
+        vlan_id="120",
+        chassis_id="6c:3b:6b:aa:bb:cc",
+    )
+    mndp = NeighborState(
+        protocol="MNDP",
+        available=True,
+        identity="sw01",
+        board="CRS326-24G-2S+",
+        chassis_id="6c:3b:6b:aa:bb:cc",
+        port_id="bridge",
+    )
+    merged = _merge_neighbor_details(lldp, mndp)
+    assert merged.port_id == "br1/ether21"
+    assert merged.vlan_id == "120"
+    assert merged.identity == "sw01"
+    assert merged.board == "CRS326-24G-2S+"
 
 
-def test_pick_primary_uses_mndp_when_lldp_missing() -> None:
-    mndp = NeighborState(protocol="MNDP", available=True, switch_name="mt1")
-    lldp = NeighborState(protocol="LLDP", available=False, message="no data")
-    primary = _pick_primary([lldp, mndp])
-    assert primary.protocol == "MNDP"
+def test_merge_neighbor_details_ignores_unavailable_secondary() -> None:
+    lldp = NeighborState(protocol="LLDP", available=True, switch_name="sw1", port_id="Gi0/1")
+    mndp = NeighborState(protocol="MNDP", available=False, message="no mndp neighbor")
+    merged = _merge_neighbor_details(lldp, mndp)
+    assert merged.switch_name == "sw1"
+    assert merged.port_id == "Gi0/1"

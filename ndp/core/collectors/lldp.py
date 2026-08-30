@@ -68,6 +68,85 @@ def _normalize_interface_entries(interfaces: object) -> list[dict[str, Any]]:
     return [item for item in interfaces if isinstance(item, dict)]
 
 
+def _neighbor_score(neighbor: NeighborState) -> tuple[int, int]:
+    """Higher is better; tie-break with fresher age."""
+    score = 0
+    if neighbor.port_id:
+        score += 10
+    if neighbor.switch_name:
+        score += 8
+    if neighbor.vlan_id:
+        score += 4
+    if neighbor.chassis_id:
+        score += 2
+    if neighbor.system_description:
+        descr = neighbor.system_description.lower()
+        if any(token in descr for token in ("mikrotik", "routeros", "crs", "css", "switch")):
+            score += 6
+        if any(token in descr for token in ("linux", "windows", "gentoo", "ubuntu")):
+            score -= 4
+    age = neighbor.age_seconds if neighbor.age_seconds is not None else 999_999
+    return score, -age
+
+
+def _parse_interface_entry(iface_entry: dict[str, Any]) -> NeighborState:
+    protocol = iface_entry.get("via")
+    chassis_entries = iface_entry.get("chassis", [])
+    port_entries = iface_entry.get("port", [])
+
+    chassis = chassis_entries[0] if chassis_entries else {}
+    port = port_entries[0] if port_entries else {}
+
+    switch_name = _first_value(chassis.get("name"))
+    chassis_id = _first_value(chassis.get("id"))
+    port_id = (
+        _first_value(port.get("id"))
+        or _first_value(port.get("descr"))
+        or _first_value(port.get("description"))
+    )
+    vlan_id = _extract_vlan(port_entries)
+    system_description = _first_value(chassis.get("descr"))
+    age_seconds = _parse_age_seconds(iface_entry.get("age"))
+    med_device_type, med_capabilities = _extract_med(chassis, port)
+    poe_allocated_w, poe_requested_w, poe_status = _extract_poe(port)
+
+    if not any([switch_name, port_id, chassis_id, vlan_id]):
+        return NeighborState(
+            protocol=protocol,
+            available=False,
+            message="neighbor present but no usable TLV fields",
+            chassis_id=chassis_id,
+            system_description=system_description,
+            age_seconds=age_seconds,
+        )
+
+    return NeighborState(
+        protocol=protocol,
+        switch_name=switch_name,
+        port_id=port_id,
+        chassis_id=chassis_id,
+        vlan_id=vlan_id,
+        system_description=system_description,
+        age_seconds=age_seconds,
+        med_device_type=med_device_type,
+        med_capabilities=med_capabilities,
+        poe_allocated_w=poe_allocated_w,
+        poe_requested_w=poe_requested_w,
+        poe_status=poe_status,
+        last_seen=datetime.now(timezone.utc),
+        available=True,
+        message="ok",
+    )
+
+
+def _pick_best_neighbor(candidates: list[NeighborState]) -> NeighborState | None:
+    available = [neighbor for neighbor in candidates if neighbor.available]
+    if not available:
+        return None
+    available.sort(key=_neighbor_score, reverse=True)
+    return available[0]
+
+
 def _parse_float(value: str | None) -> float | None:
     if value is None:
         return None
@@ -119,53 +198,22 @@ def _extract_poe(port: dict[str, Any]) -> tuple[float | None, float | None, str 
 def _parse_neighbor_payload(payload: dict[str, Any], interface: str) -> NeighborState:
     lldp_root = payload.get("lldp", {})
     interfaces = _normalize_interface_entries(lldp_root.get("interface", []))
-    iface_entry = next((item for item in interfaces if item.get("name") == interface), None)
-    if not iface_entry and interfaces:
-        iface_entry = interfaces[0]
+    matching = [item for item in interfaces if item.get("name") == interface]
+    if not matching and interfaces:
+        matching = interfaces
 
-    if not iface_entry:
+    if not matching:
         return NeighborState(available=False, message="no neighbor data")
 
-    protocol = iface_entry.get("via")
-    chassis_entries = iface_entry.get("chassis", [])
-    port_entries = iface_entry.get("port", [])
+    candidates = [_parse_interface_entry(item) for item in matching]
+    best = _pick_best_neighbor(candidates)
+    if best is not None:
+        return best
 
-    chassis = chassis_entries[0] if chassis_entries else {}
-    port = port_entries[0] if port_entries else {}
-
-    switch_name = _first_value(chassis.get("name"))
-    chassis_id = _first_value(chassis.get("id"))
-    port_id = _first_value(port.get("id")) or _first_value(port.get("descr"))
-    vlan_id = _extract_vlan(port_entries)
-    system_description = _first_value(chassis.get("descr"))
-    age_seconds = _parse_age_seconds(iface_entry.get("age"))
-    med_device_type, med_capabilities = _extract_med(chassis, port)
-    poe_allocated_w, poe_requested_w, poe_status = _extract_poe(port)
-
-    if not any([switch_name, port_id, chassis_id, vlan_id]):
-        return NeighborState(
-            protocol=protocol,
-            available=False,
-            message="neighbor present but no usable TLV fields",
-        )
-
-    return NeighborState(
-        protocol=protocol,
-        switch_name=switch_name,
-        port_id=port_id,
-        chassis_id=chassis_id,
-        vlan_id=vlan_id,
-        system_description=system_description,
-        age_seconds=age_seconds,
-        med_device_type=med_device_type,
-        med_capabilities=med_capabilities,
-        poe_allocated_w=poe_allocated_w,
-        poe_requested_w=poe_requested_w,
-        poe_status=poe_status,
-        last_seen=datetime.now(timezone.utc),
-        available=True,
-        message="ok",
-    )
+    partial = next((item for item in reversed(candidates) if item.chassis_id or item.system_description), None)
+    if partial is not None:
+        return partial
+    return NeighborState(available=False, message="no neighbor data")
 
 
 def collect_lldp_neighbor_state(interface: str) -> NeighborState:
