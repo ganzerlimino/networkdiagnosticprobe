@@ -392,6 +392,13 @@ def create_app(
         bounded = min(max(timeout_seconds, 1.0), 15.0)
         return discover_nas_snapshot(config.interface, timeout_seconds=bounded)
 
+    @app.get("/api/discover/printers")
+    def api_discover_printers(timeout_seconds: float = 3.0) -> dict[str, object]:
+        from ndp.discovery.printers import discover_printers_snapshot
+
+        bounded = min(max(timeout_seconds, 1.0), 15.0)
+        return discover_printers_snapshot(config.interface, timeout_seconds=bounded)
+
     @app.get("/api/discover/industrial")
     def api_discover_industrial(
         timeout_seconds: float = 3.0,

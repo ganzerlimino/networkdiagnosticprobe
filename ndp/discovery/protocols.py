@@ -113,5 +113,19 @@ def protocol_catalog() -> dict[str, Any]:
                 "mode": "passive",
                 "notes": "Sniff Relay Agent Information nei pacchetti DHCP.",
             },
+            {
+                "id": "enpc",
+                "name": "Epson ENPC",
+                "status": "active",
+                "mode": "active",
+                "notes": "Probe UDP/3289 per stampanti receipt/fiscali Epson (retail).",
+            },
+            {
+                "id": "zebra_discovery",
+                "name": "Zebra Discovery",
+                "status": "active",
+                "mode": "active",
+                "notes": "Probe UDP/4201 per stampanti etichette Link-OS (industriale).",
+            },
         ]
     }
