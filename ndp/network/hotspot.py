@@ -118,6 +118,15 @@ def interface_has_ip(interface: str, address: str) -> bool:
     return address in result.stdout
 
 
+def hotspot_display_lines(config: NdpConfig) -> list[str]:
+    """Short connection hints for the framebuffer UI."""
+    if not config.wifi_hotspot_enabled or not config.web_enabled:
+        return []
+    ssid = build_ssid(config.wifi_hotspot_ssid_prefix, config.wifi_hotspot_interface)
+    host, _ = _parse_cidr(config.wifi_hotspot_ip)
+    return [ssid[:18], f"{host}:{config.web_port}"]
+
+
 def build_ssid(prefix: str, interface: str) -> str:
     safe_prefix = _SSID_SAFE.sub("", prefix.strip()) or "NDP"
     mac = read_interface_mac(interface).replace(":", "")

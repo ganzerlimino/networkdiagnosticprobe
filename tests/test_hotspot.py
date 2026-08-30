@@ -6,6 +6,7 @@ from ndp.core.config import NdpConfig
 from ndp.network.hotspot import (
     build_ssid,
     get_status,
+    hotspot_display_lines,
     render_dnsmasq_conf,
     render_hostapd_conf,
     write_hotspot_configs,
@@ -35,6 +36,11 @@ def wlan_mac(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 def test_build_ssid_from_mac(wlan_mac: Path) -> None:
     assert build_ssid("NDP", "wlan0") == "NDP-3456"
+
+
+def test_hotspot_display_lines(wlan_mac: Path) -> None:
+    config = NdpConfig(wifi_hotspot_ip="192.168.50.1/24", web_port=8080)
+    assert hotspot_display_lines(config) == ["NDP-3456", "192.168.50.1:8080"]
 
 
 def test_render_hostapd_wpa2() -> None:

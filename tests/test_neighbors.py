@@ -1,5 +1,30 @@
+from ndp.core.collectors.lldp import _consolidate_lldp_candidates
 from ndp.core.collectors.neighbors import _merge_neighbor_details
 from ndp.core.state import NeighborState
+
+
+def test_consolidate_lldp_merges_port_vlan_across_neighbors() -> None:
+    candidates = [
+        NeighborState(
+            available=True,
+            protocol="LLDP",
+            switch_name="sw01",
+            chassis_id="6c:3b:6b:aa:bb:cc",
+            age_seconds=12,
+        ),
+        NeighborState(
+            available=True,
+            protocol="LLDP",
+            port_id="br1/ether21",
+            vlan_id="120",
+            age_seconds=40,
+        ),
+    ]
+    merged = _consolidate_lldp_candidates(candidates)
+    assert merged.available is True
+    assert merged.switch_name == "sw01"
+    assert merged.port_id == "br1/ether21"
+    assert merged.vlan_id == "120"
 
 
 def test_merge_neighbor_details_keeps_lldp_port_and_mndp_identity() -> None:

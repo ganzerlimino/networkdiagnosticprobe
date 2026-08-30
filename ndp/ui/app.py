@@ -489,6 +489,7 @@ class ProbeUI:
                 state,
                 interactive=self._interactive,
                 web_port=self.config.web_port,
+                config=self.config,
             )
 
         y = 42
@@ -512,9 +513,15 @@ class ProbeUI:
                 margin=margin,
                 y_offset=self.config.ui_hint_y_offset,
             )
-        elif self.config.web_enabled:
-            footer = hint_font.render(f"Telefono :{self.config.web_port}", True, COLOR_MUTED)
-            surface.blit(footer, (text_x, self.config.ui_height - footer.get_height() - 4))
+        elif self.config.web_enabled and self.config.wifi_hotspot_enabled:
+            from ndp.network.hotspot import hotspot_display_lines
+
+            footer_lines = hotspot_display_lines(self.config)
+            footer_y = self.config.ui_height - 4
+            for line in reversed(footer_lines):
+                rendered = hint_font.render(line, True, COLOR_MUTED)
+                footer_y -= rendered.get_height()
+                surface.blit(rendered, (text_x, footer_y))
 
     def _screen_dots(self, active: ScreenId) -> str:
         parts = []

@@ -23,10 +23,14 @@
     header { position: sticky; top: 0; z-index: 3; background: rgba(12,18,32,.96); border-bottom: 1px solid var(--border); padding: .85rem 1rem; }
     h1 { margin: 0; font-size: 1.1rem; }
     .sub { color: var(--muted); font-size: .82rem; margin-top: .2rem; }
-    nav { display: flex; flex-direction: column; gap: .45rem; padding: .55rem 1rem; border-bottom: 1px solid var(--border); position: sticky; top: 3.4rem; z-index: 2; background: var(--bg); }
-    .nav-group { display: flex; align-items: center; gap: .35rem; overflow-x: auto; }
-    .nav-label { flex: 0 0 auto; font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; min-width: 3.4rem; }
-    nav button { flex: 0 0 auto; min-width: 3.6rem; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 999px; padding: .45rem .65rem; font-size: .78rem; white-space: nowrap; }
+    nav { display: flex; flex-direction: column; gap: .4rem; padding: .55rem 1rem; border-bottom: 1px solid var(--border); position: sticky; top: 3.4rem; z-index: 2; background: var(--bg); }
+    .nav-primary { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; }
+    .nav-primary button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 10px; padding: .55rem .35rem; font-size: .78rem; font-weight: 600; }
+    .nav-primary button.active { border-color: var(--accent); color: var(--accent); }
+    .nav-secondary { display: none; gap: .35rem; overflow-x: auto; }
+    .nav-secondary.open { display: flex; }
+    .nav-secondary button { flex: 0 0 auto; min-width: 4.5rem; border: 1px solid var(--border); background: #0f1728; color: var(--text); border-radius: 999px; padding: .45rem .7rem; font-size: .78rem; white-space: nowrap; }
+    .nav-secondary button.active { border-color: var(--accent); color: var(--accent); }
     nav button.active { border-color: var(--accent); color: var(--accent); }
     main { padding: 1rem; }
     .panel { display: none; } .panel.active { display: block; }
@@ -84,29 +88,13 @@
     <div class="sub" id="version">...</div>
   </header>
   <nav>
-    <div class="nav-group">
-      <span class="nav-label">Monitor</span>
-      <button class="active" data-panel="status">Stato</button>
-      <button data-panel="ping">Ping</button>
-      <button data-panel="mtu">MTU</button>
+    <div class="nav-primary">
+      <button class="active" data-nav-group="monitor">Monitor</button>
+      <button data-nav-group="lan">LAN</button>
+      <button data-nav-group="ot">OT</button>
+      <button data-nav-group="sistema">Sistema</button>
     </div>
-    <div class="nav-group">
-      <span class="nav-label">LAN</span>
-      <button data-panel="discover">Discover</button>
-      <button data-panel="passive">Sniff</button>
-      <button data-panel="scan">Scan</button>
-    </div>
-    <div class="nav-group">
-      <span class="nav-label">OT</span>
-      <button data-panel="mikrotik">MikroTik</button>
-      <button data-panel="cameras">Camere</button>
-      <button data-panel="nas">NAS</button>
-    </div>
-    <div class="nav-group">
-      <span class="nav-label">Sistema</span>
-      <button data-panel="hotspot">Hotspot</button>
-      <button data-panel="config">Config</button>
-    </div>
+    <div class="nav-secondary open" id="nav-secondary"></div>
   </nav>
   <main>
     <section class="panel active" id="panel-status">
@@ -582,10 +570,74 @@
       };
     }
 
-    function activatePanel(panelId) {
-      document.querySelectorAll('nav button[data-panel]').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.panel === panelId);
+    const NAV_GROUPS = {
+      monitor: { panels: [
+        { id: 'status', label: 'Stato' },
+        { id: 'ping', label: 'Ping' },
+        { id: 'mtu', label: 'MTU' },
+      ], default: 'status' },
+      lan: { panels: [
+        { id: 'discover', label: 'Discover' },
+        { id: 'passive', label: 'Sniff' },
+        { id: 'scan', label: 'Scan' },
+      ], default: 'discover' },
+      ot: { panels: [
+        { id: 'mikrotik', label: 'MikroTik' },
+        { id: 'cameras', label: 'Camere' },
+        { id: 'nas', label: 'NAS' },
+      ], default: 'mikrotik' },
+      sistema: { panels: [
+        { id: 'hotspot', label: 'Hotspot' },
+        { id: 'config', label: 'Config' },
+      ], default: 'hotspot' },
+    };
+    let activeNavGroup = 'monitor';
+
+    function panelNavGroup(panelId) {
+      return Object.entries(NAV_GROUPS).find(([, group]) =>
+        group.panels.some(item => item.id === panelId)
+      )?.[0] || 'monitor';
+    }
+
+    function renderNavSecondary(groupId, activePanel) {
+      const group = NAV_GROUPS[groupId];
+      const el = document.getElementById('nav-secondary');
+      if (!group) {
+        el.classList.remove('open');
+        el.innerHTML = '';
+        return;
+      }
+      el.classList.add('open');
+      el.innerHTML = group.panels.map(item =>
+        `<button data-panel="${item.id}" class="${item.id === activePanel ? 'active' : ''}">${item.label}</button>`
+      ).join('');
+      el.querySelectorAll('button[data-panel]').forEach(btn => {
+        btn.onclick = () => activatePanel(btn.dataset.panel);
       });
+    }
+
+    function activateNavGroup(groupId, preferredPanel) {
+      activeNavGroup = groupId;
+      document.querySelectorAll('.nav-primary button[data-nav-group]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.navGroup === groupId);
+      });
+      const group = NAV_GROUPS[groupId];
+      const panelId = preferredPanel && group.panels.some(item => item.id === preferredPanel)
+        ? preferredPanel
+        : group.default;
+      renderNavSecondary(groupId, panelId);
+      activatePanel(panelId, { skipNavGroup: true });
+    }
+
+    function activatePanel(panelId, options = {}) {
+      if (!options.skipNavGroup) {
+        const groupId = panelNavGroup(panelId);
+        if (groupId !== activeNavGroup) {
+          activateNavGroup(groupId, panelId);
+          return;
+        }
+        renderNavSecondary(groupId, panelId);
+      }
       document.querySelectorAll('.panel').forEach(panel => {
         panel.classList.toggle('active', panel.id === `panel-${panelId}`);
       });
@@ -593,13 +645,13 @@
 
     function applyPanelFromUrl() {
       const panel = new URLSearchParams(window.location.search).get('panel');
-      if (panel) activatePanel(panel);
+      if (panel) activateNavGroup(panelNavGroup(panel), panel);
     }
 
     ['discover-scan', 'discover-services', 'passive', 'mikrotik', 'cameras', 'nas', 'scan-industrial'].forEach(wireExportButtons);
 
-    document.querySelectorAll('nav button[data-panel]').forEach(btn => {
-      btn.onclick = () => activatePanel(btn.dataset.panel);
+    document.querySelectorAll('.nav-primary button[data-nav-group]').forEach(btn => {
+      btn.onclick = () => activateNavGroup(btn.dataset.navGroup);
     });
 
     function row(label, value, cls='') {
@@ -1729,7 +1781,9 @@
       if (r.ok) loadConfigForm();
     };
 
-    loadVersion(); loadConfig(); loadStatus(); pollDiscover(); startDiscPoll(); loadScanProfiles(); loadOuiTable(); applyPanelFromUrl();
+    loadVersion(); loadConfig(); loadStatus(); pollDiscover(); startDiscPoll(); loadScanProfiles(); loadOuiTable();
+    activateNavGroup('monitor', 'status');
+    applyPanelFromUrl();
     setInterval(loadStatus, 5000);
   </script>
 </body>

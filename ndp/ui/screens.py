@@ -7,6 +7,18 @@ from enum import Enum
 from ndp.core.state import ProbeState
 
 
+def _hotspot_hint_lines(config: object | None, web_port: int) -> list[str]:
+    if config is None:
+        return [f"Web  :{web_port}"]
+    try:
+        from ndp.network.hotspot import hotspot_display_lines
+
+        lines = hotspot_display_lines(config)  # type: ignore[arg-type]
+        return lines or [f"Web  :{web_port}"]
+    except Exception:
+        return [f"Web  :{web_port}"]
+
+
 class ScreenId(Enum):
     HOME = 0
     SWITCH = 1
@@ -64,6 +76,7 @@ def lines_for_screen(
     *,
     interactive: bool = False,
     web_port: int = 8080,
+    config: object | None = None,
 ) -> list[str]:
     if screen == ScreenId.HOME:
         ip = "n/a"
@@ -160,7 +173,7 @@ def lines_for_screen(
         if interactive:
             lines.append("NDP ready")
         else:
-            lines.append(f"Web  :{web_port}")
+            lines.extend(_hotspot_hint_lines(config, web_port)[:2])
         return lines
 
     if screen == ScreenId.DISCOVER:

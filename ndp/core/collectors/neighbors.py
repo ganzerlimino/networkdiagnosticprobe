@@ -12,11 +12,22 @@ from ndp.core.state import NeighborState
 def _merge_neighbor_details(primary: NeighborState, secondary: NeighborState) -> NeighborState:
     if not secondary.available:
         return primary
+
+    lldp_sources = [
+        item
+        for item in (primary, secondary)
+        if item.protocol and item.protocol.upper() in {"LLDP", "CDP"}
+    ]
+    port_id = next((item.port_id for item in lldp_sources if item.port_id), None)
+    vlan_id = next((item.vlan_id for item in lldp_sources if item.vlan_id), None)
+    port_id = port_id or primary.port_id or secondary.port_id
+    vlan_id = vlan_id or primary.vlan_id or secondary.vlan_id
+
     return replace(
         primary,
         switch_name=primary.switch_name or secondary.switch_name or secondary.identity,
-        port_id=primary.port_id or secondary.port_id,
-        vlan_id=primary.vlan_id or secondary.vlan_id,
+        port_id=port_id,
+        vlan_id=vlan_id,
         chassis_id=primary.chassis_id or secondary.chassis_id,
         system_description=primary.system_description or secondary.system_description,
         identity=primary.identity or secondary.identity,
@@ -63,7 +74,7 @@ def collect_neighbors(
         lldp_chassis_mac=lldp_chassis,
     )
 
-    if lldp.available:
+    if lldp.port_id or lldp.vlan_id or lldp.switch_name or lldp.available:
         primary = _merge_neighbor_details(lldp, mndp)
     elif mndp.available:
         primary = mndp

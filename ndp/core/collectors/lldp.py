@@ -48,13 +48,19 @@ def _extract_vlan(port_entries: list[dict[str, Any]]) -> str | None:
     for port in port_entries:
         vlan = port.get("vlan")
         if isinstance(vlan, dict):
-            vlan_id = _first_value(vlan, "id") or _first_value(vlan)
+            for key in ("id", "pvid", "vlan-id", "name"):
+                vlan_id = _first_value(vlan, key) or (
+                    _first_value(vlan.get(key)) if isinstance(vlan.get(key), dict) else None
+                )
+                if vlan_id:
+                    return vlan_id
+            vlan_id = _first_value(vlan)
             if vlan_id:
                 return vlan_id
         if isinstance(vlan, list):
             for item in vlan:
                 if isinstance(item, dict):
-                    vlan_id = _first_value(item, "id") or _first_value(item)
+                    vlan_id = _first_value(item, "id") or _first_value(item, "pvid") or _first_value(item)
                     if vlan_id:
                         return vlan_id
     return None
@@ -147,6 +153,42 @@ def _pick_best_neighbor(candidates: list[NeighborState]) -> NeighborState | None
     return available[0]
 
 
+def _consolidate_lldp_candidates(candidates: list[NeighborState]) -> NeighborState:
+    if not candidates:
+        return NeighborState(available=False, message="no neighbor data")
+
+    best = _pick_best_neighbor([candidate for candidate in candidates if candidate.available])
+    if best is None:
+        best = next(
+            (candidate for candidate in candidates if candidate.switch_name or candidate.chassis_id),
+            NeighborState(available=False, message="no neighbor data"),
+        )
+
+    for candidate in candidates:
+        if candidate.port_id and not best.port_id:
+            best.port_id = candidate.port_id
+        if candidate.vlan_id and not best.vlan_id:
+            best.vlan_id = candidate.vlan_id
+        if candidate.switch_name and not best.switch_name:
+            best.switch_name = candidate.switch_name
+        if candidate.chassis_id and not best.chassis_id:
+            best.chassis_id = candidate.chassis_id
+        if candidate.system_description and not best.system_description:
+            best.system_description = candidate.system_description
+        if candidate.protocol and not best.protocol:
+            best.protocol = candidate.protocol
+        if candidate.age_seconds is not None:
+            if best.age_seconds is None:
+                best.age_seconds = candidate.age_seconds
+            else:
+                best.age_seconds = min(best.age_seconds, candidate.age_seconds)
+
+    if best.port_id or best.vlan_id or best.switch_name or best.chassis_id:
+        best.available = True
+        best.message = "ok"
+    return best
+
+
 def _parse_float(value: str | None) -> float | None:
     if value is None:
         return None
@@ -206,14 +248,7 @@ def _parse_neighbor_payload(payload: dict[str, Any], interface: str) -> Neighbor
         return NeighborState(available=False, message="no neighbor data")
 
     candidates = [_parse_interface_entry(item) for item in matching]
-    best = _pick_best_neighbor(candidates)
-    if best is not None:
-        return best
-
-    partial = next((item for item in reversed(candidates) if item.chassis_id or item.system_description), None)
-    if partial is not None:
-        return partial
-    return NeighborState(available=False, message="no neighbor data")
+    return _consolidate_lldp_candidates(candidates)
 
 
 def collect_lldp_neighbor_state(interface: str) -> NeighborState:
