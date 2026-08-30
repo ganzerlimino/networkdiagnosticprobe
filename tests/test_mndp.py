@@ -1,10 +1,21 @@
 import struct
 
-from ndp.core.collectors.mndp import parse_mndp_payload
+from ndp.core.collectors.mndp import (
+    MNDP_PORT,
+    _MNDP_REFRESH,
+    _MNDP_REFRESH_TLV,
+    parse_mndp_payload,
+)
 
 
 def _tlv(tlv_type: int, value: bytes) -> bytes:
     return struct.pack("!HH", tlv_type, len(value)) + value
+
+
+def test_mndp_refresh_probes() -> None:
+    assert _MNDP_REFRESH == b"\x00\x00\x00\x00"
+    assert _MNDP_REFRESH_TLV == bytes.fromhex("000000000006000000")
+    assert MNDP_PORT == 5678
 
 
 def test_parse_mndp_payload_tlv_fields() -> None:

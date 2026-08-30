@@ -54,9 +54,13 @@ def create_app(
     on_adhoc_changed: Callable[[], None] | None = None,
 ) -> object:
     from fastapi import Body, FastAPI, HTTPException
-    from fastapi.responses import HTMLResponse, StreamingResponse
+    from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+    from fastapi.staticfiles import StaticFiles
 
     app = FastAPI(title="NDP", version="0.14")
+    static_dir = Path(__file__).parent / "static"
+    if static_dir.is_dir():
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
     discovery = DiscoveryUISession(config)
     live_pings = LivePingManager()
     mtu_discovery = MtuDiscoveryManager()
@@ -67,6 +71,13 @@ def create_app(
     @app.get("/", response_class=HTMLResponse)
     def index() -> str:
         return _DASHBOARD_HTML
+
+    @app.get("/manifest.webmanifest")
+    def manifest() -> FileResponse:
+        return FileResponse(
+            Path(__file__).parent / "manifest.webmanifest",
+            media_type="application/manifest+json",
+        )
 
     @app.get("/api/status")
     def api_status() -> dict[str, object]:
@@ -297,7 +308,7 @@ def create_app(
         )
 
     @app.get("/api/discover/mikrotik")
-    def api_discover_mikrotik(listen_seconds: float = 3.0) -> dict[str, object]:
+    def api_discover_mikrotik(listen_seconds: float = 6.0) -> dict[str, object]:
         from ndp.core.collectors.mndp import discover_mndp_snapshot
         from ndp.discovery.neigh import lookup_neighbor_mac
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "network-diagnostic-probe"
-version = "0.16.0"
+version = "0.17.0"
 description = "Portable network diagnostic probe for Raspberry Pi"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -27,7 +27,7 @@ where = ["."]
 include = ["ndp*"]
 
 [tool.setuptools.package-data]
-ndp = ["config/*.yaml", "web/*.html"]
+ndp = ["config/*.yaml", "web/*.html", "web/manifest.webmanifest", "web/static/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,10 +1,11 @@
-"""MikroTik Neighbor Discovery Protocol (MNDP) passive collector."""
+"""MikroTik Neighbor Discovery Protocol (MNDP) collector."""
 
 from __future__ import annotations
 
 import logging
 import socket
 import struct
+import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -15,8 +16,11 @@ from ndp.discovery.host import normalize_mac
 logger = logging.getLogger(__name__)
 
 MNDP_PORT = 5678
-_DEFAULT_LISTEN_SECONDS = 1.5
-_SCAN_LISTEN_SECONDS = 3.0
+_DEFAULT_LISTEN_SECONDS = 2.0
+_SCAN_LISTEN_SECONDS = 6.0
+_MNDP_REFRESH = b"\x00\x00\x00\x00"
+_MNDP_REFRESH_TLV = bytes.fromhex("000000000006000000")
+_MIN_RESPONSE_BYTES = 18
 
 
 @dataclass
@@ -155,6 +159,28 @@ def pick_connected_mndp_device(
     return None
 
 
+def _configure_mndp_socket(sock: socket.socket, interface: str) -> None:
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    if hasattr(socket, "SO_REUSEPORT"):
+        try:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        except OSError:
+            pass
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    try:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, interface.encode())
+    except OSError:
+        logger.debug("SO_BINDTODEVICE unavailable for MNDP on %s", interface)
+
+
+def _send_mndp_refresh(sock: socket.socket) -> None:
+    for probe in (_MNDP_REFRESH, _MNDP_REFRESH_TLV):
+        try:
+            sock.sendto(probe, ("255.255.255.255", MNDP_PORT))
+        except OSError as exc:
+            logger.debug("MNDP refresh send failed: %s", exc)
+
+
 def discover_mndp_devices(
     interface: str,
     *,
@@ -162,25 +188,26 @@ def discover_mndp_devices(
     gateway_ip: str | None = None,
     gateway_mac: str | None = None,
 ) -> list[MndpDevice]:
-    """Listen for all MNDP announcements visible on the probe interface."""
+    """Discover MikroTik devices via MNDP refresh probes and broadcast replies."""
     devices: dict[str, MndpDevice] = {}
-    deadline = datetime.now(timezone.utc).timestamp() + listen_seconds
+    deadline = time.monotonic() + listen_seconds
+    next_probe = 0.0
 
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, interface.encode())
-        except OSError:
-            logger.debug("SO_BINDTODEVICE unavailable for MNDP on %s", interface)
+        _configure_mndp_socket(sock, interface)
         sock.bind(("", MNDP_PORT))
         sock.settimeout(0.25)
     except OSError as exc:
-        logger.debug("MNDP listen unavailable on %s: %s", interface, exc)
+        logger.warning("MNDP listen unavailable on %s: %s", interface, exc)
         return []
 
     try:
-        while datetime.now(timezone.utc).timestamp() < deadline:
+        while time.monotonic() < deadline:
+            if time.monotonic() >= next_probe:
+                _send_mndp_refresh(sock)
+                next_probe = time.monotonic() + 2.0
+
             try:
                 data, _addr = sock.recvfrom(4096)
             except socket.timeout:
@@ -189,7 +216,7 @@ def discover_mndp_devices(
                 logger.debug("MNDP recv error: %s", exc)
                 break
 
-            if len(data) < 8:
+            if len(data) < _MIN_RESPONSE_BYTES:
                 continue
 
             device = _fields_to_device(parse_mndp_payload(data))
@@ -262,6 +289,6 @@ def discover_mndp_snapshot(
         "devices": [device.to_dict() for device in devices],
         "note": (
             "La card Switch usa solo il dispositivo collegato (match MAC/IP gateway). "
-            "Questo elenco mostra tutti i MikroTik visibili via broadcast MNDP sulla LAN."
+            "Questo elenco usa probe MNDP attivi (refresh UDP/5678) oltre all'ascolto passivo."
         ),
     }
