@@ -336,6 +336,39 @@ def create_app(
         bounded = min(max(timeout_seconds, 1.0), 15.0)
         return discover_nas_snapshot(config.interface, timeout_seconds=bounded)
 
+    @app.get("/api/discover/industrial")
+    def api_discover_industrial(
+        timeout_seconds: float = 3.0,
+        host: str = "",
+        include_port_profile: bool = False,
+    ) -> dict[str, object]:
+        from ndp.discovery.industrial import discover_industrial_snapshot
+
+        bounded = min(max(timeout_seconds, 1.0), 15.0)
+        return discover_industrial_snapshot(
+            config.interface,
+            timeout_seconds=bounded,
+            host=host.strip() or None,
+            include_port_profile=include_port_profile,
+        )
+
+    @app.get("/api/discover/oui")
+    def api_discover_oui(search: str = "", limit: int = 500) -> dict[str, object]:
+        from ndp.discovery.oui import oui_snapshot, oui_table
+
+        bounded = min(max(limit, 1), 5000)
+        return {
+            **oui_snapshot(),
+            "search": search,
+            "entries": oui_table(search=search, limit=bounded),
+        }
+
+    @app.post("/api/discover/oui/refresh")
+    def api_discover_oui_refresh() -> dict[str, object]:
+        from ndp.discovery.oui import oui_snapshot, reload_oui_database
+
+        return reload_oui_database()
+
     @app.get("/api/discover/updown")
     def api_discover_updown_status() -> dict[str, object]:
         nonlocal discovery_result

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 from ndp.core.subprocess_runner import CommandError, run_command, run_json_command
 from ndp.discovery.host import DiscoveredHost, ScanSnapshot, normalize_mac
-from ndp.discovery.oui import lookup_vendor
+from ndp.discovery.oui import lookup_vendor, record_vendors_from_hosts
 
 logger = logging.getLogger(__name__)
 
@@ -131,9 +131,11 @@ def scan_hosts(interface: str) -> ScanSnapshot:
             logger.error("No ARP discovery method available: %s", neigh_exc)
             hosts = []
 
-    return ScanSnapshot(
+    snapshot = ScanSnapshot(
         interface=interface,
         hosts=hosts,
         scanned_at=datetime.now(timezone.utc),
         source=source,
     )
+    record_vendors_from_hosts(snapshot.hosts)
+    return snapshot

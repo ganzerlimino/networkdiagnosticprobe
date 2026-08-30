@@ -66,6 +66,14 @@
     input[type="checkbox"] { width: auto; margin: 0; }
     .field-check { display: flex; align-items: flex-start; gap: .55rem; }
     .field-check input { margin-top: .2rem; }
+    .oui-table { width: 100%; border-collapse: collapse; font-size: .78rem; margin-top: .5rem; }
+    .oui-table th, .oui-table td { text-align: left; padding: .35rem .4rem; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .oui-table th { color: var(--muted); font-weight: 600; }
+    .oui-scroll { max-height: 10rem; overflow-y: auto; }
+    .device-block { margin: .45rem 0; padding: .45rem .55rem; background: #0f1728; border-radius: 8px; }
+    .device-block .title { color: var(--text); font-weight: 600; }
+    .device-meta { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
+    .port-open { color: var(--accent); }
   </style>
 </head>
 <body>
@@ -191,6 +199,29 @@
         </div>
         <div id="discover-services-results" class="log"></div>
       </div>
+      <div class="card">
+        <h2>Vendor MAC (OUI)</h2>
+        <p class="sub">Lookup OUI da database IEEE, bundle OT e voci apprese dalle scansioni ARP.</p>
+        <label class="field">
+          <span>Cerca vendor o prefisso</span>
+          <input id="oui-search" placeholder="es. Weintek, 00:90:E8, HMS">
+        </label>
+        <div class="field field-check">
+          <input type="checkbox" id="oui-auto-refresh" checked>
+          <label for="oui-auto-refresh">Aggiorna automaticamente dopo scansione ARP</label>
+        </div>
+        <div class="actions">
+          <button class="secondary" id="oui-refresh">Aggiorna tabella</button>
+          <button class="secondary" id="oui-reload-db">Ricarica database OUI</button>
+        </div>
+        <p id="oui-msg" class="sub"></p>
+        <div class="oui-scroll">
+          <table class="oui-table">
+            <thead><tr><th>OUI</th><th>Vendor</th><th>Fonte</th></tr></thead>
+            <tbody id="oui-table-body"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <section class="panel" id="panel-passive">
@@ -307,10 +338,21 @@
       <div class="card">
         <h2>Porte industriali</h2>
         <p class="sub">Modbus, MQTT, OPC UA, S7, EtherNet/IP, PROFINET, BACnet, DNP3, IEC-104…</p>
+        <p class="sub">Include anche discovery Weintek HMI Search (UDP 59999/60000) ed eWON IPCONF con verifica porte VNC/EasyAccess e HTTP/FTP.</p>
         <div id="scan-industrial-chips" class="chip-list"></div>
         <div class="actions">
           <button class="primary" id="scan-industrial-run">Scansiona industriali</button>
+          <button class="danger" id="scan-industrial-stop" disabled>Ferma</button>
+          <span class="export-group">
+            <button class="secondary" id="scan-industrial-export-json" disabled>JSON</button>
+            <button class="secondary" id="scan-industrial-export-csv" disabled>CSV</button>
+          </span>
         </div>
+        <div class="section-title">Weintek HMI</div>
+        <div id="scan-industrial-weintek" class="log"></div>
+        <div class="section-title">eWON (Cosy / Flexy)</div>
+        <div id="scan-industrial-ewon" class="log"></div>
+        <div class="section-title">Porte OT sul target</div>
         <div id="scan-industrial-results" class="log"></div>
       </div>
 
@@ -540,7 +582,7 @@
       if (panel) activatePanel(panel);
     }
 
-    ['discover-scan', 'discover-services', 'passive', 'mikrotik', 'cameras', 'nas'].forEach(wireExportButtons);
+    ['discover-scan', 'discover-services', 'passive', 'mikrotik', 'cameras', 'nas', 'scan-industrial'].forEach(wireExportButtons);
 
     document.querySelectorAll('nav button').forEach(btn => {
       btn.onclick = () => activatePanel(btn.dataset.panel);
@@ -928,6 +970,9 @@
         })));
         el.innerHTML = hosts.slice(0, 30).map(h => `<div>${h.ip} · ${h.mac}${h.vendor ? ' · ' + h.vendor : ''}</div>`).join('') ||
           '<div>Nessun host</div>';
+        if (document.getElementById('oui-auto-refresh')?.checked) {
+          loadOuiTable();
+        }
       } catch (e) {
         if (e.name !== 'AbortError') el.textContent = 'Errore rete: ' + e;
         else el.textContent = 'Scansione interrotta.';
@@ -1309,8 +1354,144 @@
       renderChips('scan-industrial-chips', j.profiles.industrial.ports);
     }
 
+    function renderIndustrialDevice(device) {
+      const ports = (device.open_ports || []).filter(p => p.open).map(p => `${p.port} ${p.service}`).join(', ');
+      const closed = (device.open_ports || []).filter(p => !p.open).map(p => p.port).join(', ');
+      return `<div class="device-block">
+        <div class="title">${device.name || device.model || device.host}</div>
+        <div class="device-meta">${device.host || 'n/a'} · ${device.mac || 'MAC n/d'} · ${device.subnet_mask || device.netmask || 'mask n/d'}</div>
+        <div class="device-meta">${device.firmware ? 'FW ' + device.firmware + ' · ' : ''}${device.serial ? 'SN ' + device.serial + ' · ' : ''}${device.source || ''}</div>
+        <div class="device-meta">${ports ? '<span class="port-open">Aperte: ' + ports + '</span>' : 'Nessuna porta gestione aperta'}${closed ? ' · chiuse: ' + closed : ''}</div>
+      </div>`;
+    }
+
+    async function runIndustrialScan() {
+      const host = normalizeHost(document.getElementById('scan-host').value);
+      const weintekEl = document.getElementById('scan-industrial-weintek');
+      const ewonEl = document.getElementById('scan-industrial-ewon');
+      const portsEl = document.getElementById('scan-industrial-results');
+      const scanBtn = document.getElementById('scan-industrial-run');
+      const controller = beginScan('scan-industrial-stop');
+      scanBtn.disabled = true;
+      weintekEl.textContent = 'Discovery Weintek...';
+      ewonEl.textContent = 'Discovery eWON...';
+      portsEl.textContent = host ? 'Scansione porte OT sul target...' : 'Nessun target: solo discovery LAN.';
+      try {
+        const params = new URLSearchParams({
+          timeout_seconds: '4',
+          include_port_profile: host ? 'true' : 'false',
+        });
+        if (host) params.set('host', host);
+        const r = await fetch(`/api/discover/industrial?${params}`, { signal: controller.signal });
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) {
+          weintekEl.textContent = parsed.error;
+          ewonEl.textContent = '';
+          portsEl.textContent = '';
+          return;
+        }
+        const j = parsed.data;
+        if (!parsed.ok) {
+          const err = formatApiError(j);
+          weintekEl.textContent = err;
+          ewonEl.textContent = '';
+          portsEl.textContent = '';
+          return;
+        }
+        const weintek = (j.weintek && j.weintek.devices) || [];
+        const ewon = (j.ewon && j.ewon.devices) || [];
+        const rows = [
+          ...weintek.map(d => ({
+            vendor: 'Weintek',
+            name: d.name || '',
+            host: d.host || '',
+            mac: d.mac || '',
+            subnet_mask: d.subnet_mask || '',
+            firmware: d.firmware || '',
+            open_ports: (d.open_ports || []).filter(p => p.open).map(p => p.port).join(';'),
+            source: d.source || '',
+          })),
+          ...ewon.map(d => ({
+            vendor: 'eWON',
+            name: d.model || '',
+            host: d.host || '',
+            mac: d.mac || '',
+            serial: d.serial || '',
+            firmware: d.firmware || '',
+            open_ports: (d.open_ports || []).filter(p => p.open).map(p => p.port).join(';'),
+            source: d.source || '',
+          })),
+        ];
+        cacheScan('scan-industrial', j, rows);
+        weintekEl.innerHTML = weintek.length
+          ? weintek.map(renderIndustrialDevice).join('')
+          : '<div class="sub">Nessun HMI Weintek rilevato (UDP 59999/60000, 10275, 20249).</div>';
+        ewonEl.innerHTML = ewon.length
+          ? ewon.map(renderIndustrialDevice).join('')
+          : '<div class="sub">Nessun gateway eWON rilevato (IPCONF/1507, OUI HMS).</div>';
+        if (j.port_scan) {
+          renderPortResults(portsEl, j.port_scan);
+        } else if (!host) {
+          portsEl.innerHTML = '<div class="sub">Imposta un IP nel campo Target per la scansione Modbus/OPC UA sul singolo host.</div>';
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          weintekEl.textContent = 'Interrotta.';
+          ewonEl.textContent = '';
+          portsEl.textContent = '';
+        } else {
+          weintekEl.textContent = 'Errore rete: ' + e;
+        }
+      } finally {
+        scanBtn.disabled = false;
+        endScan('scan-industrial-stop');
+      }
+    }
+    wireStopButton('scan-industrial-stop', () => {
+      document.getElementById('scan-industrial-weintek').textContent = 'Interrotta.';
+      document.getElementById('scan-industrial-ewon').textContent = '';
+      document.getElementById('scan-industrial-results').textContent = '';
+    });
+
+    async function loadOuiTable() {
+      const msg = document.getElementById('oui-msg');
+      const body = document.getElementById('oui-table-body');
+      const search = document.getElementById('oui-search').value.trim();
+      try {
+        const params = search ? `?search=${encodeURIComponent(search)}&limit=200` : '?limit=200';
+        const r = await fetch(`/api/discover/oui${params}`);
+        const j = await r.json();
+        if (!r.ok) {
+          msg.textContent = formatApiError(j);
+          return;
+        }
+        const entries = j.entries || [];
+        const counts = j.counts || {};
+        msg.textContent = `OUI: ${counts.total_unique || entries.length} voci (${counts.learned || 0} apprese, ${counts.system || 0} sistema, ${counts.bundled || 0} bundle).`;
+        body.innerHTML = entries.length
+          ? entries.map(row => `<tr><td>${row.prefix}</td><td>${row.vendor}</td><td>${row.source}</td></tr>`).join('')
+          : '<tr><td colspan="3">Nessuna voce trovata</td></tr>';
+      } catch (e) {
+        msg.textContent = 'Errore caricamento OUI: ' + e;
+      }
+    }
+
+    document.getElementById('oui-refresh').onclick = () => loadOuiTable();
+    document.getElementById('oui-reload-db').onclick = async () => {
+      const msg = document.getElementById('oui-msg');
+      msg.textContent = 'Ricarico database IEEE...';
+      const r = await fetch('/api/discover/oui/refresh', { method: 'POST' });
+      const j = await r.json();
+      msg.textContent = r.ok ? 'Database OUI ricaricato.' : formatApiError(j);
+      if (r.ok) loadOuiTable();
+    };
+    document.getElementById('oui-search').addEventListener('input', () => {
+      clearTimeout(window._ouiSearchTimer);
+      window._ouiSearchTimer = setTimeout(loadOuiTable, 250);
+    });
+
     document.getElementById('scan-standard-run').onclick = () => runPortScan('standard', 'scan-standard-results');
-    document.getElementById('scan-industrial-run').onclick = () => runPortScan('industrial', 'scan-industrial-results');
+    document.getElementById('scan-industrial-run').onclick = () => runIndustrialScan();
     document.getElementById('scan-custom-run').onclick = () => runPortScan('custom', 'scan-custom-results');
     document.getElementById('scan-use-gateway').onclick = () => {
       const gw = statusData && statusData.ip && statusData.ip.gateway;
@@ -1529,7 +1710,7 @@
       if (r.ok) loadConfigForm();
     };
 
-    loadVersion(); loadConfig(); loadStatus(); pollDiscover(); startDiscPoll(); loadScanProfiles(); applyPanelFromUrl();
+    loadVersion(); loadConfig(); loadStatus(); pollDiscover(); startDiscPoll(); loadScanProfiles(); loadOuiTable(); applyPanelFromUrl();
     setInterval(loadStatus, 5000);
   </script>
 </body>

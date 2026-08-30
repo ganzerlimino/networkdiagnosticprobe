@@ -115,5 +115,6 @@ def profiles_catalog() -> dict[str, object]:
             "S7comm (102), EtherNet/IP (44818), PROFINET (34962+)",
             "BACnet/IP (47808), DNP3 (20000), IEC-104 (2404)",
             "CODESYS, MELSEC, Omron FINS, HART-IP",
+            "Weintek HMI Search UDP/59999-60000, eWON IPCONF UDP/1507",
         ],
     }

@@ -55,6 +55,33 @@ def test_discover_protocols_catalog() -> None:
     assert {"lldp", "mndp", "mdns", "ssdp", "bfd", "stp", "snmp", "dhcp82"}.issubset(names)
 
 
+def test_discover_industrial_endpoint_returns_json() -> None:
+    client = _client()
+    response = client.get("/api/discover/industrial?timeout_seconds=1")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "weintek" in payload
+    assert "ewon" in payload
+    assert "device_count" in payload
+
+
+def test_discover_oui_endpoint_returns_json() -> None:
+    client = _client()
+    response = client.get("/api/discover/oui?search=HMS&limit=10")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "entries" in payload
+    assert "counts" in payload
+
+
+def test_discover_oui_refresh_endpoint() -> None:
+    client = _client()
+    response = client.post("/api/discover/oui/refresh")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "counts" in payload
+
+
 def test_passive_check_endpoint_returns_json() -> None:
     client = _client()
     response = client.get("/api/discover/passive-check?listen_seconds=1")
