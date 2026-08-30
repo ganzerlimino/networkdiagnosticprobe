@@ -248,9 +248,17 @@ discovery:
   disconnect_wait_seconds: 8
 ```
 
+## Documentazione
+
+| Documento | Contenuto |
+|-----------|-----------|
+| **[docs/DOCUMENTAZIONE.md](docs/DOCUMENTAZIONE.md)** | Manuale completo: hardware, software, protocolli, Web UI, casi d'uso, config, manutenzione |
+| **[docs/MANUALE-ACCESSO-TELEFONO.md](docs/MANUALE-ACCESSO-TELEFONO.md)** | Accesso dal telefono, hotspot, troubleshooting Wi‑Fi |
+
 ## Web UI (controllo da telefono)
 
-📖 **Guida dettagliata:** [docs/MANUALE-ACCESSO-TELEFONO.md](docs/MANUALE-ACCESSO-TELEFONO.md) — scenari Wi‑Fi, come trovare l’IP, troubleshooting.
+📖 **Guida dettagliata:** [docs/MANUALE-ACCESSO-TELEFONO.md](docs/MANUALE-ACCESSO-TELEFONO.md) — scenari Wi‑Fi, come trovare l'IP, troubleshooting.  
+📖 **Documentazione completa:** [docs/DOCUMENTAZIONE.md](docs/DOCUMENTAZIONE.md) — hardware, protocolli, casi d'uso, manutenzione.
 
 Con `web.enabled: true` apri `http://<ip-della-pi>:8080/` da browser sulla stessa rete:
 
