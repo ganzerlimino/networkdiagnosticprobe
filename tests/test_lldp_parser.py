@@ -31,6 +31,15 @@ def test_parse_neighbor_payload_prefers_mikrotik_switch_over_stale_server() -> N
     assert "CRS326" in (neighbor.system_description or "")
 
 
+def test_parse_neighbor_payload_reads_mikrotik_vlan_tlv() -> None:
+    payload = json.loads((FIXTURES / "lldpctl_mikrotik_vlan.json").read_text(encoding="utf-8"))
+    neighbor = _parse_neighbor_payload(payload, "eth0")
+
+    assert neighbor.available is True
+    assert neighbor.port_id == "bridge1/ether21"
+    assert neighbor.vlan_id == "42"
+
+
 def test_parse_neighbor_payload_missing_interface() -> None:
     neighbor = _parse_neighbor_payload({"lldp": {"interface": []}}, "eth0")
     assert neighbor.available is False

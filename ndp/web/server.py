@@ -52,6 +52,7 @@ def create_app(
     *,
     on_ping_complete: Callable[[PingSuiteState], None] | None = None,
     on_adhoc_changed: Callable[[], None] | None = None,
+    on_mndp_connected: Callable[[dict[str, object]], None] | None = None,
 ) -> object:
     from fastapi import Body, FastAPI, HTTPException
     from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
@@ -156,10 +157,17 @@ def create_app(
         return status.to_dict()
 
     @app.get("/api/version")
-    def api_version() -> dict[str, str]:
+    def api_version() -> dict[str, object]:
         from ndp import __version__
 
-        return {"version": __version__, "interface": config.interface}
+        return {
+            "version": __version__,
+            "interface": config.interface,
+            "defaults": {
+                "mndp_listen_seconds": config.discovery_mndp_listen_seconds,
+                "passive_listen_seconds": config.discovery_passive_listen_seconds,
+            },
+        }
 
     @app.get("/api/report")
     def api_report(section: str = "all") -> dict[str, str]:
@@ -292,13 +300,14 @@ def create_app(
 
     @app.get("/api/discover/passive-check")
     def api_discover_passive_check(
-        listen_seconds: float = 3.0,
+        listen_seconds: float | None = None,
         snmp_host: str = "",
     ) -> dict[str, object]:
         from ndp.discovery.passive_suite import run_passive_check_suite
 
         state = get_state()
-        bounded = min(max(listen_seconds, 1.0), 60.0)
+        default_listen = config.discovery_passive_listen_seconds
+        bounded = min(max(listen_seconds if listen_seconds is not None else default_listen, 1.0), 60.0)
         target = snmp_host.strip() or None
         return run_passive_check_suite(
             config.interface,
@@ -308,19 +317,24 @@ def create_app(
         )
 
     @app.get("/api/discover/mikrotik")
-    def api_discover_mikrotik(listen_seconds: float = 6.0) -> dict[str, object]:
+    def api_discover_mikrotik(listen_seconds: float | None = None) -> dict[str, object]:
         from ndp.core.collectors.mndp import discover_mndp_snapshot
         from ndp.discovery.neigh import lookup_neighbor_mac
 
         state = get_state()
-        bounded = min(max(listen_seconds, 1.0), 60.0)
+        default_listen = config.discovery_mndp_listen_seconds
+        bounded = min(max(listen_seconds if listen_seconds is not None else default_listen, 1.0), 60.0)
         gateway = state.ip.gateway
-        return discover_mndp_snapshot(
+        result = discover_mndp_snapshot(
             config.interface,
             listen_seconds=bounded,
             gateway_ip=gateway,
             gateway_mac=lookup_neighbor_mac(config.interface, gateway or "") if gateway else None,
         )
+        connected = result.get("connected_device")
+        if on_mndp_connected and isinstance(connected, dict):
+            on_mndp_connected(connected)
+        return result
 
     @app.get("/api/discover/cameras")
     def api_discover_cameras(timeout_seconds: float = 3.0) -> dict[str, object]:
@@ -526,6 +540,7 @@ def start_web_server(
     *,
     on_ping_complete: Callable[[PingSuiteState], None] | None = None,
     on_adhoc_changed: Callable[[], None] | None = None,
+    on_mndp_connected: Callable[[dict[str, object]], None] | None = None,
 ) -> threading.Thread:
     import uvicorn
 
@@ -535,6 +550,7 @@ def start_web_server(
         get_state,
         on_ping_complete=on_ping_complete,
         on_adhoc_changed=on_adhoc_changed,
+        on_mndp_connected=on_mndp_connected,
     )
     server = uvicorn.Server(
         uvicorn.Config(

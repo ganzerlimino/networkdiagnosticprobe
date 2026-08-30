@@ -77,6 +77,8 @@ def _config_fields() -> tuple[ConfigField, ...]:
         ConfigField("discovery.disconnect_wait_seconds", "Attesa scollegamento (s)", "Wizard Discover Up/Down.", "float", section="discovery"),
         ConfigField("discovery.flush_arp_before_second_scan", "Flush ARP", "Svuota cache prima della 2ª scansione.", "bool", section="discovery"),
         ConfigField("discovery.verify_replug", "Verifica ricollegamento", "Passo finale wizard Up/Down.", "bool", section="discovery"),
+        ConfigField("discovery.mndp_listen_seconds", "Ascolto MNDP (s)", "Durata probe MNDP per status e tab MikroTik.", "float", section="discovery"),
+        ConfigField("discovery.passive_listen_seconds", "Sniff passivo default (s)", "Durata predefinita tab Passive check.", "float", section="discovery"),
         ConfigField("logging.level", "Livello log", "DEBUG, INFO, WARNING, ERROR.", "select", ("DEBUG", "INFO", "WARNING", "ERROR"), section="logging"),
         ConfigField("console.enabled", "Output console", "Riepilogo periodico su journal.", "bool", section="console"),
         ConfigField("console.refresh_seconds", "Refresh console (s)", "Intervallo stampa console.", "float", section="console"),

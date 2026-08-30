@@ -81,11 +81,18 @@ def run_web_only(config_path: Path | None) -> int:
         with lock:
             state.ping = suite
 
+    def _apply_mndp_connected(device: dict[str, object]) -> None:
+        nonlocal state
+        with lock:
+            engine.apply_mndp_device(device)
+            state = engine.state
+
     start_web_server(
         config,
         config_file,
         get_state,
         on_ping_complete=_set_ping,
+        on_mndp_connected=_apply_mndp_connected,
     )
 
     signal.signal(signal.SIGTERM, _handle_signal)

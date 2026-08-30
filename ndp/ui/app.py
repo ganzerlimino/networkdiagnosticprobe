@@ -359,6 +359,7 @@ class ProbeUI:
                 self.get_state,
                 on_ping_complete=self.update_ping_state,
                 on_adhoc_changed=self.refresh_adhoc_host,
+                on_mndp_connected=self.engine.apply_mndp_device,
             )
 
         self._hotspot_stop = threading.Event()

@@ -169,6 +169,12 @@ discovery:
   verify_replug: true
   # true = verifica che il dispositivo ricompaia dopo il ricollegamento del cavo.
 
+  mndp_listen_seconds: 6
+  # Durata ascolto MNDP (secondi) per polling switch e scansione tab MikroTik.
+
+  passive_listen_seconds: 3
+  # Durata predefinita sniff passivo (tab Passive check).
+
 logging:
   level: INFO
   # Livello log: DEBUG, INFO, WARNING, ERROR.

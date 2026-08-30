@@ -44,11 +44,14 @@ def _parse_age_seconds(age: str | None) -> int | None:
     return hours * 3600 + minutes * 60 + seconds
 
 
-def _extract_vlan(port_entries: list[dict[str, Any]]) -> str | None:
+def _extract_vlan(
+    port_entries: list[dict[str, Any]],
+    iface_entry: dict[str, Any] | None = None,
+) -> str | None:
     for port in port_entries:
         vlan = port.get("vlan")
         if isinstance(vlan, dict):
-            for key in ("id", "pvid", "vlan-id", "name"):
+            for key in ("id", "pvid", "vlan-id", "vlan_id", "name"):
                 vlan_id = _first_value(vlan, key) or (
                     _first_value(vlan.get(key)) if isinstance(vlan.get(key), dict) else None
                 )
@@ -63,6 +66,28 @@ def _extract_vlan(port_entries: list[dict[str, Any]]) -> str | None:
                     vlan_id = _first_value(item, "id") or _first_value(item, "pvid") or _first_value(item)
                     if vlan_id:
                         return vlan_id
+
+        ppvid = port.get("ppvid")
+        if isinstance(ppvid, dict):
+            enabled = ppvid.get("enabled")
+            if enabled in {True, "true", "yes", "on", "1"} or _first_value(ppvid, "enabled") in {
+                "yes",
+                "true",
+                "on",
+                "1",
+            }:
+                vlan_id = _first_value(ppvid, "value") or _first_value(ppvid)
+                if vlan_id:
+                    return vlan_id
+
+    if iface_entry:
+        vlan = iface_entry.get("vlan")
+        if isinstance(vlan, dict):
+            for key in ("vlan-id", "vlan_id", "id", "pvid", "value"):
+                vlan_id = _first_value(vlan, key)
+                if vlan_id:
+                    return vlan_id
+
     return None
 
 
@@ -110,7 +135,7 @@ def _parse_interface_entry(iface_entry: dict[str, Any]) -> NeighborState:
         or _first_value(port.get("descr"))
         or _first_value(port.get("description"))
     )
-    vlan_id = _extract_vlan(port_entries)
+    vlan_id = _extract_vlan(port_entries, iface_entry)
     system_description = _first_value(chassis.get("descr"))
     age_seconds = _parse_age_seconds(iface_entry.get("age"))
     med_device_type, med_capabilities = _extract_med(chassis, port)
@@ -251,16 +276,31 @@ def _parse_neighbor_payload(payload: dict[str, Any], interface: str) -> Neighbor
     return _consolidate_lldp_candidates(candidates)
 
 
+def _fetch_lldp_payload(interface: str) -> dict[str, Any] | None:
+    commands = (
+        ["lldpctl", "-f", "json", interface],
+        ["lldpctl", "-f", "json"],
+    )
+    for command in commands:
+        try:
+            payload = run_json_command(command)
+        except CommandError:
+            continue
+        except FileNotFoundError:
+            return None
+        if isinstance(payload, dict) and payload.get("lldp"):
+            return payload
+    return None
+
+
 def collect_lldp_neighbor_state(interface: str) -> NeighborState:
     try:
-        payload = run_json_command(["lldpctl", "-f", "json", interface])
-    except CommandError:
-        return NeighborState(available=False, message="lldpctl unavailable")
+        payload = _fetch_lldp_payload(interface)
     except FileNotFoundError:
         return NeighborState(available=False, message="lldpd not installed")
 
-    if not isinstance(payload, dict):
-        return NeighborState(available=False, message="invalid lldpctl response")
+    if payload is None:
+        return NeighborState(available=False, message="lldpctl unavailable")
 
     return _parse_neighbor_payload(payload, interface)
 

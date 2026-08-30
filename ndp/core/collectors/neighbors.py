@@ -8,9 +8,19 @@ from ndp.core.collectors.lldp import collect_lldp_neighbor_state
 from ndp.core.collectors.mndp import collect_mndp_neighbor
 from ndp.core.state import NeighborState
 
+_WEAK_PORT_NAMES = {"", "bridge", "bridge1", "unknown", "n/a"}
+
+
+def _is_weak_port(port_id: str | None) -> bool:
+    if not port_id:
+        return True
+    return port_id.strip().lower() in _WEAK_PORT_NAMES
+
 
 def _merge_neighbor_details(primary: NeighborState, secondary: NeighborState) -> NeighborState:
-    if not secondary.available:
+    if not secondary.available and not any(
+        [secondary.port_id, secondary.vlan_id, secondary.switch_name, secondary.chassis_id, secondary.identity]
+    ):
         return primary
 
     lldp_sources = [
@@ -23,7 +33,16 @@ def _merge_neighbor_details(primary: NeighborState, secondary: NeighborState) ->
     port_id = port_id or primary.port_id or secondary.port_id
     vlan_id = vlan_id or primary.vlan_id or secondary.vlan_id
 
-    return replace(
+    mndp_sources = [
+        item
+        for item in (primary, secondary)
+        if item.protocol and item.protocol.upper() == "MNDP"
+    ]
+    mndp_port = next((item.port_id for item in mndp_sources if item.port_id), None)
+    if _is_weak_port(port_id) and mndp_port and not _is_weak_port(mndp_port):
+        port_id = mndp_port
+
+    merged = replace(
         primary,
         switch_name=primary.switch_name or secondary.switch_name or secondary.identity,
         port_id=port_id,
@@ -43,6 +62,46 @@ def _merge_neighbor_details(primary: NeighborState, secondary: NeighborState) ->
         available=True,
         message=primary.message if primary.available else secondary.message,
     )
+    if merged.message in {"waiting", "no neighbor data", "no mndp neighbor"}:
+        merged = replace(merged, message="ok")
+    return merged
+
+
+def _combine_neighbors(lldp: NeighborState, mndp: NeighborState) -> NeighborState:
+    lldp_useful = lldp.available or any(
+        [lldp.port_id, lldp.vlan_id, lldp.switch_name, lldp.chassis_id, lldp.system_description]
+    )
+    mndp_useful = mndp.available or any(
+        [mndp.port_id, mndp.switch_name, mndp.chassis_id, mndp.identity, mndp.board]
+    )
+
+    if lldp_useful and mndp_useful:
+        return _merge_neighbor_details(lldp, mndp)
+    if lldp_useful:
+        return lldp
+    if mndp_useful:
+        return mndp
+    if lldp.message not in {"waiting", "no neighbor data"}:
+        return lldp
+    return mndp
+
+
+def neighbor_from_mndp_device(device: dict[str, object]) -> NeighborState:
+    """Build neighbor hints from a connected MNDP device payload."""
+    interface = str(device.get("interface") or "").strip() or None
+    return NeighborState(
+        protocol="MNDP",
+        switch_name=str(device["identity"]) if device.get("identity") else None,
+        port_id=interface,
+        chassis_id=str(device["mac"]) if device.get("mac") else None,
+        identity=str(device["identity"]) if device.get("identity") else None,
+        software_version=str(device["version"]) if device.get("version") else None,
+        platform=str(device["platform"]) if device.get("platform") else None,
+        board=str(device["board"]) if device.get("board") else None,
+        ipv4_address=str(device["ipv4"]) if device.get("ipv4") else None,
+        available=True,
+        message="ok (MNDP scan)",
+    )
 
 
 def collect_neighbor_state(
@@ -50,12 +109,14 @@ def collect_neighbor_state(
     *,
     gateway_ip: str | None = None,
     gateway_mac: str | None = None,
+    mndp_listen_seconds: float | None = None,
 ) -> NeighborState:
     """Return the best available neighbor (LLDP/CDP preferred over MNDP)."""
     return collect_neighbors(
         interface,
         gateway_ip=gateway_ip,
         gateway_mac=gateway_mac,
+        mndp_listen_seconds=mndp_listen_seconds,
     ).primary
 
 
@@ -64,23 +125,20 @@ def collect_neighbors(
     *,
     gateway_ip: str | None = None,
     gateway_mac: str | None = None,
+    mndp_listen_seconds: float | None = None,
 ) -> "NeighborCollection":
     lldp = collect_lldp_neighbor_state(interface)
     lldp_chassis = lldp.chassis_id if lldp.chassis_id or lldp.system_description else None
-    mndp = collect_mndp_neighbor(
-        interface,
-        gateway_ip=gateway_ip,
-        gateway_mac=gateway_mac,
-        lldp_chassis_mac=lldp_chassis,
-    )
+    listen_kwargs: dict[str, object] = {
+        "gateway_ip": gateway_ip,
+        "gateway_mac": gateway_mac,
+        "lldp_chassis_mac": lldp_chassis,
+    }
+    if mndp_listen_seconds is not None:
+        listen_kwargs["listen_seconds"] = mndp_listen_seconds
+    mndp = collect_mndp_neighbor(interface, **listen_kwargs)
 
-    if lldp.port_id or lldp.vlan_id or lldp.switch_name or lldp.available:
-        primary = _merge_neighbor_details(lldp, mndp)
-    elif mndp.available:
-        primary = mndp
-    else:
-        primary = lldp if lldp.message not in {"waiting", "no neighbor data"} else mndp
-
+    primary = _combine_neighbors(lldp, mndp)
     entries = [entry for entry in (lldp, mndp) if entry.available]
     return NeighborCollection(primary=primary, entries=entries)
 

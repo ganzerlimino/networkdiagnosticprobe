@@ -62,6 +62,8 @@ class NdpConfig:
     discovery_disconnect_wait_seconds: float = 8.0
     discovery_flush_arp: bool = True
     discovery_verify_replug: bool = True
+    discovery_mndp_listen_seconds: float = 6.0
+    discovery_passive_listen_seconds: float = 3.0
     ping_count: int = 2
     ping_timeout_seconds: float = 3.0
     ping_packet_size: int = 56
@@ -148,6 +150,8 @@ class NdpConfig:
             ),
             discovery_flush_arp=bool(discovery.get("flush_arp_before_second_scan", True)),
             discovery_verify_replug=bool(discovery.get("verify_replug", True)),
+            discovery_mndp_listen_seconds=float(discovery.get("mndp_listen_seconds", 6)),
+            discovery_passive_listen_seconds=float(discovery.get("passive_listen_seconds", 3)),
             ping_count=int(ping.get("count", 2)),
             ping_timeout_seconds=float(ping.get("timeout_seconds", 3)),
             ping_packet_size=int(ping.get("packet_size", 56)),

@@ -661,6 +661,13 @@
     async function loadVersion() {
       const j = await (await fetch('/api/version')).json();
       document.getElementById('version').textContent = `v${j.version} · ${j.interface}`;
+      const defaults = j.defaults || {};
+      if (defaults.mndp_listen_seconds != null) {
+        document.getElementById('mikrotik-seconds').value = defaults.mndp_listen_seconds;
+      }
+      if (defaults.passive_listen_seconds != null) {
+        document.getElementById('passive-seconds').value = defaults.passive_listen_seconds;
+      }
     }
 
     async function loadHotspot() {
@@ -1264,10 +1271,12 @@
           el.innerHTML = devices.map(d => {
             const cls = d.connected ? 'ok' : '';
             const tag = d.connected ? 'COLLEGATO · ' : '';
-            return `<div class="${cls}">${tag}${d.identity || d.board || 'MikroTik'} · ${d.ipv4 || 'n/a'} · ${d.mac || 'n/a'} · ${d.interface || 'n/a'}</div>`;
+            const port = d.interface ? ` · porta ${d.interface}` : '';
+            return `<div class="${cls}">${tag}${d.identity || d.board || 'MikroTik'} · ${d.ipv4 || 'n/a'} · ${d.mac || 'n/a'}${port}</div>`;
           }).join('');
         }
         msg.textContent = `${devices.length} dispositivo/i trovato/i.`;
+        await loadStatus();
       } catch (e) {
         if (e.name === 'AbortError') {
           msg.textContent = 'Scansione interrotta.';

@@ -1,0 +1,34 @@
+{
+  "lldp": {
+    "interface": [
+      {
+        "name": "eth0",
+        "via": "LLDP",
+        "rid": "12",
+        "age": "0:00:08",
+        "vlan": {
+          "vlan-id": "42",
+          "pvid": true
+        },
+        "chassis": [
+          {
+            "id": {"type": "mac", "value": "6c:3b:6b:aa:bb:cc"},
+            "name": {"value": "sw01"},
+            "descr": {"value": "MikroTik RouterOS 7.22 (stable) CRS326-24G-2S+"}
+          }
+        ],
+        "port": [
+          {
+            "id": {"type": "ifname", "value": "bridge1/ether21"},
+            "descr": {"value": "bridge1/ether21"},
+            "ppvid": {
+              "supported": true,
+              "enabled": true,
+              "value": "42"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
