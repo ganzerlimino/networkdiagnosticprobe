@@ -284,6 +284,34 @@
       </div>
     </section>
 
+    <section class="panel" id="panel-plant">
+      <div class="card">
+        <h2>Impianto OT</h2>
+        <p class="sub">Discovery broadcast in LAN (Weintek, eWON) e, opzionalmente, porte industriali su un IP target.</p>
+        <label class="field">
+          <span>IP target (opzionale)</span>
+          <input id="plant-host" placeholder="PLC / HMI / gateway — vuoto = solo discovery LAN">
+        </label>
+        <div class="actions">
+          <button class="secondary" id="plant-use-gateway">Usa gateway</button>
+          <button class="primary" id="plant-scan">Scansiona impianto</button>
+          <button class="danger" id="plant-stop" disabled>Ferma</button>
+          <span class="export-group">
+            <button class="secondary" id="plant-export-json" disabled>JSON</button>
+            <button class="secondary" id="plant-export-csv" disabled>CSV</button>
+          </span>
+        </div>
+        <p id="plant-msg" class="sub"></p>
+        <div id="plant-industrial-chips" class="chip-list"></div>
+        <div class="section-title">Discovery LAN — Weintek HMI</div>
+        <div id="plant-weintek" class="log"></div>
+        <div class="section-title">Discovery LAN — eWON</div>
+        <div id="plant-ewon" class="log"></div>
+        <div class="section-title">Porte OT sul target</div>
+        <div id="plant-ports-results" class="log"></div>
+      </div>
+    </section>
+
     <section class="panel" id="panel-cameras">
       <div class="card">
         <h2>Telecamere IP</h2>
@@ -342,6 +370,7 @@
         <div class="actions">
           <button class="secondary" id="scan-use-gateway">Usa gateway</button>
         </div>
+        <p class="sub">Per Weintek, eWON e porte Modbus/OPC UA usa <strong>OT → Impianto</strong>.</p>
       </div>
 
       <div class="card">
@@ -352,27 +381,6 @@
           <button class="primary" id="scan-standard-run">Scansiona standard</button>
         </div>
         <div id="scan-standard-results" class="log"></div>
-      </div>
-
-      <div class="card">
-        <h2>Porte industriali</h2>
-        <p class="sub">Modbus, MQTT, OPC UA, S7, EtherNet/IP, PROFINET, BACnet, DNP3, IEC-104…</p>
-        <p class="sub">Include anche discovery Weintek HMI Search (UDP 59999/60000) ed eWON IPCONF con verifica porte VNC/EasyAccess e HTTP/FTP.</p>
-        <div id="scan-industrial-chips" class="chip-list"></div>
-        <div class="actions">
-          <button class="primary" id="scan-industrial-run">Scansiona industriali</button>
-          <button class="danger" id="scan-industrial-stop" disabled>Ferma</button>
-          <span class="export-group">
-            <button class="secondary" id="scan-industrial-export-json" disabled>JSON</button>
-            <button class="secondary" id="scan-industrial-export-csv" disabled>CSV</button>
-          </span>
-        </div>
-        <div class="section-title">Weintek HMI</div>
-        <div id="scan-industrial-weintek" class="log"></div>
-        <div class="section-title">eWON (Cosy / Flexy)</div>
-        <div id="scan-industrial-ewon" class="log"></div>
-        <div class="section-title">Porte OT sul target</div>
-        <div id="scan-industrial-results" class="log"></div>
       </div>
 
       <div class="card">
@@ -611,11 +619,12 @@
         { id: 'scan', label: 'Scan' },
       ], default: 'discover' },
       ot: { panels: [
+        { id: 'plant', label: 'Impianto' },
         { id: 'mikrotik', label: 'MikroTik' },
         { id: 'cameras', label: 'Camere' },
         { id: 'nas', label: 'NAS' },
         { id: 'printers', label: 'Stampanti' },
-      ], default: 'mikrotik' },
+      ], default: 'plant' },
       sistema: { panels: [
         { id: 'hotspot', label: 'Hotspot' },
         { id: 'config', label: 'Config' },
@@ -679,7 +688,7 @@
       if (panel) activateNavGroup(panelNavGroup(panel), panel);
     }
 
-    ['discover-scan', 'discover-services', 'passive', 'mikrotik', 'cameras', 'nas', 'printers', 'scan-industrial'].forEach(wireExportButtons);
+    ['discover-scan', 'discover-services', 'passive', 'mikrotik', 'cameras', 'nas', 'printers', 'plant'].forEach(wireExportButtons);
 
     document.querySelectorAll('.nav-primary button[data-nav-group]').forEach(btn => {
       btn.onclick = () => activateNavGroup(btn.dataset.navGroup);
@@ -1513,7 +1522,7 @@
     async function loadScanProfiles() {
       const j = await (await fetch('/api/scan/profiles')).json();
       renderChips('scan-standard-chips', j.profiles.standard.ports);
-      renderChips('scan-industrial-chips', j.profiles.industrial.ports);
+      renderChips('plant-industrial-chips', j.profiles.industrial.ports);
     }
 
     function renderIndustrialDevice(device) {
@@ -1527,17 +1536,21 @@
       </div>`;
     }
 
-    async function runIndustrialScan() {
-      const host = normalizeHost(document.getElementById('scan-host').value);
-      const weintekEl = document.getElementById('scan-industrial-weintek');
-      const ewonEl = document.getElementById('scan-industrial-ewon');
-      const portsEl = document.getElementById('scan-industrial-results');
-      const scanBtn = document.getElementById('scan-industrial-run');
-      const controller = beginScan('scan-industrial-stop');
+    async function runPlantScan() {
+      const msg = document.getElementById('plant-msg');
+      const host = normalizeHost(document.getElementById('plant-host').value);
+      const weintekEl = document.getElementById('plant-weintek');
+      const ewonEl = document.getElementById('plant-ewon');
+      const portsEl = document.getElementById('plant-ports-results');
+      const scanBtn = document.getElementById('plant-scan');
+      const controller = beginScan('plant-stop');
       scanBtn.disabled = true;
+      msg.textContent = host
+        ? 'Discovery LAN + porte OT sul target...'
+        : 'Discovery LAN (Weintek, eWON)...';
       weintekEl.textContent = 'Discovery Weintek...';
       ewonEl.textContent = 'Discovery eWON...';
-      portsEl.textContent = host ? 'Scansione porte OT sul target...' : 'Nessun target: solo discovery LAN.';
+      portsEl.textContent = host ? 'Scansione porte OT sul target...' : 'Imposta un IP target per Modbus, OPC UA, S7…';
       try {
         const params = new URLSearchParams({
           timeout_seconds: '4',
@@ -1547,7 +1560,8 @@
         const r = await fetch(`/api/discover/industrial?${params}`, { signal: controller.signal });
         const parsed = await parseJsonResponse(r);
         if (parsed.error) {
-          weintekEl.textContent = parsed.error;
+          msg.textContent = parsed.error;
+          weintekEl.textContent = '';
           ewonEl.textContent = '';
           portsEl.textContent = '';
           return;
@@ -1555,7 +1569,8 @@
         const j = parsed.data;
         if (!parsed.ok) {
           const err = formatApiError(j);
-          weintekEl.textContent = err;
+          msg.textContent = err;
+          weintekEl.textContent = '';
           ewonEl.textContent = '';
           portsEl.textContent = '';
           return;
@@ -1584,7 +1599,7 @@
             source: d.source || '',
           })),
         ];
-        cacheScan('scan-industrial', j, rows);
+        cacheScan('plant', j, rows);
         weintekEl.innerHTML = weintek.length
           ? weintek.map(renderIndustrialDevice).join('')
           : '<div class="sub">Nessun HMI Weintek rilevato (UDP 59999/60000, 10275, 20249).</div>';
@@ -1594,26 +1609,36 @@
         if (j.port_scan) {
           renderPortResults(portsEl, j.port_scan);
         } else if (!host) {
-          portsEl.innerHTML = '<div class="sub">Imposta un IP nel campo Target per la scansione Modbus/OPC UA sul singolo host.</div>';
+          portsEl.innerHTML = '<div class="sub">Nessun IP target: imposta gateway o IP PLC per la scansione porte.</div>';
         }
+        msg.textContent = `${weintek.length + ewon.length} dispositivo/i OT in LAN` +
+          (host && j.port_scan ? ` · ${j.port_scan.open_count || 0} porte aperte su ${host}` : '') + '.';
       } catch (e) {
         if (e.name === 'AbortError') {
+          msg.textContent = 'Scansione interrotta.';
           weintekEl.textContent = 'Interrotta.';
           ewonEl.textContent = '';
           portsEl.textContent = '';
         } else {
-          weintekEl.textContent = 'Errore rete: ' + e;
+          msg.textContent = 'Errore rete: ' + e;
         }
       } finally {
         scanBtn.disabled = false;
-        endScan('scan-industrial-stop');
+        endScan('plant-stop');
       }
     }
-    wireStopButton('scan-industrial-stop', () => {
-      document.getElementById('scan-industrial-weintek').textContent = 'Interrotta.';
-      document.getElementById('scan-industrial-ewon').textContent = '';
-      document.getElementById('scan-industrial-results').textContent = '';
+    wireStopButton('plant-stop', () => {
+      document.getElementById('plant-msg').textContent = 'Scansione interrotta.';
+      document.getElementById('plant-weintek').textContent = 'Interrotta.';
+      document.getElementById('plant-ewon').textContent = '';
+      document.getElementById('plant-ports-results').textContent = '';
     });
+
+    document.getElementById('plant-scan').onclick = () => runPlantScan();
+    document.getElementById('plant-use-gateway').onclick = () => {
+      const gw = statusData && statusData.ip && statusData.ip.gateway;
+      if (gw) document.getElementById('plant-host').value = gw;
+    };
 
     async function loadOuiTable() {
       const msg = document.getElementById('oui-msg');
@@ -1653,7 +1678,6 @@
     });
 
     document.getElementById('scan-standard-run').onclick = () => runPortScan('standard', 'scan-standard-results');
-    document.getElementById('scan-industrial-run').onclick = () => runIndustrialScan();
     document.getElementById('scan-custom-run').onclick = () => runPortScan('custom', 'scan-custom-results');
     document.getElementById('scan-use-gateway').onclick = () => {
       const gw = statusData && statusData.ip && statusData.ip.gateway;
