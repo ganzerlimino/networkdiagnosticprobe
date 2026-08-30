@@ -21,7 +21,7 @@ from ndp.ui.input import create_ui_input
 from ndp.ui.discovery_session import DiscoveryUISession
 from ndp.ui.framebuffer import RawFramebuffer
 from ndp.ui.layout import content_text_x, content_width, content_x_offset, draw_button_hints
-from ndp.ui.screens import ScreenId, lines_for_screen, next_screen, screen_ids_for_mode
+from ndp.ui.screens import ScreenId, lines_for_screen, next_screen, screen_ids_for_mode, shutdown_lines
 from ndp.ui.splash import draw_splash
 from ndp.ping.service import read_adhoc_host, run_ping_suite
 
@@ -164,6 +164,12 @@ class ProbeUI:
     def refresh_adhoc_host(self) -> None:
         with self._lock:
             self._state.ping.adhoc_host = read_adhoc_host(Path(self.config.ping_adhoc_path))
+        self._request_redraw()
+
+    def apply_mndp_device(self, device: dict[str, object]) -> None:
+        with self._lock:
+            self.engine.apply_mndp_device(device)
+            self._state.neighbor = self.engine.state.neighbor
         self._request_redraw()
 
     def _request_redraw(self) -> None:
@@ -359,7 +365,7 @@ class ProbeUI:
                 self.get_state,
                 on_ping_complete=self.update_ping_state,
                 on_adhoc_changed=self.refresh_adhoc_host,
-                on_mndp_connected=self.engine.apply_mndp_device,
+                on_mndp_connected=self.apply_mndp_device,
             )
 
         self._hotspot_stop = threading.Event()
@@ -465,6 +471,21 @@ class ProbeUI:
         content_x = content_x_offset(edge, margin)
         text_x = content_text_x(edge, margin, text_gap)
 
+        from ndp.system.shutdown import is_shutting_down, shutdown_message
+
+        if is_shutting_down():
+            header = pygame.Rect(content_x, 0, text_width, 34)
+            pygame.draw.rect(surface, COLOR_HEADER, header)
+            title = title_font.render("SHUTDOWN", True, COLOR_ACCENT)
+            surface.blit(title, (text_x, 6))
+            y = 42
+            line_step = self.config.ui_font_size + self.config.ui_line_spacing
+            for line in shutdown_lines(shutdown_message()):
+                rendered = body_font.render(line, True, COLOR_TEXT)
+                surface.blit(rendered, (text_x, y))
+                y += line_step
+            return
+
         header = pygame.Rect(content_x, 0, text_width, 34)
         pygame.draw.rect(surface, COLOR_HEADER, header)
 
@@ -534,6 +555,10 @@ class ProbeUI:
 def run_ui(config: NdpConfig) -> int:
     import signal
 
+    from ndp.network.hotspot import stop_hotspot
+    from ndp.system.shutdown import configure_shutdown_hooks
+
+    configure_shutdown_hooks(stop_hotspot=lambda: stop_hotspot(config))
     ui = ProbeUI(config)
 
     def _handle_signal(_signum: int, _frame: object) -> None:

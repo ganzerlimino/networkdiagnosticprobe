@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
+import time
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
@@ -37,6 +38,7 @@ from ndp.web.api_models import (
     PingRunPayload,
     PortScanPayload,
     ServiceRestartPayload,
+    ShutdownPayload,
 )
 from ndp.web.report import build_report
 
@@ -68,6 +70,11 @@ def create_app(
     discovery_result: UpDownResult | None = None
     last_scan_result: PortScanResult | None = None
     last_network_diag: NetworkDiagnosticsResult | None = None
+
+    from ndp.network.hotspot import stop_hotspot
+    from ndp.system.shutdown import configure_shutdown_hooks
+
+    configure_shutdown_hooks(stop_hotspot=lambda: stop_hotspot(config))
 
     @app.get("/", response_class=HTMLResponse)
     def index() -> str:
@@ -139,9 +146,44 @@ def create_app(
     def api_services_restart(body: ServiceRestartPayload = Body()) -> dict[str, object]:
         import subprocess
 
-        for service in body.services:
-            subprocess.run(["systemctl", "restart", service], check=False)
-        return {"ok": True, "services": body.services}
+        services = body.services or ["ndp"]
+
+        def _restart(service: str, delay: float) -> None:
+            if delay > 0:
+                time.sleep(delay)
+            subprocess.run(
+                ["systemctl", "restart", service],
+                check=False,
+                timeout=15,
+            )
+
+        for service in services:
+            delay = 0.75 if service == "ndp" else 0.0
+            threading.Thread(
+                target=_restart,
+                args=(service, delay),
+                daemon=True,
+                name=f"ndp-restart-{service}",
+            ).start()
+
+        return {"ok": True, "services": services, "async": True}
+
+    @app.get("/api/system/shutdown")
+    def api_system_shutdown_status() -> dict[str, object]:
+        from ndp.system.shutdown import shutdown_snapshot
+
+        return shutdown_snapshot()
+
+    @app.post("/api/system/shutdown")
+    def api_system_shutdown(body: ShutdownPayload = Body()) -> dict[str, object]:
+        from ndp.system.shutdown import request_shutdown
+
+        if not body.confirm:
+            raise HTTPException(
+                status_code=400,
+                detail="Conferma richiesta: imposta confirm=true per spegnere il sistema.",
+            )
+        return request_shutdown()
 
     @app.post("/api/hotspot/restart")
     def api_hotspot_restart() -> dict[str, object]:

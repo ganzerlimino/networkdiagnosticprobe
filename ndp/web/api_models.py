@@ -21,6 +21,10 @@ class ServiceRestartPayload(BaseModel):
     services: list[str] = Field(default_factory=lambda: ["ndp"])
 
 
+class ShutdownPayload(BaseModel):
+    confirm: bool = False
+
+
 class PingRunPayload(BaseModel):
     hosts: list[str] | None = None
 

@@ -401,6 +401,18 @@
       </div>
     </section>
 
+    <section class="panel" id="panel-power">
+      <div class="card">
+        <h2>Spegnimento sistema</h2>
+        <p class="sub">Arresta in sicurezza NDP, hotspot Wi-Fi e spegne il Raspberry Pi. Sul display TFT compare la schermata di spegnimento.</p>
+        <div id="power-status" class="sub"></div>
+        <div class="actions">
+          <button class="danger" id="power-shutdown">Spegni NDP</button>
+        </div>
+        <p id="power-msg" class="sub"></p>
+      </div>
+    </section>
+
     <section class="panel" id="panel-config">
       <div class="card">
         <h2>Configurazione guidata</h2>
@@ -589,6 +601,7 @@
       sistema: { panels: [
         { id: 'hotspot', label: 'Hotspot' },
         { id: 'config', label: 'Config' },
+        { id: 'power', label: 'Spegnimento' },
       ], default: 'hotspot' },
     };
     let activeNavGroup = 'monitor';
@@ -1713,17 +1726,34 @@
 
     document.getElementById('config-save').onclick = async () => {
       const msg = document.getElementById('config-msg');
+      const btn = document.getElementById('config-save');
+      btn.disabled = true;
       msg.textContent = 'Salvataggio...';
-      const values = collectConfigValues('config-form');
-      const r = await fetch('/api/config/values', {
-        method: 'PUT', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({values})
-      });
-      const j = await r.json();
-      if (!r.ok) { msg.textContent = formatApiError(j); return; }
-      await fetch('/api/services/restart', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({services: j.restart_services || ['ndp','ndp-hotspot']})});
-      msg.textContent = 'Salvato. Servizi riavviati.';
-      loadConfigForm(); loadStatus();
+      try {
+        const values = collectConfigValues('config-form');
+        const r = await fetch('/api/config/values', {
+          method: 'PUT', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({values})
+        });
+        const parsed = await parseJsonResponse(r);
+        if (!r.ok) {
+          msg.textContent = formatApiError(parsed.data || parsed);
+          return;
+        }
+        const j = parsed.data || {};
+        msg.textContent = 'Salvato. Riavvio servizi in corso...';
+        fetch('/api/services/restart', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({services: j.restart_services || ['ndp', 'ndp-hotspot']}),
+        }).catch(() => {});
+        loadConfigForm();
+        setTimeout(loadStatus, 2500);
+      } catch (e) {
+        msg.textContent = 'Errore: ' + e;
+      } finally {
+        btn.disabled = false;
+      }
     };
 
     document.getElementById('hotspot-save').onclick = async () => {
@@ -1777,6 +1807,72 @@
 
     document.getElementById('reload').onclick = () => { loadConfigForm(); loadStatus(); };
     async function loadConfig() { await loadConfigForm(); }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function pollShutdownStatus(msgEl, statusEl) {
+      let offlineStreak = 0;
+      for (let attempt = 0; attempt < 90; attempt += 1) {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 2500);
+          const r = await fetch('/api/system/shutdown', { signal: controller.signal });
+          clearTimeout(timer);
+          const j = await r.json();
+          offlineStreak = 0;
+          const phase = j.phase || 'idle';
+          const text = j.message || 'Spegnimento in corso...';
+          if (statusEl) statusEl.textContent = `Fase: ${phase} — ${text}`;
+          if (msgEl) msgEl.textContent = text;
+          if (phase === 'powering_off') {
+            if (msgEl) msgEl.textContent = 'Spegnimento in corso... attendere arresto completo.';
+          }
+        } catch (_err) {
+          offlineStreak += 1;
+          if (offlineStreak >= 2) {
+            if (statusEl) statusEl.textContent = 'Sistema non raggiungibile.';
+            if (msgEl) {
+              msgEl.textContent = 'Sistema spento. Puoi scollegare l\'alimentazione in sicurezza.';
+              msgEl.className = 'ok';
+            }
+            return;
+          }
+          if (msgEl) msgEl.textContent = 'Connessione persa: spegnimento in corso...';
+        }
+        await sleep(1000);
+      }
+      if (msgEl) msgEl.textContent = 'Timeout attesa spegnimento. Verifica sul display TFT.';
+    }
+
+    document.getElementById('power-shutdown').onclick = async () => {
+      const msg = document.getElementById('power-msg');
+      const statusEl = document.getElementById('power-status');
+      const btn = document.getElementById('power-shutdown');
+      if (!window.confirm('Spegnere il Raspberry Pi e tutti i servizi NDP?')) return;
+      btn.disabled = true;
+      msg.textContent = 'Richiesta spegnimento inviata...';
+      msg.className = 'sub';
+      if (statusEl) statusEl.textContent = '';
+      try {
+        const r = await fetch('/api/system/shutdown', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({confirm: true}),
+        });
+        const parsed = await parseJsonResponse(r);
+        if (!r.ok) {
+          msg.textContent = formatApiError(parsed.data || parsed);
+          btn.disabled = false;
+          return;
+        }
+        await pollShutdownStatus(msg, statusEl);
+      } catch (e) {
+        msg.textContent = 'Errore: ' + e;
+        btn.disabled = false;
+      }
+    };
 
     document.getElementById('save').onclick = async () => {
       const msgEl = document.getElementById('msg');

@@ -19,6 +19,16 @@ def _hotspot_hint_lines(config: object | None, web_port: int) -> list[str]:
         return [f"Web  :{web_port}"]
 
 
+def shutdown_lines(message: str = "Spegnimento in corso...") -> list[str]:
+    return [
+        "SPEGNIMENTO",
+        message,
+        "",
+        "Non scollegare",
+        "l'alimentazione",
+    ]
+
+
 class ScreenId(Enum):
     HOME = 0
     SWITCH = 1

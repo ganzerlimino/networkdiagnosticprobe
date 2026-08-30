@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -90,3 +91,46 @@ def test_passive_check_endpoint_returns_json() -> None:
     assert "l2_passive" in payload
     assert "dhcp_option82" in payload
     assert "snmp" in payload
+
+
+def test_services_restart_returns_async() -> None:
+    client = _client()
+    with patch("subprocess.run"):
+        response = client.post(
+            "/api/services/restart",
+            json={"services": ["ndp-hotspot"]},
+        )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["async"] is True
+
+
+def test_shutdown_status_idle() -> None:
+    from ndp.system.shutdown import reset_shutdown_state_for_tests
+
+    reset_shutdown_state_for_tests()
+    client = _client()
+    response = client.get("/api/system/shutdown")
+    assert response.status_code == 200
+    assert response.json()["phase"] == "idle"
+
+
+def test_shutdown_requires_confirm() -> None:
+    from ndp.system.shutdown import reset_shutdown_state_for_tests
+
+    reset_shutdown_state_for_tests()
+    client = _client()
+    response = client.post("/api/system/shutdown", json={"confirm": False})
+    assert response.status_code == 400
+
+
+def test_shutdown_accepts_confirm() -> None:
+    from ndp.system.shutdown import reset_shutdown_state_for_tests
+
+    reset_shutdown_state_for_tests()
+    client = _client()
+    with patch("ndp.system.shutdown.threading.Thread"):
+        response = client.post("/api/system/shutdown", json={"confirm": True})
+    assert response.status_code == 200
+    assert response.json()["phase"] == "in_progress"
