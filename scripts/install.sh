@@ -160,7 +160,23 @@ PY
 fi
 
 echo "==> Enabling lldpd"
+LLDPD_DEFAULT="/etc/default/lldpd"
+if [[ -f "${LLDPD_DEFAULT}" ]]; then
+  if grep -q '^DAEMON_ARGS=' "${LLDPD_DEFAULT}"; then
+    sed -i 's/^DAEMON_ARGS=.*/DAEMON_ARGS="-c -s"/' "${LLDPD_DEFAULT}"
+  else
+    echo 'DAEMON_ARGS="-c -s"' >> "${LLDPD_DEFAULT}"
+  fi
+else
+  echo 'DAEMON_ARGS="-c -s"' > "${LLDPD_DEFAULT}"
+fi
+install -d -m 0755 /etc/lldpd.d
+cat > /etc/lldpd.d/ndp.conf <<'EOF'
+# NDP: neighbor discovery on Ethernet (skip wlan0 hotspot)
+configure system interface pattern eth*
+EOF
 systemctl enable --now lldpd
+systemctl restart lldpd
 
 echo "==> Preparing Wi-Fi hotspot tools (hostapd + dnsmasq)"
 systemctl unmask hostapd dnsmasq 2>/dev/null || true

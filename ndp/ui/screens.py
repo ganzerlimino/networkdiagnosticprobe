@@ -104,22 +104,25 @@ def lines_for_screen(
     if screen == ScreenId.SWITCH:
         if not state.link.carrier:
             return ["Link down", "Collega il cavo"]
-        if not state.neighbor.available:
-            return [
-                "No neighbor",
-                _fmt(state.neighbor.message, "waiting"),
+        if state.neighbor.available:
+            lines = [
+                f"Proto  {_fmt(state.neighbor.protocol)}",
+                f"Switch {_fmt(state.neighbor.switch_name)}",
+                f"Port   {_fmt(state.neighbor.port_id)}",
+                f"VLAN   {_fmt(state.neighbor.vlan_id)}",
             ]
-        lines = [
-            f"Proto  {_fmt(state.neighbor.protocol)}",
-            f"Switch {_fmt(state.neighbor.switch_name)}",
-            f"Port   {_fmt(state.neighbor.port_id)}",
-            f"VLAN   {_fmt(state.neighbor.vlan_id)}",
-        ]
-        if state.neighbor.med_capabilities:
-            lines.append(f"MED    {_fmt(state.neighbor.med_capabilities)}")
-        if state.neighbor.poe_status:
-            lines.append(f"PoE    {_fmt(state.neighbor.poe_status)}")
-        return lines
+            if state.neighbor.med_capabilities:
+                lines.append(f"MED    {_fmt(state.neighbor.med_capabilities)}")
+            if state.neighbor.poe_status:
+                lines.append(f"PoE    {_fmt(state.neighbor.poe_status)}")
+            return lines
+        lines = ["No neighbor", _fmt(state.neighbor.message, "waiting")]
+        for entry in getattr(state, "neighbors", []) or []:
+            if entry.available:
+                continue
+            proto = _fmt(entry.protocol, "?")
+            lines.append(f"{proto} {_fmt(entry.message)}")
+        return lines[:8]
 
     if screen == ScreenId.NETWORK:
         lines = []

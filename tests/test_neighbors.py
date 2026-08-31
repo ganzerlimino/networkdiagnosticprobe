@@ -87,6 +87,17 @@ def test_combine_neighbors_merges_mndp_identity_with_lldp_topology() -> None:
     assert merged.port_id == "ether21"
 
 
+def test_combine_neighbors_reports_both_protocol_failures() -> None:
+    from ndp.core.collectors.neighbors import _combine_neighbors
+
+    lldp = NeighborState(protocol="LLDP", available=False, message="no neighbor data")
+    mndp = NeighborState(protocol="MNDP", available=False, message="no mndp neighbor")
+    merged = _combine_neighbors(lldp, mndp)
+    assert merged.available is False
+    assert "LLDP: no neighbor data" in merged.message
+    assert "MNDP: no mndp neighbor" in merged.message
+
+
 def test_neighbor_from_mndp_device_maps_interface_to_port() -> None:
     from ndp.core.collectors.neighbors import neighbor_from_mndp_device
 

@@ -44,3 +44,15 @@ def test_parse_neighbor_payload_missing_interface() -> None:
     neighbor = _parse_neighbor_payload({"lldp": {"interface": []}}, "eth0")
     assert neighbor.available is False
     assert neighbor.message == "no neighbor data"
+
+
+def test_parse_neighbor_payload_aruba_instant_on() -> None:
+    payload = json.loads((FIXTURES / "lldpctl_aruba_instant_on.json").read_text(encoding="utf-8"))
+    neighbor = _parse_neighbor_payload(payload, "eth0")
+
+    assert neighbor.available is True
+    assert neighbor.switch_name == "Aruba-InstantOn-1930"
+    assert neighbor.port_id == "5"
+    assert neighbor.vlan_id == "1"
+    assert neighbor.chassis_id == "f4:03:43:12:34:56"
+    assert "Instant On" in (neighbor.system_description or "")

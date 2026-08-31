@@ -112,12 +112,59 @@ def _neighbor_score(neighbor: NeighborState) -> tuple[int, int]:
         score += 2
     if neighbor.system_description:
         descr = neighbor.system_description.lower()
-        if any(token in descr for token in ("mikrotik", "routeros", "crs", "css", "switch")):
+        if any(
+            token in descr
+            for token in (
+                "mikrotik",
+                "routeros",
+                "crs",
+                "css",
+                "switch",
+                "aruba",
+                "instant on",
+                "instanton",
+                "procurve",
+                "hp ",
+                "hpe ",
+                "cisco",
+                "meraki",
+                "netgear",
+            )
+        ):
             score += 6
         if any(token in descr for token in ("linux", "windows", "gentoo", "ubuntu")):
             score -= 4
     age = neighbor.age_seconds if neighbor.age_seconds is not None else 999_999
     return score, -age
+
+
+def _extract_port_id(port: dict[str, Any]) -> str | None:
+    for key in ("id", "descr", "description", "ifname"):
+        node = port.get(key)
+        if isinstance(node, dict):
+            value = _first_value(node)
+            if value:
+                return value
+        elif node is not None and key != "id":
+            return str(node)
+    local = port.get("local")
+    if isinstance(local, dict):
+        return _first_value(local, "value") or _first_value(local)
+    return None
+
+
+def _extract_switch_name(chassis: dict[str, Any]) -> str | None:
+    name = _first_value(chassis.get("name"))
+    if name:
+        return name
+    descr = _first_value(chassis.get("descr")) or ""
+    if not descr:
+        return None
+    lowered = descr.lower()
+    if any(token in lowered for token in ("switch", "aruba", "instant on", "procurve", "mikrotik")):
+        return descr[:48]
+    first = descr.split(",")[0].strip()
+    return first[:48] if first else None
 
 
 def _parse_interface_entry(iface_entry: dict[str, Any]) -> NeighborState:
@@ -128,13 +175,9 @@ def _parse_interface_entry(iface_entry: dict[str, Any]) -> NeighborState:
     chassis = chassis_entries[0] if chassis_entries else {}
     port = port_entries[0] if port_entries else {}
 
-    switch_name = _first_value(chassis.get("name"))
+    switch_name = _extract_switch_name(chassis)
     chassis_id = _first_value(chassis.get("id"))
-    port_id = (
-        _first_value(port.get("id"))
-        or _first_value(port.get("descr"))
-        or _first_value(port.get("description"))
-    )
+    port_id = _extract_port_id(port)
     vlan_id = _extract_vlan(port_entries, iface_entry)
     system_description = _first_value(chassis.get("descr"))
     age_seconds = _parse_age_seconds(iface_entry.get("age"))

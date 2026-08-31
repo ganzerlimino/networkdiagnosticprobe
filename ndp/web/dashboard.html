@@ -80,6 +80,13 @@
     .device-block .title { color: var(--text); font-weight: 600; }
     .device-meta { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
     .port-open { color: var(--accent); }
+    .progress-wrap { margin: .35rem 0 .5rem; }
+    .progress-bar { height: 4px; background: #0f1728; border-radius: 999px; overflow: hidden; }
+    .progress-bar > span { display: block; height: 100%; width: 35%; background: var(--accent); border-radius: 999px; animation: progress-indeterminate 1.1s ease-in-out infinite; }
+    @keyframes progress-indeterminate { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+    .progress-meta { font-size: .78rem; color: var(--muted); margin-top: .35rem; }
+    .neighbor-section { margin-top: .65rem; padding-top: .55rem; border-top: 1px solid rgba(255,255,255,.06); }
+    .neighbor-section:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
   </style>
 </head>
 <body>
@@ -561,6 +568,80 @@
       setExportEnabled(key, true);
     }
 
+    function startProgressFeedback(container, phases) {
+      const steps = Array.isArray(phases) && phases.length ? phases : ['Scansione in corso...'];
+      let phaseIndex = 0;
+      const started = Date.now();
+      container.innerHTML = '<div class="progress-wrap"><div class="progress-bar"><span></span></div><div class="progress-meta"></div></div>';
+      const meta = container.querySelector('.progress-meta');
+      const tick = () => {
+        const elapsed = Math.floor((Date.now() - started) / 1000);
+        if (elapsed >= 3 && phaseIndex < steps.length - 1 && elapsed % 3 === 0) {
+          phaseIndex += 1;
+        }
+        meta.textContent = `${steps[phaseIndex]} (${elapsed}s)`;
+      };
+      tick();
+      const timer = setInterval(tick, 500);
+      return () => clearInterval(timer);
+    }
+
+    function neighborProtocolLabel(entry) {
+      const proto = (entry && entry.protocol) || '';
+      if (proto.toUpperCase() === 'CDP') return 'CDP';
+      if (proto.toUpperCase() === 'LLDP') return 'LLDP';
+      if (proto === 'MNDP') return 'MNDP';
+      return proto || 'Neighbor';
+    }
+
+    function renderNeighborSource(title, entry) {
+      if (!entry) return '';
+      const rows = [];
+      if (entry.available) {
+        rows.push(row('Stato', 'rilevato', 'ok'));
+        if (entry.switch_name || entry.identity) rows.push(row('Dispositivo', entry.identity || entry.switch_name || 'n/a'));
+        if (entry.port_id) rows.push(row('Porta', entry.port_id));
+        if (entry.vlan_id) rows.push(row('VLAN', entry.vlan_id));
+        if (entry.system_description) rows.push(row('Descrizione', entry.system_description));
+        if (entry.chassis_id) rows.push(row('MAC chassis', entry.chassis_id));
+      } else {
+        rows.push(row('Stato', entry.message || 'non disponibile', 'bad'));
+      }
+      return `<div class="neighbor-section"><div class="section-title">${title}</div>${rows.join('')}</div>`;
+    }
+
+    function renderSwitchStatus(primary, neighbors) {
+      const list = Array.isArray(neighbors) ? neighbors : [];
+      const lldp = list.find(n => n.protocol && ['LLDP', 'CDP'].includes(String(n.protocol).toUpperCase()));
+      const mndp = list.find(n => n.protocol === 'MNDP');
+      let html = '';
+
+      if (primary && primary.available) {
+        html += `<div class="neighbor-section"><div class="section-title">Riepilogo</div>`;
+        html += [
+          row('Dispositivo', primary.identity || primary.switch_name || 'n/a'),
+          row('Protocollo', primary.protocol || 'n/a'),
+          row('Porta', primary.port_id || 'n/a'),
+          row('VLAN', primary.vlan_id || 'n/a'),
+          primary.board ? row('Modello', primary.board) : '',
+          primary.system_description ? row('Descrizione', primary.system_description) : '',
+          primary.chassis_id ? row('MAC chassis', primary.chassis_id) : '',
+          primary.med_capabilities ? row('LLDP-MED', primary.med_capabilities) : '',
+          primary.poe_status ? row('PoE', [primary.poe_status, primary.poe_allocated_w != null ? primary.poe_allocated_w + ' W' : ''].filter(Boolean).join(' · ')) : '',
+        ].filter(Boolean).join('');
+        html += '</div>';
+      } else if (primary && primary.message) {
+        html += row('Stato', primary.message, 'bad');
+        html += '<div class="sub" style="margin-top:.45rem">Verifica LLDP abilitato sullo switch e <code>systemctl status lldpd</code> sulla Pi.</div>';
+      } else {
+        html += row('Stato', 'In attesa', 'bad');
+      }
+
+      if (lldp) html += renderNeighborSource(neighborProtocolLabel(lldp), lldp);
+      if (mndp) html += renderNeighborSource('MNDP (MikroTik)', mndp);
+      return html;
+    }
+
     function exportCached(key, format) {
       const entry = scanCache[key];
       if (!entry) {
@@ -741,18 +822,7 @@
         row('IP', addresses), row('Gateway', ip.gateway || 'n/a'),
         row('DNS', (ip.dns_servers || []).join(', ') || 'n/a'),
       ].join('');
-      document.getElementById('status-switch').innerHTML = n.available ? [
-        row('Dispositivo', n.identity || n.switch_name || 'n/a'),
-        row('Protocollo', n.protocol || 'n/a'),
-        row('Porta', n.port_id || 'n/a'),
-        row('VLAN', n.vlan_id || 'n/a'),
-        n.board ? row('Modello', n.board) : '',
-        n.system_description ? row('Descrizione', n.system_description) : '',
-        n.chassis_id ? row('MAC chassis', n.chassis_id) : '',
-        n.med_capabilities ? row('LLDP-MED', n.med_capabilities) : '',
-        n.poe_status ? row('PoE', [n.poe_status, n.poe_allocated_w != null ? n.poe_allocated_w + ' W' : ''].filter(Boolean).join(' · ')) : '',
-        n.protocol === 'MNDP' ? row('Nota', 'Elenco completo LAN in tab MikroTik') : '',
-      ].filter(Boolean).join('') : row('Stato', n.message || 'In attesa', 'bad');
+      document.getElementById('status-switch').innerHTML = renderSwitchStatus(n, data.neighbors || []);
       document.getElementById('status-system').innerHTML = [
         row('Hostname', s.hostname || 'n/a'),
         row('Uptime', s.uptime_seconds != null ? Math.round(s.uptime_seconds) + ' s' : 'n/a'),
@@ -1071,9 +1141,15 @@
       const scanBtn = document.getElementById('discover-scan');
       const controller = beginScan('discover-scan-stop');
       scanBtn.disabled = true;
-      el.textContent = 'Scansione...';
+      const stopProgress = startProgressFeedback(el, [
+        'Preparazione scansione ARP',
+        'Invio probe sulla subnet eth0',
+        'Raccolta risposte host',
+        'Lookup vendor OUI',
+      ]);
       try {
         const r = await fetch('/api/discover/scan', { signal: controller.signal });
+        stopProgress();
         const parsed = await parseJsonResponse(r);
         if (parsed.error) { el.textContent = parsed.error; return; }
         const j = parsed.data;
@@ -1092,6 +1168,7 @@
           loadOuiTable();
         }
       } catch (e) {
+        stopProgress();
         if (e.name !== 'AbortError') el.textContent = 'Errore rete: ' + e;
         else el.textContent = 'Scansione interrotta.';
       } finally {
@@ -1108,9 +1185,14 @@
       const scanBtn = document.getElementById('discover-services');
       const controller = beginScan('discover-services-stop');
       scanBtn.disabled = true;
-      el.textContent = 'Scansione mDNS/SSDP/L2...';
+      const stopProgress = startProgressFeedback(el, [
+        'Query mDNS (_services._dns-sd)',
+        'Ricerca dispositivi SSDP/UPnP',
+        'Sniff ethertype FDP/EDP/LLTD',
+      ]);
       try {
         const r = await fetch('/api/discover/services', { signal: controller.signal });
+        stopProgress();
         const parsed = await parseJsonResponse(r);
         if (parsed.error) { el.textContent = parsed.error; return; }
         const j = parsed.data;
@@ -1158,6 +1240,7 @@
         cacheScan('discover-services', j, rows);
         el.innerHTML = html || '<div>Nessun servizio trovato</div>';
       } catch (e) {
+        stopProgress();
         if (e.name !== 'AbortError') el.textContent = 'Errore rete: ' + e;
         else el.textContent = 'Scansione interrotta.';
       } finally {
@@ -1187,12 +1270,19 @@
       const snmpHost = normalizeHost(document.getElementById('passive-snmp-host').value);
       const controller = beginScan('passive-stop');
       scanBtn.disabled = true;
-      msg.textContent = `Sniff passivo in corso (${seconds}s)...`;
-      [summaryEl, l2El, l2probeEl, serviceEl, dhcpEl, snmpEl].forEach(el => el.textContent = '...');
+      const stopProgress = startProgressFeedback(msg, [
+        `Sniff passivo eth0 (${seconds}s)`,
+        'Analisi STP/LACP/VLAN/IGMP',
+        'Probe mDNS e SSDP',
+        'Sniff DHCP Option 82',
+        snmpHost ? `Probe SNMP su ${snmpHost}` : 'SNMP non configurato',
+      ]);
+      [summaryEl, l2El, l2probeEl, serviceEl, dhcpEl, snmpEl].forEach(el => el.textContent = 'In attesa…');
       try {
         const params = new URLSearchParams({listen_seconds: String(seconds)});
         if (snmpHost) params.set('snmp_host', snmpHost);
         const r = await fetch('/api/discover/passive-check?' + params.toString(), { signal: controller.signal });
+        stopProgress();
         const parsed = await parseJsonResponse(r);
         if (parsed.error) { msg.textContent = parsed.error; return; }
         const j = parsed.data;
@@ -1269,6 +1359,7 @@
         cacheScan('passive', j, rows);
         msg.textContent = 'Sniff completato.';
       } catch (e) {
+        stopProgress();
         if (e.name === 'AbortError') msg.textContent = 'Sniff interrotto.';
         else msg.textContent = 'Errore rete: ' + e;
       } finally {
@@ -1492,7 +1583,12 @@
       const host = normalizeHost(document.getElementById('scan-host').value);
       if (!host) { document.getElementById(resultId).textContent = 'Inserisci un host.'; return; }
       const el = document.getElementById(resultId);
-      el.textContent = 'Scansione in corso...';
+      const label = profile === 'custom' ? 'custom' : profile;
+      const stopProgress = startProgressFeedback(el, [
+        `Connessione a ${host}`,
+        `Scansione profilo ${label} (TCP connect)`,
+        'Raccolta porte aperte/chiuse',
+      ]);
       const body = { host, profile, timeout_ms: 1500 };
       if (profile === 'custom') {
         body.ports = document.getElementById('scan-custom-ports').value.trim();
@@ -1502,12 +1598,14 @@
           method: 'POST', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify(body)
         });
+        stopProgress();
         const parsed = await parseJsonResponse(r);
         if (parsed.error) { el.textContent = parsed.error; return; }
         const j = parsed.data;
         if (!parsed.ok) { el.textContent = formatApiError(j); return; }
         renderPortResults(el, j);
       } catch (e) {
+        stopProgress();
         el.textContent = 'Errore rete: ' + e;
       }
     }
@@ -1711,25 +1809,43 @@
       const hostname = document.getElementById('dns-hostname').value.trim();
       const hostnames = hostname ? [hostname] : [];
       const el = document.getElementById('network-check-results');
-      el.textContent = 'Verifica in corso...';
-      const r = await fetch('/api/network/check', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ hostnames, include_gateway: true })
-      });
-      const j = await r.json();
-      if (!r.ok) { el.textContent = formatApiError(j); return; }
-      renderNetworkResults(j);
+      const stopProgress = startProgressFeedback(el, [
+        'Verifica server DNS',
+        hostname ? `Risoluzione ${hostname}` : 'Skip risoluzione hostname',
+        'Ping gateway e porte rapide',
+      ]);
+      try {
+        const r = await fetch('/api/network/check', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ hostnames, include_gateway: true })
+        });
+        stopProgress();
+        const j = await r.json();
+        if (!r.ok) { el.textContent = formatApiError(j); return; }
+        renderNetworkResults(j);
+      } catch (e) {
+        stopProgress();
+        el.textContent = 'Errore rete: ' + e;
+      }
     };
 
     document.getElementById('dns-lookup-run').onclick = async () => {
       const hostname = document.getElementById('dns-hostname').value.trim();
+      const el = document.getElementById('network-check-results');
       if (!hostname) {
-        document.getElementById('network-check-results').textContent = 'Inserisci un hostname.';
+        el.textContent = 'Inserisci un hostname.';
         return;
       }
-      const r = await fetch('/api/network/dns?hostname=' + encodeURIComponent(hostname));
-      const j = await r.json();
-      renderNetworkResults({ lookups: [j], dns_servers: [], gateway: null });
+      const stopProgress = startProgressFeedback(el, [`Risoluzione DNS ${hostname}`]);
+      try {
+        const r = await fetch('/api/network/dns?hostname=' + encodeURIComponent(hostname));
+        stopProgress();
+        const j = await r.json();
+        renderNetworkResults({ lookups: [j], dns_servers: [], gateway: null });
+      } catch (e) {
+        stopProgress();
+        el.textContent = 'Errore rete: ' + e;
+      }
     };
 
     function fieldInputId(key) {

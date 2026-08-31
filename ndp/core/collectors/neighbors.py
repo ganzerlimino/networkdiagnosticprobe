@@ -67,13 +67,34 @@ def _merge_neighbor_details(primary: NeighborState, secondary: NeighborState) ->
     return merged
 
 
+def _neighbor_has_topology(neighbor: NeighborState) -> bool:
+    return neighbor.available or any(
+        [
+            neighbor.port_id,
+            neighbor.vlan_id,
+            neighbor.switch_name,
+            neighbor.chassis_id,
+            neighbor.system_description,
+            neighbor.identity,
+            neighbor.board,
+        ]
+    )
+
+
+def _format_neighbor_failure(lldp: NeighborState, mndp: NeighborState) -> str:
+    parts: list[str] = []
+    for entry in (lldp, mndp):
+        proto = entry.protocol or "neighbor"
+        if entry.available:
+            continue
+        msg = entry.message or "non disponibile"
+        parts.append(f"{proto}: {msg}")
+    return " · ".join(parts) if parts else "nessun neighbor rilevato"
+
+
 def _combine_neighbors(lldp: NeighborState, mndp: NeighborState) -> NeighborState:
-    lldp_useful = lldp.available or any(
-        [lldp.port_id, lldp.vlan_id, lldp.switch_name, lldp.chassis_id, lldp.system_description]
-    )
-    mndp_useful = mndp.available or any(
-        [mndp.port_id, mndp.switch_name, mndp.chassis_id, mndp.identity, mndp.board]
-    )
+    lldp_useful = _neighbor_has_topology(lldp)
+    mndp_useful = _neighbor_has_topology(mndp)
 
     if lldp_useful and mndp_useful:
         return _merge_neighbor_details(lldp, mndp)
@@ -81,9 +102,16 @@ def _combine_neighbors(lldp: NeighborState, mndp: NeighborState) -> NeighborStat
         return lldp
     if mndp_useful:
         return mndp
-    if lldp.message not in {"waiting", "no neighbor data"}:
-        return lldp
-    return mndp
+
+    combined_msg = _format_neighbor_failure(lldp, mndp)
+    if lldp.message not in {"waiting", "no neighbor data", "lldpctl unavailable", "lldpd not installed"}:
+        return replace(lldp, available=False, message=combined_msg)
+    return replace(
+        lldp,
+        protocol=lldp.protocol or "LLDP",
+        available=False,
+        message=combined_msg,
+    )
 
 
 def neighbor_from_mndp_device(device: dict[str, object]) -> NeighborState:
@@ -139,7 +167,7 @@ def collect_neighbors(
     mndp = collect_mndp_neighbor(interface, **listen_kwargs)
 
     primary = _combine_neighbors(lldp, mndp)
-    entries = [entry for entry in (lldp, mndp) if entry.available]
+    entries = [lldp, mndp]
     return NeighborCollection(primary=primary, entries=entries)
 
 
