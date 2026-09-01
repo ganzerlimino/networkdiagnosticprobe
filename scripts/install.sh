@@ -159,6 +159,11 @@ print("Reference template with all comments: /etc/ndp/config.yaml.example")
 PY
 fi
 
+echo "==> Installing locale and scenario presets"
+install -d -m 0755 "${NDP_CONFIG_DIR}/locale" "${NDP_CONFIG_DIR}/scenarios"
+install -m 0644 "${NDP_ROOT}/ndp/locale/"*.json "${NDP_CONFIG_DIR}/locale/"
+install -m 0644 "${NDP_ROOT}/ndp/scenarios/profiles.yaml" "${NDP_CONFIG_DIR}/scenarios/profiles.yaml"
+
 echo "==> Enabling lldpd"
 LLDPD_DEFAULT="/etc/default/lldpd"
 if [[ -f "${LLDPD_DEFAULT}" ]]; then

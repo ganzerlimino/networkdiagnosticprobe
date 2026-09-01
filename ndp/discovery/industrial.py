@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from ndp.discovery.ewon import discover_ewon_devices
+from ndp.discovery.modbus_identify import identify_modbus_tcp
 from ndp.discovery.weintek_hmi import discover_weintek_hmi
 from ndp.scan.ports import scan_ports
 
@@ -30,12 +31,23 @@ def discover_industrial_snapshot(
     )
 
     port_scan: dict[str, Any] | None = None
+    modbus: dict[str, Any] | None = None
     if include_port_profile and host and host.strip():
         port_scan = scan_ports(
             host.strip(),
             "industrial",
             timeout_seconds=port_timeout_seconds,
         ).to_dict()
+        modbus_open = any(
+            entry.get("port") == 502 and entry.get("open")
+            for entry in port_scan.get("entries", [])
+            if isinstance(entry, dict)
+        )
+        if modbus_open:
+            modbus = identify_modbus_tcp(
+                host.strip(),
+                timeout_seconds=min(port_timeout_seconds, 2.0),
+            ).to_dict()
 
     return {
         "interface": interface,
@@ -63,6 +75,7 @@ def discover_industrial_snapshot(
         },
         "device_count": len(weintek) + len(ewon),
         "port_scan": port_scan,
+        "modbus": modbus,
         "note": (
             "Discovery broadcast Weintek HMI Search ed eWON IPCONF con verifica porte "
             "di gestione (VNC/EasyAccess, HTTP/FTP)."

@@ -144,3 +144,39 @@ def test_shutdown_accepts_confirm() -> None:
         response = client.post("/api/system/shutdown", json={"confirm": True})
     assert response.status_code == 200
     assert response.json()["phase"] == "in_progress"
+
+
+def test_version_includes_locale_theme_scenario() -> None:
+    client = _client()
+    response = client.get("/api/version")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "locale" in payload
+    assert "theme" in payload
+    assert "scenario" in payload
+    assert "industrial_timeout_seconds" in payload["defaults"]
+
+
+def test_locale_bundle_endpoint() -> None:
+    client = _client()
+    response = client.get("/api/locale/it")
+    assert response.status_code == 200
+    assert response.json()["nav"]["plant"] == "Impianto"
+
+
+def test_themes_endpoint() -> None:
+    client = _client()
+    response = client.get("/api/themes")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "field-dark" in payload["themes"]
+
+
+def test_scenarios_endpoint() -> None:
+    client = _client()
+    response = client.get("/api/scenarios")
+    assert response.status_code == 200
+    payload = response.json()
+    ids = {item["id"] for item in payload["scenarios"]}
+    assert "impianto" in ids
+

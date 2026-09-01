@@ -1,0 +1,50 @@
+{
+  "_meta": { "locale": "it", "name": "Italiano", "version": 1, "fallback": "en" },
+  "app": { "title": "Network Diagnostic Probe" },
+  "nav": {
+    "monitor": "Monitor",
+    "lan": "LAN",
+    "ot": "OT",
+    "sistema": "Sistema",
+    "status": "Stato",
+    "ping": "Ping",
+    "mtu": "MTU",
+    "discover": "Discover",
+    "passive": "Sniff",
+    "scan": "Scan",
+    "plant": "Impianto",
+    "mikrotik": "MikroTik",
+    "cameras": "Camere",
+    "nas": "NAS",
+    "printers": "Stampanti",
+    "hotspot": "Hotspot",
+    "config": "Config",
+    "power": "Spegnimento"
+  },
+  "actions": {
+    "scan": "Scansiona",
+    "stop": "Ferma",
+    "save": "Salva",
+    "export_json": "JSON",
+    "export_csv": "CSV",
+    "use_gateway": "Usa gateway"
+  },
+  "appearance": {
+    "locale": "Lingua interfaccia",
+    "locale_help": "File JSON in /etc/ndp/locale/ per lingue custom.",
+    "theme": "Tema colori",
+    "theme_help": "Web UI e display TFT (dopo riavvio ndp)."
+  },
+  "scenario": {
+    "label": "Profilo scenario",
+    "help": "Preset timeout e focus discovery (Impianto / Retail / Ufficio).",
+    "impianto": "Impianto OT",
+    "retail": "Retail",
+    "ufficio": "Ufficio"
+  },
+  "plant": {
+    "scan": "Scansiona impianto",
+    "modbus_identified": "Modbus identificato",
+    "modbus_open_only": "Porta 502 aperta (identify non disponibile)"
+  }
+}

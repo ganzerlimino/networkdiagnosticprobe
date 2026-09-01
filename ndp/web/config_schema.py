@@ -44,6 +44,7 @@ def _section_title(section_id: str) -> str:
         "hotspot": "Hotspot telefono",
         "ping": "Ping",
         "discovery": "Discover",
+        "appearance": "Aspetto",
         "logging": "Log",
         "console": "Console",
     }.get(section_id, section_id)
@@ -79,6 +80,9 @@ def _config_fields() -> tuple[ConfigField, ...]:
         ConfigField("discovery.verify_replug", "Verifica ricollegamento", "Passo finale wizard Up/Down.", "bool", section="discovery"),
         ConfigField("discovery.mndp_listen_seconds", "Ascolto MNDP (s)", "Durata probe MNDP per status e tab MikroTik.", "float", section="discovery"),
         ConfigField("discovery.passive_listen_seconds", "Sniff passivo default (s)", "Durata predefinita tab Passive check.", "float", section="discovery"),
+        ConfigField("discovery.scenario", "Profilo scenario", "Preset timeout discovery (impianto/retail/ufficio).", "select", ("impianto", "retail", "ufficio"), section="discovery"),
+        ConfigField("ui.locale", "Lingua interfaccia", "it/en o JSON custom in /etc/ndp/locale/.", "select", ("it", "en"), section="appearance"),
+        ConfigField("ui.theme", "Tema colori", "Web UI e display TFT (riavvia ndp per TFT).", "select", ("field-dark", "industrial-amber", "high-contrast", "office-light", "night-vision"), section="appearance"),
         ConfigField("logging.level", "Livello log", "DEBUG, INFO, WARNING, ERROR.", "select", ("DEBUG", "INFO", "WARNING", "ERROR"), section="logging"),
         ConfigField("console.enabled", "Output console", "Riepilogo periodico su journal.", "bool", section="console"),
         ConfigField("console.refresh_seconds", "Refresh console (s)", "Intervallo stampa console.", "float", section="console"),

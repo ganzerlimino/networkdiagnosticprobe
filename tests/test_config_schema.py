@@ -13,6 +13,14 @@ def test_config_sections_include_hotspot_password() -> None:
     assert "wifi_hotspot.password" in keys
 
 
+def test_config_sections_include_appearance() -> None:
+    sections = config_sections()
+    appearance = next(section for section in sections if section["id"] == "appearance")
+    keys = {field["key"] for field in appearance["fields"]}  # type: ignore[index]
+    assert "ui.locale" in keys
+    assert "ui.theme" in keys
+
+
 def test_nested_get_set() -> None:
     data: dict = {}
     set_nested_value(data, "wifi_hotspot.password", "ndp-probe")

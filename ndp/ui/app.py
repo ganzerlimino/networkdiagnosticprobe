@@ -37,6 +37,18 @@ COLOR_MUTED = (140, 155, 180)
 COLOR_ACCENT = (80, 200, 120)
 
 
+def _apply_tft_palette(config: NdpConfig) -> None:
+    global COLOR_BG, COLOR_HEADER, COLOR_TEXT, COLOR_MUTED, COLOR_ACCENT
+    from ndp.locale.loader import tft_palette
+
+    palette = tft_palette(config.ui_theme)
+    COLOR_BG = palette["bg"]
+    COLOR_HEADER = palette["header"]
+    COLOR_TEXT = palette["text"]
+    COLOR_MUTED = palette["muted"]
+    COLOR_ACCENT = palette["accent"]
+
+
 def _configure_pygame_env(config: NdpConfig, use_dummy: bool) -> None:
     driver = "dummy" if use_dummy else config.ui_sdl_driver
     os.environ["SDL_VIDEODRIVER"] = driver
@@ -147,6 +159,7 @@ class ProbeUI:
         self._ping_thread: threading.Thread | None = None
         self._last_cycle_at = time.monotonic()
         self._state.ping.adhoc_host = read_adhoc_host(Path(config.ping_adhoc_path))
+        _apply_tft_palette(config)
 
     @property
     def display_only(self) -> bool:

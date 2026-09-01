@@ -53,6 +53,8 @@ class NdpConfig:
     ui_warmup_on_start: bool = True
     ui_button_poll_hz: int = 200
     ui_line_spacing: int = 6
+    ui_locale: str = "it"
+    ui_theme: str = "field-dark"
     console_enabled: bool = True
     console_refresh_seconds: float = 5.0
     web_enabled: bool = True
@@ -64,6 +66,7 @@ class NdpConfig:
     discovery_verify_replug: bool = True
     discovery_mndp_listen_seconds: float = 6.0
     discovery_passive_listen_seconds: float = 3.0
+    discovery_scenario: str = "impianto"
     ping_count: int = 2
     ping_timeout_seconds: float = 3.0
     ping_packet_size: int = 56
@@ -139,6 +142,8 @@ class NdpConfig:
             ui_warmup_on_start=bool(ui.get("warmup_on_start", True)),
             ui_button_poll_hz=int(ui.get("button_poll_hz", 200)),
             ui_line_spacing=int(ui.get("line_spacing", 6)),
+            ui_locale=str(ui.get("locale", "it")),
+            ui_theme=str(ui.get("theme", "field-dark")),
             console_enabled=bool(console.get("enabled", True)),
             console_refresh_seconds=float(console.get("refresh_seconds", 5)),
             web_enabled=bool(web.get("enabled", False)),
@@ -152,6 +157,7 @@ class NdpConfig:
             discovery_verify_replug=bool(discovery.get("verify_replug", True)),
             discovery_mndp_listen_seconds=float(discovery.get("mndp_listen_seconds", 6)),
             discovery_passive_listen_seconds=float(discovery.get("passive_listen_seconds", 3)),
+            discovery_scenario=str(discovery.get("scenario", "impianto")),
             ping_count=int(ping.get("count", 2)),
             ping_timeout_seconds=float(ping.get("timeout_seconds", 3)),
             ping_packet_size=int(ping.get("packet_size", 56)),

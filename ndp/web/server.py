@@ -201,14 +201,66 @@ def create_app(
     @app.get("/api/version")
     def api_version() -> dict[str, object]:
         from ndp import __version__
+        from ndp.locale.loader import list_locales, resolve_theme_id
+        from ndp.scenarios.catalog import get_scenario, scenario_timeouts
 
+        locale = config.ui_locale
+        theme = resolve_theme_id(config.ui_theme)
+        scenario = get_scenario(config.discovery_scenario)
+        timeouts = scenario_timeouts(config.discovery_scenario)
         return {
             "version": __version__,
             "interface": config.interface,
+            "locale": locale,
+            "theme": theme,
+            "scenario": scenario.get("id", config.discovery_scenario),
+            "locales_available": list_locales(),
             "defaults": {
                 "mndp_listen_seconds": config.discovery_mndp_listen_seconds,
-                "passive_listen_seconds": config.discovery_passive_listen_seconds,
+                "passive_listen_seconds": timeouts["passive_listen_seconds"],
+                "industrial_timeout_seconds": timeouts["industrial_timeout_seconds"],
+                "include_port_profile": timeouts["include_port_profile"],
+                "printer_timeout_seconds": timeouts["printer_timeout_seconds"],
+                "nas_timeout_seconds": timeouts["nas_timeout_seconds"],
+                "camera_timeout_seconds": timeouts["camera_timeout_seconds"],
             },
+        }
+
+    @app.get("/api/locale")
+    def api_locale_list() -> dict[str, object]:
+        from ndp.locale.loader import list_locales
+
+        return {"locales": list_locales()}
+
+    @app.get("/api/locale/{code}")
+    def api_locale_bundle(code: str) -> dict[str, object]:
+        from ndp.locale.loader import load_locale
+
+        try:
+            return load_locale(code)
+        except (OSError, ValueError) as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @app.get("/api/themes")
+    def api_themes() -> dict[str, object]:
+        from ndp.locale.loader import load_themes_catalog, resolve_theme_id
+
+        catalog = load_themes_catalog()
+        return {
+            "default": resolve_theme_id(config.ui_theme),
+            "active": resolve_theme_id(config.ui_theme),
+            **catalog,
+        }
+
+    @app.get("/api/scenarios")
+    def api_scenarios() -> dict[str, object]:
+        from ndp.scenarios.catalog import get_scenario, list_scenarios, load_scenarios_catalog
+
+        catalog = load_scenarios_catalog()
+        return {
+            "default": str(catalog.get("default", "impianto")),
+            "active": get_scenario(config.discovery_scenario).get("id"),
+            "scenarios": list_scenarios(),
         }
 
     @app.get("/api/report")
@@ -346,9 +398,11 @@ def create_app(
         snmp_host: str = "",
     ) -> dict[str, object]:
         from ndp.discovery.passive_suite import run_passive_check_suite
+        from ndp.scenarios.catalog import scenario_timeouts
 
         state = get_state()
-        default_listen = config.discovery_passive_listen_seconds
+        scenario_defaults = scenario_timeouts(config.discovery_scenario)
+        default_listen = float(scenario_defaults["passive_listen_seconds"])
         bounded = min(max(listen_seconds if listen_seconds is not None else default_listen, 1.0), 60.0)
         target = snmp_host.strip() or None
         return run_passive_check_suite(
@@ -379,40 +433,54 @@ def create_app(
         return result
 
     @app.get("/api/discover/cameras")
-    def api_discover_cameras(timeout_seconds: float = 3.0) -> dict[str, object]:
+    def api_discover_cameras(timeout_seconds: float | None = None) -> dict[str, object]:
         from ndp.discovery.cameras import discover_cameras_snapshot
+        from ndp.scenarios.catalog import scenario_timeouts
 
-        bounded = min(max(timeout_seconds, 1.0), 15.0)
+        default_timeout = float(scenario_timeouts(config.discovery_scenario)["camera_timeout_seconds"])
+        bounded = min(max(timeout_seconds if timeout_seconds is not None else default_timeout, 1.0), 15.0)
         return discover_cameras_snapshot(config.interface, timeout_seconds=bounded)
 
     @app.get("/api/discover/nas")
-    def api_discover_nas(timeout_seconds: float = 3.0) -> dict[str, object]:
+    def api_discover_nas(timeout_seconds: float | None = None) -> dict[str, object]:
         from ndp.discovery.nas import discover_nas_snapshot
+        from ndp.scenarios.catalog import scenario_timeouts
 
-        bounded = min(max(timeout_seconds, 1.0), 15.0)
+        default_timeout = float(scenario_timeouts(config.discovery_scenario)["nas_timeout_seconds"])
+        bounded = min(max(timeout_seconds if timeout_seconds is not None else default_timeout, 1.0), 15.0)
         return discover_nas_snapshot(config.interface, timeout_seconds=bounded)
 
     @app.get("/api/discover/printers")
-    def api_discover_printers(timeout_seconds: float = 3.0) -> dict[str, object]:
+    def api_discover_printers(timeout_seconds: float | None = None) -> dict[str, object]:
         from ndp.discovery.printers import discover_printers_snapshot
+        from ndp.scenarios.catalog import scenario_timeouts
 
-        bounded = min(max(timeout_seconds, 1.0), 15.0)
+        default_timeout = float(scenario_timeouts(config.discovery_scenario)["printer_timeout_seconds"])
+        bounded = min(max(timeout_seconds if timeout_seconds is not None else default_timeout, 1.0), 15.0)
         return discover_printers_snapshot(config.interface, timeout_seconds=bounded)
 
     @app.get("/api/discover/industrial")
     def api_discover_industrial(
-        timeout_seconds: float = 3.0,
+        timeout_seconds: float | None = None,
         host: str = "",
-        include_port_profile: bool = False,
+        include_port_profile: bool | None = None,
     ) -> dict[str, object]:
         from ndp.discovery.industrial import discover_industrial_snapshot
+        from ndp.scenarios.catalog import scenario_timeouts
 
-        bounded = min(max(timeout_seconds, 1.0), 15.0)
+        scenario_defaults = scenario_timeouts(config.discovery_scenario)
+        default_timeout = float(scenario_defaults["industrial_timeout_seconds"])
+        bounded = min(max(timeout_seconds if timeout_seconds is not None else default_timeout, 1.0), 15.0)
+        port_profile = (
+            include_port_profile
+            if include_port_profile is not None
+            else bool(scenario_defaults["include_port_profile"])
+        )
         return discover_industrial_snapshot(
             config.interface,
             timeout_seconds=bounded,
             host=host.strip() or None,
-            include_port_profile=include_port_profile,
+            include_port_profile=port_profile and bool(host.strip()),
         )
 
     @app.get("/api/discover/oui")

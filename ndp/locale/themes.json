@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "default": "field-dark",
+  "themes": {
+    "field-dark": {
+      "name": { "it": "Campo scuro", "en": "Field dark" },
+      "color_scheme": "dark",
+      "web": {
+        "bg": "#0c1220",
+        "card": "#18243f",
+        "surface": "#0f1728",
+        "text": "#e8f0ff",
+        "muted": "#9eb0d0",
+        "accent": "#50c878",
+        "accent_text": "#062010",
+        "danger": "#ff8080",
+        "border": "#2a3a5c",
+        "header_alpha": "0.96",
+        "chart": ["#50c878", "#5eb8ff", "#ffb85e"]
+      },
+      "tft": {
+        "bg": [12, 18, 32],
+        "header": [24, 36, 64],
+        "text": [235, 240, 255],
+        "muted": [140, 155, 180],
+        "accent": [80, 200, 120]
+      }
+    },
+    "industrial-amber": {
+      "name": { "it": "Industriale ambra", "en": "Industrial amber" },
+      "color_scheme": "dark",
+      "web": {
+        "bg": "#1a1408",
+        "card": "#2a2210",
+        "surface": "#1f180a",
+        "text": "#f5ecd8",
+        "muted": "#a89870",
+        "accent": "#ffb020",
+        "accent_text": "#1a1000",
+        "danger": "#ff6040",
+        "border": "#4a3a18",
+        "header_alpha": "0.96",
+        "chart": ["#ffb020", "#ff8040", "#ffd060"]
+      },
+      "tft": {
+        "bg": [26, 20, 8],
+        "header": [42, 34, 16],
+        "text": [245, 236, 216],
+        "muted": [168, 152, 112],
+        "accent": [255, 176, 32]
+      }
+    },
+    "high-contrast": {
+      "name": { "it": "Alto contrasto", "en": "High contrast" },
+      "color_scheme": "dark",
+      "web": {
+        "bg": "#000000",
+        "card": "#1a1a1a",
+        "surface": "#111111",
+        "text": "#ffffff",
+        "muted": "#cccccc",
+        "accent": "#ffff00",
+        "accent_text": "#000000",
+        "danger": "#ff4444",
+        "border": "#666666",
+        "header_alpha": "1",
+        "chart": ["#ffff00", "#00ffff", "#ff00ff"]
+      },
+      "tft": {
+        "bg": [0, 0, 0],
+        "header": [26, 26, 26],
+        "text": [255, 255, 255],
+        "muted": [200, 200, 200],
+        "accent": [255, 255, 0]
+      }
+    },
+    "office-light": {
+      "name": { "it": "Ufficio chiaro", "en": "Office light" },
+      "color_scheme": "light",
+      "web": {
+        "bg": "#f4f6fa",
+        "card": "#ffffff",
+        "surface": "#eef2f8",
+        "text": "#1a2332",
+        "muted": "#5a6a80",
+        "accent": "#007a55",
+        "accent_text": "#ffffff",
+        "danger": "#c62828",
+        "border": "#d0d8e8",
+        "header_alpha": "0.98",
+        "chart": ["#007a55", "#1565c0", "#ef6c00"]
+      },
+      "tft": {
+        "bg": [244, 246, 250],
+        "header": [220, 228, 240],
+        "text": [26, 35, 50],
+        "muted": [90, 106, 128],
+        "accent": [0, 122, 85]
+      }
+    },
+    "night-vision": {
+      "name": { "it": "Visione notturna", "en": "Night vision" },
+      "color_scheme": "dark",
+      "web": {
+        "bg": "#0a0000",
+        "card": "#180808",
+        "surface": "#120404",
+        "text": "#ffcccc",
+        "muted": "#aa6666",
+        "accent": "#ff3333",
+        "accent_text": "#1a0000",
+        "danger": "#ff6666",
+        "border": "#441818",
+        "header_alpha": "0.96",
+        "chart": ["#ff3333", "#ff6633", "#ff9999"]
+      },
+      "tft": {
+        "bg": [10, 0, 0],
+        "header": [24, 8, 8],
+        "text": [255, 200, 200],
+        "muted": [170, 100, 100],
+        "accent": [255, 50, 50]
+      }
+    }
+  }
+}

@@ -120,6 +120,12 @@ ui:
   line_spacing: 6
   # Pixel aggiuntivi tra una riga di testo e l'altra oltre alla dimensione font.
 
+  locale: it
+  # Lingua interfaccia web (it, en, o file custom in /etc/ndp/locale/).
+
+  theme: field-dark
+  # Tema colori web + TFT: field-dark, industrial-amber, high-contrast, office-light, night-vision.
+
 console:
   enabled: true
   # true = stampa riepilogo periodico su stdout/journal quando l'UI è disabilitata.
@@ -174,6 +180,9 @@ discovery:
 
   passive_listen_seconds: 3
   # Durata predefinita sniff passivo (tab Passive check).
+
+  scenario: impianto
+  # Profilo operativo: impianto | retail | ufficio (timeout discovery da profiles.yaml).
 
 logging:
   level: INFO

@@ -23,16 +23,19 @@ def draw_splash(
     version: str,
     status_line: str,
 ) -> None:
-    surface.fill(COLOR_BG)
+    from ndp.locale.loader import tft_palette
 
-    title = title_font.render(config.ui_splash_message, True, COLOR_ACCENT)
+    palette = tft_palette(config.ui_theme)
+    surface.fill(palette["bg"])
+
+    title = title_font.render(config.ui_splash_message, True, palette["accent"])
     title_x = (config.ui_width - title.get_width()) // 2
     surface.blit(title, (title_x, config.ui_height // 2 - 36))
 
-    version_surface = body_font.render(f"v{version}", True, COLOR_MUTED)
+    version_surface = body_font.render(f"v{version}", True, palette["muted"])
     version_x = (config.ui_width - version_surface.get_width()) // 2
     surface.blit(version_surface, (version_x, config.ui_height // 2 - 8))
 
-    status = body_font.render(status_line, True, COLOR_MUTED)
+    status = body_font.render(status_line, True, palette["muted"])
     status_x = (config.ui_width - status.get_width()) // 2
     surface.blit(status, (status_x, config.ui_height // 2 + 24))

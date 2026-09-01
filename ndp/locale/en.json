@@ -1,0 +1,50 @@
+{
+  "_meta": { "locale": "en", "name": "English", "version": 1, "fallback": "it" },
+  "app": { "title": "Network Diagnostic Probe" },
+  "nav": {
+    "monitor": "Monitor",
+    "lan": "LAN",
+    "ot": "OT",
+    "sistema": "System",
+    "status": "Status",
+    "ping": "Ping",
+    "mtu": "MTU",
+    "discover": "Discover",
+    "passive": "Sniff",
+    "scan": "Scan",
+    "plant": "Plant",
+    "mikrotik": "MikroTik",
+    "cameras": "Cameras",
+    "nas": "NAS",
+    "printers": "Printers",
+    "hotspot": "Hotspot",
+    "config": "Config",
+    "power": "Shutdown"
+  },
+  "actions": {
+    "scan": "Scan",
+    "stop": "Stop",
+    "save": "Save",
+    "export_json": "JSON",
+    "export_csv": "CSV",
+    "use_gateway": "Use gateway"
+  },
+  "appearance": {
+    "locale": "UI language",
+    "locale_help": "Custom JSON files in /etc/ndp/locale/.",
+    "theme": "Color theme",
+    "theme_help": "Web UI and TFT display (restart ndp to apply TFT)."
+  },
+  "scenario": {
+    "label": "Scenario profile",
+    "help": "Discovery timeout and focus presets (Plant / Retail / Office).",
+    "impianto": "OT plant",
+    "retail": "Retail",
+    "ufficio": "Office"
+  },
+  "plant": {
+    "scan": "Scan plant",
+    "modbus_identified": "Modbus identified",
+    "modbus_open_only": "Port 502 open (identify unavailable)"
+  }
+}
