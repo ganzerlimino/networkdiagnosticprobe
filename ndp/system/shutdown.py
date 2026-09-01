@@ -13,7 +13,7 @@ from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
 
-_SHUTDOWN_DELAY_SECONDS = 3.0
+_SHUTDOWN_DELAY_SECONDS = 1.0
 _POWEROFF_COMMAND = ("systemctl", "poweroff")
 
 

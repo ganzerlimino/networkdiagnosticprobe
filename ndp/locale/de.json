@@ -154,12 +154,21 @@
   },
   "power": {
     "title": "System herunterfahren",
-    "help": "Stoppt NDP und Wi-Fi-Hotspot sicher und fährt den Raspberry Pi herunter. Abschaltbildschirm erscheint am TFT.",
+    "help": "Stoppt NDP und Wi-Fi-Hotspot sicher und fährt den Raspberry Pi herunter.",
+    "phone_hint": "Nach der Bestätigung auf das Probe-Display schauen — dort erscheint das Herunterfahren.",
+    "confirm_hint": "Erneut «Herunterfahren bestätigen» tippen oder Abbrechen.",
+    "confirm_btn": "Herunterfahren bestätigen",
+    "started_tft": "Herunterfahren gestartet — Probe-Display beachten.",
+    "phase": "Phase: {phase}",
+    "offline_safe": "System aus. Strom kann sicher getrennt werden.",
+    "connection_lost": "Verbindung verloren: Herunterfahren läuft...",
     "shutdown_btn": "NDP ausschalten"
   },
   "config": {
     "guided_title": "Geführte Konfiguration",
     "guided_help": "Jedes Feld hat eine Erklärung. Export / E-Mail für Backups verwenden.",
+    "quick_title": "Sprache und Scan-Profil",
+    "quick_help": "Wichtigste Einstellungen vor Ort. Unten auf der Seite speichern.",
     "save": "Konfiguration speichern", "yaml_title": "Erweitertes YAML",
     "yaml_help": "Direkte Dateibearbeitung (Formularspeicherung entfernt Kommentare).",
     "save_yaml": "YAML speichern",
@@ -167,7 +176,7 @@
     "sections": {
       "network": "Probe-Netzwerk", "ui": "TFT-Display", "web": "Web-UI",
       "hotspot": "Telefon-Hotspot", "ping": "Ping", "discovery": "Discover",
-      "appearance": "Erscheinungsbild", "logging": "Log", "console": "Konsole"
+      "appearance": "Erscheinungsbild", "profile": "Scan-Profil", "logging": "Log", "console": "Konsole"
     },
     "fields": {
       "interface": { "label": "Überwachte Schnittstelle", "help": "Meist eth0 (Diagnosekabel)." },

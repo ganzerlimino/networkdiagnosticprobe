@@ -43,7 +43,19 @@ def config_sections(locale_code: str = "it") -> list[dict[str, object]]:
                 "options": list(field.options),
             }
         )
-    return list(sections.values())
+    order = (
+        "profile",
+        "appearance",
+        "network",
+        "ui",
+        "web",
+        "hotspot",
+        "ping",
+        "discovery",
+        "logging",
+        "console",
+    )
+    return [sections[key] for key in order if key in sections]
 
 
 def _section_title(section_id: str) -> str:
@@ -55,6 +67,7 @@ def _section_title(section_id: str) -> str:
         "ping": "Ping",
         "discovery": "Discover",
         "appearance": "Aspetto",
+        "profile": "Profilo scansione",
         "logging": "Log",
         "console": "Console",
     }.get(section_id, section_id)
@@ -91,7 +104,7 @@ def _config_fields(locale_options: tuple[str, ...]) -> tuple[ConfigField, ...]:
         ConfigField("discovery.verify_replug", "Verifica ricollegamento", "Passo finale wizard Up/Down.", "bool", section="discovery"),
         ConfigField("discovery.mndp_listen_seconds", "Ascolto MNDP (s)", "Durata probe MNDP per status e tab MikroTik.", "float", section="discovery"),
         ConfigField("discovery.passive_listen_seconds", "Sniff passivo default (s)", "Durata predefinita tab Passive check.", "float", section="discovery"),
-        ConfigField("discovery.scenario", "Profilo scenario", "Preset timeout discovery (impianto/retail/ufficio).", "select", ("impianto", "retail", "ufficio"), section="discovery"),
+        ConfigField("discovery.scenario", "Profilo scenario", "Preset timeout discovery (impianto/retail/ufficio).", "select", ("impianto", "retail", "ufficio"), section="profile"),
         ConfigField("ui.locale", "Lingua interfaccia", "Scegli la lingua e salva.", "select", locales, section="appearance"),
         ConfigField("ui.theme", "Tema colori", "Web UI e display TFT (riavvia ndp per TFT).", "select", ("field-dark", "industrial-amber", "high-contrast", "office-light", "night-vision"), section="appearance"),
         ConfigField("logging.level", "Livello log", "DEBUG, INFO, WARNING, ERROR.", "select", ("DEBUG", "INFO", "WARNING", "ERROR"), section="logging"),

@@ -154,20 +154,30 @@
   },
   "power": {
     "title": "System shutdown",
-    "help": "Safely stops NDP, Wi-Fi hotspot and shuts down the Raspberry Pi. Shutdown screen appears on the TFT.",
+    "help": "Safely stops NDP, Wi-Fi hotspot and shuts down the Raspberry Pi.",
+    "phone_hint": "After confirming, watch the probe display — shutdown is shown there.",
+    "confirm_hint": "Tap «Confirm shutdown» again to proceed, or Cancel.",
+    "confirm_btn": "Confirm shutdown",
+    "started_tft": "Shutdown started — follow the probe display.",
+    "phase": "Phase: {phase}",
+    "offline_safe": "System off. You can unplug power safely.",
+    "connection_lost": "Connection lost: shutting down...",
     "shutdown_btn": "Shut down NDP"
   },
   "config": {
     "guided_title": "Guided configuration",
     "guided_help": "Each field includes a description. Use Export / Email for backups.",
-    "save": "Save configuration", "yaml_title": "Advanced YAML",
+    "quick_title": "Language and scan profile",
+    "quick_help": "Main field settings. Remember to save at the bottom of the page.",
+    "save": "Save configuration",
+    "yaml_title": "Advanced YAML",
     "yaml_help": "Direct file edit (form save drops comments).",
     "save_yaml": "Save YAML",
     "import_label": "Import",
     "sections": {
       "network": "Probe network", "ui": "TFT display", "web": "Web UI",
       "hotspot": "Phone hotspot", "ping": "Ping", "discovery": "Discover",
-      "appearance": "Appearance", "logging": "Log", "console": "Console"
+      "appearance": "Appearance", "profile": "Scan profile", "logging": "Log", "console": "Console"
     },
     "fields": {
       "interface": { "label": "Monitored interface", "help": "Usually eth0 (diagnostic cable)." },

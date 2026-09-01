@@ -69,7 +69,11 @@
     .field-help { margin: 0 0 .35rem; color: var(--muted); font-size: .78rem; line-height: 1.35; }
     .section-title { margin: 1rem 0 .5rem; font-size: .85rem; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
     .section-title:first-child { margin-top: 0; }
-    .config-advanced { margin-top: 1rem; }
+    .config-highlight { border-color: var(--accent); background: linear-gradient(135deg, var(--card) 0%, rgba(80,200,120,.08) 100%); }
+    .config-highlight h2 { color: var(--accent); font-size: 1.05rem; }
+    .config-highlight .field label { font-size: 1rem; }
+    .config-highlight select { font-size: 1.05rem; padding: .75rem; }
+    .power-armed { outline: 2px solid var(--danger); }
     input[type="checkbox"] { width: auto; margin: 0; }
     .field-check { display: flex; align-items: flex-start; gap: .55rem; }
     .field-check input { margin-top: .2rem; }
@@ -440,15 +444,22 @@
       <div class="card">
         <h2 data-i18n="power.title">Spegnimento sistema</h2>
         <p class="sub" data-i18n="power.help">Arresta in sicurezza NDP, hotspot Wi-Fi e spegne il Raspberry Pi. Sul display TFT compare la schermata di spegnimento.</p>
+        <p class="sub" id="power-hint" data-i18n="power.phone_hint">Dopo la conferma, guarda il display del probe: lo spegnimento viene mostrato lì.</p>
         <div id="power-status" class="sub"></div>
         <div class="actions">
           <button class="danger" id="power-shutdown" data-i18n="power.shutdown_btn">Spegni NDP</button>
+          <button class="secondary" id="power-shutdown-cancel" style="display:none" data-i18n="actions.cancel">Annulla</button>
         </div>
         <p id="power-msg" class="sub"></p>
       </div>
     </section>
 
     <section class="panel" id="panel-config">
+      <div class="card config-highlight" id="config-quick-card">
+        <h2 data-i18n="config.quick_title">Lingua e profilo scansione</h2>
+        <p class="sub" data-i18n="config.quick_help">Impostazioni principali per uso sul campo. Ricorda di salvare in fondo alla pagina.</p>
+        <div id="config-quick-form"></div>
+      </div>
       <div class="card">
         <h2 data-i18n="config.guided_title">Configurazione guidata</h2>
         <p class="sub" data-i18n="config.guided_help">Ogni voce include una spiegazione. Per backup o profili rete usa Esporta / Invia mail.</p>
@@ -489,6 +500,9 @@
     let activeThemeId = 'field-dark';
     let scenarioDefaults = {};
     let scenarioMeta = null;
+    let localeCatalog = [];
+    let scenarioCatalog = [];
+    let shutdownConfirmPending = false;
 
     function t(key, vars) {
       let current = localeStrings;
@@ -2001,7 +2015,10 @@
         return `<div class="field field-check"><input type="checkbox" id="${id}" data-key="${field.key}" ${value ? 'checked' : ''}><div><label for="${id}">${field.label}</label>${help}</div></div>`;
       }
       if (field.type === 'select') {
-        const opts = (field.options || []).map(opt => `<option value="${opt}" ${String(value) === opt ? 'selected' : ''}>${opt}</option>`).join('');
+        const opts = (field.options || []).map(opt => {
+          const label = selectOptionLabel(field, opt);
+          return `<option value="${opt}" ${String(value) === opt ? 'selected' : ''}>${label}</option>`;
+        }).join('');
         return `<div class="field"><label for="${id}">${field.label}</label>${help}<select id="${id}" data-key="${field.key}">${opts}</select></div>`;
       }
       const inputType = field.key.includes('password') ? 'text' : (field.type === 'int' || field.type === 'float' ? 'number' : 'text');
@@ -2010,14 +2027,41 @@
       return `<div class="field"><label for="${id}">${field.label}</label>${help}<input id="${id}" data-key="${field.key}" type="${inputType}" ${field.type === 'int' || field.type === 'float' ? `step="${step}"` : ''} value="${val.replace(/"/g, '&quot;')}"></div>`;
     }
 
-    function renderConfigForm(containerId, sectionFilter=null, sectionExclude=null) {
+    function normalizeSectionFilter(filter) {
+      if (!filter) return null;
+      return new Set(Array.isArray(filter) ? filter : [filter]);
+    }
+
+    function sectionMatches(sectionId, includeFilter, excludeFilter) {
+      if (includeFilter && !includeFilter.has(sectionId)) return false;
+      if (excludeFilter && excludeFilter.has(sectionId)) return false;
+      return true;
+    }
+
+    function selectOptionLabel(field, opt) {
+      if (field.key === 'discovery.scenario') {
+        const key = `scenario.${opt}`;
+        const label = t(key);
+        return label !== key ? label : opt;
+      }
+      if (field.key === 'ui.locale') {
+        const entry = localeCatalog.find(item => item.code === opt);
+        return entry ? entry.name : opt;
+      }
+      return opt;
+    }
+
+    function renderConfigForm(containerId, sectionFilter=null, sectionExclude=null, options={}) {
       const el = document.getElementById(containerId);
       if (!configSchema.length) { el.innerHTML = '<div class="sub">' + t('common.loading') + '</div>'; return; }
+      const include = normalizeSectionFilter(sectionFilter);
+      const exclude = normalizeSectionFilter(sectionExclude);
+      const hideTitles = Boolean(options.hideSectionTitles);
       el.innerHTML = configSchema
-        .filter(section => (!sectionFilter || section.id === sectionFilter) && (!sectionExclude || section.id !== sectionExclude))
+        .filter(section => sectionMatches(section.id, include, exclude))
         .map(section => {
           const fields = (section.fields || []).map(field => renderConfigField(field, configValues[field.key])).join('');
-          return `<div class="section-title">${section.title}</div>${fields}`;
+          return hideTitles ? fields : `<div class="section-title">${section.title}</div>${fields}`;
         }).join('');
     }
 
@@ -2030,6 +2074,20 @@
         else if (node.type === 'number') values[key] = node.value === '' ? '' : Number(node.value);
         else values[key] = node.value;
       });
+      return values;
+    }
+
+    function collectAllConfigValues() {
+      let values = {...configValues};
+      for (const containerId of ['config-quick-form', 'config-form', 'hotspot-form']) {
+        document.querySelectorAll(`#${containerId} [data-key]`).forEach(node => {
+          const key = node.getAttribute('data-key');
+          if (!key) return;
+          if (node.type === 'checkbox') values[key] = node.checked;
+          else if (node.type === 'number') values[key] = node.value === '' ? '' : Number(node.value);
+          else values[key] = node.value;
+        });
+      }
       return values;
     }
 
@@ -2071,7 +2129,25 @@
       const valuesJson = await valuesResp.json();
       configValues = valuesJson.values || {};
       document.getElementById('yaml').value = valuesJson.yaml || '';
-      renderConfigForm('config-form', null, 'hotspot');
+      try {
+        const [locResp, scenResp] = await Promise.all([
+          fetch('/api/locale'),
+          fetch('/api/scenarios'),
+        ]);
+        if (locResp.ok) {
+          const locJson = await locResp.json();
+          localeCatalog = locJson.locales || [];
+        }
+        if (scenResp.ok) {
+          const scenJson = await scenResp.json();
+          scenarioCatalog = scenJson.scenarios || [];
+          scenarioMeta = scenarioCatalog.find(item => item.id === configValues['discovery.scenario']) || scenarioMeta;
+        }
+      } catch (e) {
+        console.warn('config catalogs load failed', e);
+      }
+      renderConfigForm('config-quick-form', ['profile', 'appearance'], null, {hideSectionTitles: true});
+      renderConfigForm('config-form', null, ['hotspot', 'profile', 'appearance']);
       renderConfigForm('hotspot-form', 'hotspot');
       renderHotspotStatusPanel();
     }
@@ -2105,7 +2181,7 @@
       btn.disabled = true;
       msg.textContent = t('common.saving');
       try {
-        const values = collectConfigValues('config-form');
+        const values = collectAllConfigValues();
         const r = await fetch('/api/config/values', {
           method: 'PUT', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({values})
@@ -2192,6 +2268,27 @@
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    function resetShutdownConfirm() {
+      shutdownConfirmPending = false;
+      const btn = document.getElementById('power-shutdown');
+      const cancelBtn = document.getElementById('power-shutdown-cancel');
+      const hint = document.getElementById('power-hint');
+      const msg = document.getElementById('power-msg');
+      const statusEl = document.getElementById('power-status');
+      btn.disabled = false;
+      btn.textContent = t('power.shutdown_btn');
+      cancelBtn.style.display = 'none';
+      if (hint) {
+        hint.style.display = '';
+        hint.textContent = t('power.phone_hint');
+      }
+      if (msg) {
+        msg.textContent = '';
+        msg.className = 'sub';
+      }
+      if (statusEl) statusEl.textContent = '';
+    }
+
     async function pollShutdownStatus(msgEl, statusEl) {
       let offlineStreak = 0;
       for (let attempt = 0; attempt < 90; attempt += 1) {
@@ -2202,37 +2299,52 @@
           clearTimeout(timer);
           const j = await r.json();
           offlineStreak = 0;
-          const phase = j.phase || 'idle';
-          const text = j.message || 'Spegnimento in corso...';
-          if (statusEl) statusEl.textContent = `Fase: ${phase} — ${text}`;
-          if (msgEl) msgEl.textContent = text;
-          if (phase === 'powering_off') {
-            if (msgEl) msgEl.textContent = 'Spegnimento in corso... attendere arresto completo.';
-          }
+          if (statusEl) statusEl.textContent = '';
+          if (msgEl && !msgEl.textContent) msgEl.textContent = t('power.started_tft');
         } catch (_err) {
           offlineStreak += 1;
           if (offlineStreak >= 2) {
-            if (statusEl) statusEl.textContent = 'Sistema non raggiungibile.';
+            if (statusEl) statusEl.textContent = '';
             if (msgEl) {
-              msgEl.textContent = 'Sistema spento. Puoi scollegare l\'alimentazione in sicurezza.';
+              msgEl.textContent = t('power.offline_safe');
               msgEl.className = 'ok';
             }
+            shutdownConfirmPending = false;
             return;
           }
-          if (msgEl) msgEl.textContent = 'Connessione persa: spegnimento in corso...';
+          if (msgEl) msgEl.textContent = t('power.connection_lost');
         }
         await sleep(1000);
       }
       if (msgEl) msgEl.textContent = t('common.shutdown_timeout');
+      shutdownConfirmPending = false;
     }
+
+    document.getElementById('power-shutdown-cancel').onclick = () => resetShutdownConfirm();
 
     document.getElementById('power-shutdown').onclick = async () => {
       const msg = document.getElementById('power-msg');
       const statusEl = document.getElementById('power-status');
       const btn = document.getElementById('power-shutdown');
-      if (!window.confirm(t('common.confirm_shutdown'))) return;
+      const cancelBtn = document.getElementById('power-shutdown-cancel');
+      const hint = document.getElementById('power-hint');
+
+      if (!shutdownConfirmPending) {
+        shutdownConfirmPending = true;
+        btn.textContent = t('power.confirm_btn');
+        cancelBtn.style.display = 'inline-flex';
+        if (hint) hint.textContent = t('power.confirm_hint');
+        msg.textContent = '';
+        msg.className = 'sub';
+        if (statusEl) statusEl.textContent = '';
+        return;
+      }
+
       btn.disabled = true;
-      msg.textContent = t('common.shutdown_sent');
+      cancelBtn.style.display = 'none';
+      shutdownConfirmPending = false;
+      if (hint) hint.style.display = 'none';
+      msg.textContent = t('power.started_tft');
       msg.className = 'sub';
       if (statusEl) statusEl.textContent = '';
       try {
@@ -2244,13 +2356,13 @@
         const parsed = await parseJsonResponse(r);
         if (!r.ok) {
           msg.textContent = formatApiError(parsed.data || parsed);
-          btn.disabled = false;
+          resetShutdownConfirm();
           return;
         }
         await pollShutdownStatus(msg, statusEl);
       } catch (e) {
-        msg.textContent = 'Errore: ' + e;
-        btn.disabled = false;
+        msg.textContent = t('common.network_error', {detail: e});
+        resetShutdownConfirm();
       }
     };
 

@@ -155,12 +155,21 @@
   },
   "power": {
     "title": "Spegnimento sistema",
-    "help": "Arresta in sicurezza NDP, hotspot Wi-Fi e spegne il Raspberry Pi. Sul display TFT compare la schermata di spegnimento.",
+    "help": "Arresta in sicurezza NDP, hotspot Wi-Fi e spegne il Raspberry Pi.",
+    "phone_hint": "Dopo la conferma, guarda il display del probe: lo spegnimento viene mostrato lì.",
+    "confirm_hint": "Tocca di nuovo «Conferma spegnimento» per procedere, oppure Annulla.",
+    "confirm_btn": "Conferma spegnimento",
+    "started_tft": "Spegnimento avviato — segui il display del probe.",
+    "phase": "Fase: {phase}",
+    "offline_safe": "Sistema spento. Puoi scollegare l'alimentazione in sicurezza.",
+    "connection_lost": "Connessione persa: spegnimento in corso...",
     "shutdown_btn": "Spegni NDP"
   },
   "config": {
     "guided_title": "Configurazione guidata",
     "guided_help": "Ogni voce include una spiegazione. Per backup o profili rete usa Esporta / Invia mail.",
+    "quick_title": "Lingua e profilo scansione",
+    "quick_help": "Impostazioni principali per uso sul campo. Ricorda di salvare in fondo alla pagina.",
     "save": "Salva configurazione", "yaml_title": "YAML avanzato",
     "yaml_help": "Modifica diretta del file (perde i commenti al salvataggio da form).",
     "save_yaml": "Salva YAML",
@@ -168,7 +177,7 @@
     "sections": {
       "network": "Rete probe", "ui": "Display TFT", "web": "Web UI",
       "hotspot": "Hotspot telefono", "ping": "Ping", "discovery": "Discover",
-      "appearance": "Aspetto", "logging": "Log", "console": "Console"
+      "appearance": "Aspetto", "profile": "Profilo scansione", "logging": "Log", "console": "Console"
     },
     "fields": {
       "interface": { "label": "Interfaccia monitorata", "help": "Di solito eth0 (cavo diagnostica)." },
