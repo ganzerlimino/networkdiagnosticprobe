@@ -168,8 +168,12 @@ def discover_mdns_services(
     return services
 
 
-def discover_mdns_snapshot(interface: str) -> dict[str, Any]:
-    services = discover_mdns_services(interface)
+def discover_mdns_snapshot(
+    interface: str,
+    *,
+    timeout_seconds: float = _DEFAULT_TIMEOUT,
+) -> dict[str, Any]:
+    services = discover_mdns_services(interface, timeout_seconds=timeout_seconds)
     return {
         "interface": interface,
         "protocol": "mDNS",

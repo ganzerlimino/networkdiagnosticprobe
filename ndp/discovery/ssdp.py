@@ -99,8 +99,12 @@ def discover_ssdp_devices(
     return devices
 
 
-def discover_ssdp_snapshot(interface: str) -> dict[str, Any]:
-    devices = discover_ssdp_devices(interface)
+def discover_ssdp_snapshot(
+    interface: str,
+    *,
+    timeout_seconds: float = _DEFAULT_TIMEOUT,
+) -> dict[str, Any]:
+    devices = discover_ssdp_devices(interface, timeout_seconds=timeout_seconds)
     return {
         "interface": interface,
         "protocol": "SSDP",

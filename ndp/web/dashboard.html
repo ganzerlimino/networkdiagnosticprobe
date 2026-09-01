@@ -140,6 +140,7 @@
       </div>
       <div class="card">
         <h2>Ultimi risultati</h2>
+        <p class="sub"><strong>Suite completa</strong> esegue ICMP verso 8.8.8.8, 1.1.1.1, fino a 4 host in config, eventuale host adhoc e — se compilati — i 3 campi sopra. Tutti i ping partono da <strong>eth0</strong> in parallelo (count/timeout da config).</p>
         <div id="ping-results"></div>
         <div class="actions">
           <button class="secondary" onclick="sendReport('ping')">📧 Report ping</button>
@@ -236,7 +237,7 @@
     <section class="panel" id="panel-passive">
       <div class="card">
         <h2>Sniff passivo (riepilogo)</h2>
-        <p class="sub">Riepilogo protocolli L2/L3 rilevati: STP/LACP/VLAN/IGMP, FDP/EDP/LLTD, mDNS, SSDP, DHCP Option 82, SNMP.</p>
+        <p class="sub">Riepilogo protocolli L2/L3 rilevati: STP/LACP/VLAN/IGMP, FDP/EDP/LLTD, mDNS, SSDP, DHCP Option 82, SNMP. Le fasi girano in <strong>parallelo</strong>: durata effettiva ≈ i secondi impostati (non la somma).</p>
         <label class="field">
           <span>Durata ascolto (secondi)</span>
           <input id="passive-seconds" type="number" min="1" max="60" value="3">
@@ -1271,11 +1272,10 @@
       const controller = beginScan('passive-stop');
       scanBtn.disabled = true;
       const stopProgress = startProgressFeedback(msg, [
-        `Sniff passivo eth0 (${seconds}s)`,
-        'Analisi STP/LACP/VLAN/IGMP',
-        'Probe mDNS e SSDP',
-        'Sniff DHCP Option 82',
-        snmpHost ? `Probe SNMP su ${snmpHost}` : 'SNMP non configurato',
+        `Sniff L2 + DHCP (${seconds}s, parallelo)`,
+        'mDNS e SSDP',
+        'Probe ethertype FDP/EDP/LLTD',
+        snmpHost ? `SNMP su ${snmpHost}` : 'SNMP (gateway se impostato)',
       ]);
       [summaryEl, l2El, l2probeEl, serviceEl, dhcpEl, snmpEl].forEach(el => el.textContent = 'In attesa…');
       try {
@@ -1357,7 +1357,8 @@
           })),
         ];
         cacheScan('passive', j, rows);
-        msg.textContent = 'Sniff completato.';
+        const dur = j.duration_seconds != null ? j.duration_seconds : '?';
+        msg.textContent = `Sniff completato in ${dur}s (impostati ${seconds}s).`;
       } catch (e) {
         stopProgress();
         if (e.name === 'AbortError') msg.textContent = 'Sniff interrotto.';
@@ -1521,10 +1522,15 @@
       const scanBtn = document.getElementById('printers-scan');
       const controller = beginScan('printers-stop');
       scanBtn.disabled = true;
-      msg.textContent = 'Scansione stampanti Epson/Zebra...';
-      el.textContent = '...';
+      const stopProgress = startProgressFeedback(msg, [
+        'Probe Epson ENPC UDP/3289',
+        'Probe Zebra Link-OS UDP/4201',
+        'Raccolta dispositivi stampanti',
+      ]);
+      el.textContent = '';
       try {
         const r = await fetch('/api/discover/printers?timeout_seconds=6', { signal: controller.signal });
+        stopProgress();
         const parsed = await parseJsonResponse(r);
         if (parsed.error) { msg.textContent = parsed.error; return; }
         const j = parsed.data;
@@ -1550,6 +1556,7 @@
           : '<div class="sub">Nessuna stampante rilevata. Verifica ENPC (Epson) o discovery Zebra abilitati sulla stampante.</div>';
         msg.textContent = `${devices.length} stampante/i trovata/e (Epson ${j.epson_count || 0}, Zebra ${j.zebra_count || 0}).`;
       } catch (e) {
+        stopProgress();
         if (e.name === 'AbortError') {
           msg.textContent = 'Scansione interrotta.';
           el.textContent = 'Interrotta.';
