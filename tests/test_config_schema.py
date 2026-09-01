@@ -21,6 +21,14 @@ def test_config_sections_include_appearance() -> None:
     assert "ui.theme" in keys
 
 
+def test_config_sections_german_labels() -> None:
+    sections = config_sections("de")
+    appearance = next(section for section in sections if section["id"] == "appearance")
+    theme = next(field for field in appearance["fields"] if field["key"] == "ui.theme")  # type: ignore[index]
+    assert theme["label"] == "Farbschema"
+    assert "config.fields" not in str(theme["label"])
+
+
 def test_nested_get_set() -> None:
     data: dict = {}
     set_nested_value(data, "wifi_hotspot.password", "ndp-probe")

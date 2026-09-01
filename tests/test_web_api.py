@@ -76,6 +76,16 @@ def test_discover_industrial_endpoint_returns_json() -> None:
     assert "device_count" in payload
 
 
+def test_config_schema_accepts_locale_query() -> None:
+    client = _client()
+    response = client.get("/api/config/schema?locale=de")
+    assert response.status_code == 200
+    sections = response.json()["sections"]
+    appearance = next(s for s in sections if s["id"] == "appearance")
+    theme = next(f for f in appearance["fields"] if f["key"] == "ui.theme")
+    assert theme["label"] == "Farbschema"
+
+
 def test_discover_oui_endpoint_returns_json() -> None:
     client = _client()
     response = client.get("/api/discover/oui?search=HMS&limit=10")

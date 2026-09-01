@@ -99,6 +99,29 @@ def translate(locale: dict[str, Any], key: str, **variables: object) -> str:
     return text
 
 
+def translate_config_field(
+    locale: dict[str, Any],
+    field_key: str,
+    part: str,
+    *,
+    fallback: str = "",
+) -> str:
+    """Resolve config.fields.<dotted-key>.label|help (field keys contain dots)."""
+    config = locale.get("config")
+    if not isinstance(config, dict):
+        return fallback or f"config.fields.{field_key}.{part}"
+    fields = config.get("fields")
+    if not isinstance(fields, dict):
+        return fallback or f"config.fields.{field_key}.{part}"
+    entry = fields.get(field_key)
+    if not isinstance(entry, dict):
+        return fallback or f"config.fields.{field_key}.{part}"
+    value = entry.get(part)
+    if isinstance(value, str) and value:
+        return value
+    return fallback or f"config.fields.{field_key}.{part}"
+
+
 def load_themes_catalog() -> dict[str, Any]:
     for path in (_SYSTEM_LOCALE_DIR / "themes.json", _BUNDLED_DIR / "themes.json"):
         if path.is_file():

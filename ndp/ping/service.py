@@ -113,7 +113,7 @@ def run_ping_suite(
         list(host_to_target.keys()),
         count=config.ping_count,
         timeout_seconds=config.ping_timeout_seconds,
-        max_workers=3,
+        max_workers=min(8, len(host_to_target)),
         interface=config.interface,
         packet_size=config.ping_packet_size,
     )

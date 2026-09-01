@@ -183,7 +183,7 @@ def ping_hosts_parallel(
     if not unique_hosts:
         return {}
 
-    workers = min(max(1, max_workers), len(unique_hosts), 3)
+    workers = min(max(1, max_workers), len(unique_hosts), 8)
     results: dict[str, PingResult] = {}
 
     with ThreadPoolExecutor(max_workers=workers) as executor:

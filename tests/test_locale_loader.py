@@ -5,6 +5,7 @@ from ndp.locale.loader import (
     resolve_theme_id,
     tft_palette,
     translate,
+    translate_config_field,
 )
 
 
@@ -38,4 +39,12 @@ def test_list_locales_includes_de() -> None:
 def test_load_locale_de_has_plant_title() -> None:
     locale = load_locale("de")
     assert locale["nav"]["plant"] == "Anlage"
+
+
+def test_translate_config_field_dotted_key() -> None:
+    locale = load_locale("de")
+    label = translate_config_field(locale, "ui.theme", "label", fallback="Theme")
+    assert label == "Farbschema"
+    assert "config.fields" not in label
+
 

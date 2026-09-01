@@ -17,7 +17,7 @@ class ConfigField:
 
 
 def config_sections(locale_code: str = "it") -> list[dict[str, object]]:
-    from ndp.locale.loader import list_locales, load_locale, translate
+    from ndp.locale.loader import list_locales, load_locale, translate, translate_config_field
 
     locale = load_locale(locale_code)
     locale_options = tuple(entry["code"] for entry in list_locales())
@@ -32,8 +32,8 @@ def config_sections(locale_code: str = "it") -> list[dict[str, object]]:
                 "fields": [],
             },
         )
-        label = translate(locale, f"config.fields.{field.key}.label") or field.label
-        help_text = translate(locale, f"config.fields.{field.key}.help") or field.help
+        label = translate_config_field(locale, field.key, "label", fallback=field.label)
+        help_text = translate_config_field(locale, field.key, "help", fallback=field.help)
         section["fields"].append(
             {
                 "key": field.key,

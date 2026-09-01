@@ -965,13 +965,14 @@
     function renderPingResults(ping) {
       const el = document.getElementById('ping-results');
       const data = pingResultsOverride || ping;
-      if (data.running) { el.innerHTML = row(t('common.status'), data.message || 'In corso...'); return; }
+      if (data.running) { el.innerHTML = row(t('common.status'), data.message || t('common.in_progress')); return; }
       const results = data.results || [];
       if (!results.length) { el.innerHTML = '<div class="sub">' + t('common.no_results') + '</div>'; return; }
       el.innerHTML = results.map(item => {
-        const ok = item.reachable;
-        const rtt = item.rtt_ms != null ? item.rtt_ms.toFixed(0) + ' ms' : 'FAIL';
-        const stats = item.samples ? ` · ${item.samples} campioni` : '';
+        const ok = Boolean(item.reachable);
+        const rttMs = item.rtt_ms != null ? Number(item.rtt_ms) : null;
+        const rtt = rttMs != null && !Number.isNaN(rttMs) ? rttMs.toFixed(0) + ' ms' : t('common.fail');
+        const stats = item.samples ? ` · ${item.samples} ${t('common.samples')}` : '';
         return row(item.label || item.host, `${item.host} · ${rtt}${stats}`, ok ? 'ok' : 'bad');
       }).join('');
     }
@@ -1197,21 +1198,21 @@
     document.getElementById('live-stop').onclick = () => stopLive({ message: t('ping.live_stopped') });
 
     document.getElementById('suite-run').onclick = async () => {
-      const hosts = readHostInputs();
+      const extraHosts = readHostInputs();
       const msg = document.getElementById('ping-msg');
       msg.textContent = t('ping.suite_running');
-      pingResultsOverride = null;
       const r = await fetch('/api/ping/run', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({hosts: hosts.length ? hosts : null})
+        body: JSON.stringify({hosts: extraHosts.length ? extraHosts : null})
       });
       const parsed = await parseJsonResponse(r);
       if (parsed.error) { msg.textContent = parsed.error; return; }
+      if (!parsed.ok) { msg.textContent = formatApiError(parsed.data || parsed); return; }
       const j = parsed.data;
-      msg.textContent = parsed.ok ? t('common.completed') : formatApiError(j);
-      if (parsed.ok) renderPingResults(j);
-      loadStatus();
+      pingResultsOverride = j;
+      msg.textContent = t('common.completed');
+      renderPingResults(j);
     };
 
     let discPoll = null;
@@ -2061,8 +2062,9 @@
       loadStatus();
     };
 
-    async function loadConfigForm() {
-      const schemaResp = await fetch('/api/config/schema');
+    async function loadConfigForm(preferredLocale) {
+      const localeParam = preferredLocale ? `?locale=${encodeURIComponent(preferredLocale)}` : '';
+      const schemaResp = await fetch('/api/config/schema' + localeParam);
       const schemaJson = await schemaResp.json();
       configSchema = schemaJson.sections || [];
       const valuesResp = await fetch('/api/config/values');
@@ -2072,6 +2074,29 @@
       renderConfigForm('config-form', null, 'hotspot');
       renderConfigForm('hotspot-form', 'hotspot');
       renderHotspotStatusPanel();
+    }
+
+    async function applyLocaleBundle(code) {
+      if (!code) return;
+      activeLocale = code;
+      document.documentElement.lang = code;
+      try {
+        const [locResp, themesResp] = await Promise.all([
+          fetch(`/api/locale/${code}`),
+          fetch('/api/themes'),
+        ]);
+        if (locResp.ok) localeStrings = await locResp.json();
+        const themesJson = await themesResp.json();
+        const theme = (themesJson.themes || {})[activeThemeId];
+        if (theme) applyTheme(theme);
+      } catch (e) {
+        console.warn('locale apply failed', e);
+      }
+      applyNavLabels();
+      applyStaticI18n();
+      const titleEl = document.getElementById('app-title');
+      if (titleEl) titleEl.textContent = t('app.title');
+      document.title = t('app.title');
     }
 
     document.getElementById('config-save').onclick = async () => {
@@ -2086,22 +2111,26 @@
           body: JSON.stringify({values})
         });
         const parsed = await parseJsonResponse(r);
+        if (parsed.error) {
+          msg.textContent = parsed.error;
+          return;
+        }
         if (!r.ok) {
           msg.textContent = formatApiError(parsed.data || parsed);
           return;
         }
-        const j = parsed.data || {};
+        const savedLocale = values['ui.locale'];
+        if (savedLocale) await applyLocaleBundle(String(savedLocale));
         msg.textContent = t('common.saved_restart');
+        await loadConfigForm(savedLocale ? String(savedLocale) : null);
         fetch('/api/services/restart', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({services: j.restart_services || ['ndp', 'ndp-hotspot']}),
+          body: JSON.stringify({services: (parsed.data || {}).restart_services || ['ndp', 'ndp-hotspot']}),
         }).catch(() => {});
-        loadConfigForm();
-        loadVersion();
-        setTimeout(loadStatus, 2500);
+        setTimeout(() => { loadVersion(); loadStatus(); }, 2500);
       } catch (e) {
-        msg.textContent = 'Errore: ' + e;
+        msg.textContent = t('common.network_error', {detail: e});
       } finally {
         btn.disabled = false;
       }

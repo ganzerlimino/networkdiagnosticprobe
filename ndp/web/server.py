@@ -105,8 +105,9 @@ def create_app(
         return {"ok": True, "path": str(config_path)}
 
     @app.get("/api/config/schema")
-    def api_config_schema() -> dict[str, object]:
-        return {"sections": config_sections(config.ui_locale)}
+    def api_config_schema(locale: str | None = None) -> dict[str, object]:
+        code = (locale or config.ui_locale).strip().lower() or config.ui_locale
+        return {"sections": config_sections(code)}
 
     @app.get("/api/config/values")
     def api_config_values() -> dict[str, object]:
@@ -283,20 +284,20 @@ def create_app(
     @app.post("/api/ping/run")
     def api_ping_run(body: PingRunPayload | None = Body(default=None)) -> dict[str, object]:
         state = get_state()
-        hosts = None
+        extra_hosts: list[str] | None = None
         if body and body.hosts:
             try:
-                hosts = [validate_host(host) for host in body.hosts if str(host).strip()]
+                extra_hosts = [
+                    validate_host(host) for host in body.hosts if str(host).strip()
+                ]
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
-        if hosts:
-            suite = run_ping_hosts(config, hosts, gateway=state.ip.gateway)
-        else:
-            suite = run_ping_suite(
-                config,
-                gateway=state.ip.gateway,
-                adhoc_path=Path(config.ping_adhoc_path),
-            )
+        suite = run_ping_suite(
+            config,
+            gateway=state.ip.gateway,
+            adhoc_path=Path(config.ping_adhoc_path),
+            extra_hosts=extra_hosts or None,
+        )
         if on_ping_complete is not None:
             on_ping_complete(suite)
         return suite.to_dict()
