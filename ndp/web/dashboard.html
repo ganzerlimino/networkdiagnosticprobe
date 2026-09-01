@@ -106,25 +106,25 @@
   </nav>
   <main>
     <section class="panel active" id="panel-status">
-      <div class="card"><h2>Hotspot telefono</h2><div id="status-hotspot"></div></div>
-      <div class="card"><h2>Link</h2><div id="status-link"></div></div>
-      <div class="card"><h2>Rete</h2><div id="status-network"></div></div>
-      <div class="card"><h2>Switch</h2><div id="status-switch"></div></div>
-      <div class="card"><h2>Sistema</h2><div id="status-system"></div></div>
+      <div class="card"><h2 data-i18n="status.hotspot">Hotspot telefono</h2><div id="status-hotspot"></div></div>
+      <div class="card"><h2 data-i18n="status.link">Link</h2><div id="status-link"></div></div>
+      <div class="card"><h2 data-i18n="status.network">Rete</h2><div id="status-network"></div></div>
+      <div class="card"><h2 data-i18n="status.switch">Switch</h2><div id="status-switch"></div></div>
+      <div class="card"><h2 data-i18n="status.system">Sistema</h2><div id="status-system"></div></div>
       <div class="actions">
-        <button class="secondary" onclick="sendReport('status')">📧 Report stato</button>
-        <button class="secondary" onclick="sendReport('all')">📧 Report completo</button>
+        <button class="secondary" onclick="sendReport('status')" data-i18n="actions.report_status">📧 Report stato</button>
+        <button class="secondary" onclick="sendReport('all')" data-i18n="actions.report_full">📧 Report completo</button>
       </div>
     </section>
 
     <section class="panel" id="panel-ping">
       <div class="card">
-        <h2>Ping live (fino a 3 host)</h2>
-        <p class="sub">I ping partono in parallelo. Grafico aggiornato in tempo reale.</p>
+        <h2 data-i18n="ping.live_title">Ping live (fino a 3 host)</h2>
+        <p class="sub" data-i18n-html="ping.live_help">I ping partono in parallelo. Grafico aggiornato in tempo reale.</p>
         <div class="host-grid">
-          <input id="host1" placeholder="Host 1 (es. 8.8.8.8)">
-          <input id="host2" placeholder="Host 2 (opzionale)">
-          <input id="host3" placeholder="Host 3 (opzionale)">
+          <input id="host1" data-i18n-placeholder="ping.host1_ph" placeholder="Host 1 (es. 8.8.8.8)">
+          <input id="host2" data-i18n-placeholder="ping.host2_ph" placeholder="Host 2 (opzionale)">
+          <input id="host3" data-i18n-placeholder="ping.host3_ph" placeholder="Host 3 (opzionale)">
         </div>
         <canvas id="ping-chart" width="600" height="240"></canvas>
         <div class="legend">
@@ -133,34 +133,34 @@
           <span class="l3" id="leg3">Host 3</span>
         </div>
         <div class="actions">
-          <button class="primary" id="live-start">Avvia grafico live</button>
-          <button class="secondary" id="live-stop" disabled>Ferma</button>
-          <button class="secondary" id="suite-run">Suite completa</button>
+          <button class="primary" id="live-start" data-i18n="ping.live_start">Avvia grafico live</button>
+          <button class="secondary" id="live-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <button class="secondary" id="suite-run" data-i18n="ping.suite_run">Suite completa</button>
         </div>
         <p id="ping-msg" class="sub"></p>
       </div>
       <div class="card">
-        <h2>Ultimi risultati</h2>
-        <p class="sub"><strong>Suite completa</strong> esegue ICMP verso 8.8.8.8, 1.1.1.1, fino a 4 host in config, eventuale host adhoc e — se compilati — i 3 campi sopra. Tutti i ping partono da <strong>eth0</strong> in parallelo (count/timeout da config).</p>
+        <h2 data-i18n="ping.results_title">Ultimi risultati</h2>
+        <p class="sub" data-i18n-html="ping.suite_help"><strong>Suite completa</strong> esegue ICMP verso 8.8.8.8, 1.1.1.1, fino a 4 host in config, eventuale host adhoc e — se compilati — i 3 campi sopra. Tutti i ping partono da <strong>eth0</strong> in parallelo (count/timeout da config).</p>
         <div id="ping-results"></div>
         <div class="actions">
-          <button class="secondary" onclick="sendReport('ping')">📧 Report ping</button>
+          <button class="secondary" onclick="sendReport('ping')" data-i18n="actions.report_ping">📧 Report ping</button>
         </div>
       </div>
     </section>
 
     <section class="panel" id="panel-mtu">
       <div class="card">
-        <h2>MTU path discovery</h2>
-        <p class="sub">Test decrementale da 1500 verso il basso con ping DF (no fragment). Utile per VPN site-to-site.</p>
+        <h2 data-i18n="mtu.title">MTU path discovery</h2>
+        <p class="sub" data-i18n="mtu.help">Test decrementale da 1500 verso il basso con ping DF (no fragment). Utile per VPN site-to-site.</p>
         <label class="field">
           <span>Host remoto</span>
-          <input id="mtu-host" placeholder="es. gateway o IP peer VPN">
+          <input id="mtu-host" data-i18n-placeholder="mtu.host_ph" placeholder="es. gateway o IP peer VPN">
         </label>
         <div class="actions">
-          <button class="primary" id="mtu-start">Avvia test MTU</button>
-          <button class="secondary" id="mtu-stop" disabled>Ferma</button>
-          <button class="secondary" id="mtu-use-gateway">Usa gateway</button>
+          <button class="primary" id="mtu-start" data-i18n="mtu.start">Avvia test MTU</button>
+          <button class="secondary" id="mtu-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <button class="secondary" id="mtu-use-gateway" data-i18n="actions.use_gateway">Usa gateway</button>
         </div>
         <p id="mtu-msg" class="sub"></p>
         <div id="mtu-result" class="prompt" style="display:none"></div>
@@ -170,13 +170,13 @@
 
     <section class="panel" id="panel-discover">
       <div class="card">
-        <h2>Wizard Up/Down</h2>
+        <h2 data-i18n="discover.wizard_title">Wizard Up/Down</h2>
         <div class="phase" id="disc-phase">idle</div>
         <div class="prompt" id="disc-prompt">Caricamento...</div>
         <div class="log" id="disc-log"></div>
         <div class="actions">
-          <button class="primary" id="disc-start">Avvia wizard</button>
-          <button class="secondary" id="disc-continue" disabled>Continua</button>
+          <button class="primary" id="disc-start" data-i18n="discover.start_wizard">Avvia wizard</button>
+          <button class="secondary" id="disc-continue" disabled data-i18n="actions.continue">Continua</button>
           <button class="secondary" id="disc-skip" disabled>Salta verifica</button>
           <button class="danger" id="disc-cancel" disabled>Annulla</button>
         </div>
@@ -186,9 +186,9 @@
         </div>
       </div>
       <div class="card">
-        <h2>Scansione rapida ARP</h2>
+        <h2 data-i18n="discover.arp_title">Scansione rapida ARP</h2>
         <div class="actions">
-          <button class="secondary" id="discover-scan">Scansiona rete</button>
+          <button class="secondary" id="discover-scan" data-i18n="discover.scan_network">Scansiona rete</button>
           <button class="danger" id="discover-scan-stop" disabled>Ferma</button>
           <span class="export-group">
             <button class="secondary" id="discover-scan-export-json" disabled>JSON</button>
@@ -198,10 +198,10 @@
         <div id="discover-scan-results" class="log"></div>
       </div>
       <div class="card">
-        <h2>Servizi LAN (mDNS / SSDP / L2)</h2>
-        <p class="sub">mDNS, SSDP e rilevamento passivo FDP/EDP/LLTD (ethertype).</p>
+        <h2 data-i18n="discover.services_title">Servizi LAN (mDNS / SSDP / L2)</h2>
+        <p class="sub" data-i18n="discover.services_help">mDNS, SSDP e rilevamento passivo FDP/EDP/LLTD (ethertype).</p>
         <div class="actions">
-          <button class="secondary" id="discover-services">Scansiona servizi</button>
+          <button class="secondary" id="discover-services" data-i18n="actions.scan">Scansiona servizi</button>
           <button class="danger" id="discover-services-stop" disabled>Ferma</button>
           <span class="export-group">
             <button class="secondary" id="discover-services-export-json" disabled>JSON</button>
@@ -211,18 +211,18 @@
         <div id="discover-services-results" class="log"></div>
       </div>
       <div class="card">
-        <h2>Vendor MAC (OUI)</h2>
-        <p class="sub">Lookup OUI da database IEEE, bundle OT e voci apprese dalle scansioni ARP.</p>
+        <h2 data-i18n="discover.oui_title">Vendor MAC (OUI)</h2>
+        <p class="sub" data-i18n="discover.oui_help">Lookup OUI da database IEEE, bundle OT e voci apprese dalle scansioni ARP.</p>
         <label class="field">
           <span>Cerca vendor o prefisso</span>
-          <input id="oui-search" placeholder="es. Weintek, 00:90:E8, HMS">
+          <input id="oui-search" data-i18n-placeholder="discover.oui_search_ph" placeholder="es. Weintek, 00:90:E8, HMS">
         </label>
         <div class="field field-check">
           <input type="checkbox" id="oui-auto-refresh" checked>
           <label for="oui-auto-refresh">Aggiorna automaticamente dopo scansione ARP</label>
         </div>
         <div class="actions">
-          <button class="secondary" id="oui-refresh">Aggiorna tabella</button>
+          <button class="secondary" id="oui-refresh" data-i18n="discover.oui_refresh">Aggiorna tabella</button>
           <button class="secondary" id="oui-reload-db">Ricarica database OUI</button>
         </div>
         <p id="oui-msg" class="sub"></p>
@@ -237,18 +237,18 @@
 
     <section class="panel" id="panel-passive">
       <div class="card">
-        <h2>Sniff passivo (riepilogo)</h2>
-        <p class="sub">Riepilogo protocolli L2/L3 rilevati: STP/LACP/VLAN/IGMP, FDP/EDP/LLTD, mDNS, SSDP, DHCP Option 82, SNMP. Le fasi girano in <strong>parallelo</strong>: durata effettiva ≈ i secondi impostati (non la somma).</p>
+        <h2 data-i18n="passive.title">Sniff passivo (riepilogo)</h2>
+        <p class="sub" data-i18n-html="passive.help">Riepilogo protocolli L2/L3 rilevati: STP/LACP/VLAN/IGMP, FDP/EDP/LLTD, mDNS, SSDP, DHCP Option 82, SNMP. Le fasi girano in <strong>parallelo</strong>: durata effettiva ≈ i secondi impostati (non la somma).</p>
         <label class="field">
           <span>Durata ascolto (secondi)</span>
           <input id="passive-seconds" type="number" min="1" max="60" value="3">
         </label>
         <label class="field">
           <span>Host SNMP (opzionale)</span>
-          <input id="passive-snmp-host" placeholder="vuoto = gateway">
+          <input id="passive-snmp-host" data-i18n-placeholder="passive.snmp_ph" placeholder="vuoto = gateway">
         </label>
         <div class="actions">
-          <button class="primary" id="passive-run">Avvia passive check</button>
+          <button class="primary" id="passive-run" data-i18n="passive.run_full">Avvia passive check</button>
           <button class="danger" id="passive-stop" disabled>Ferma</button>
           <button class="secondary" id="passive-use-gateway">Usa gateway SNMP</button>
           <span class="export-group">
@@ -274,14 +274,14 @@
 
     <section class="panel" id="panel-mikrotik">
       <div class="card">
-        <h2>MikroTik (MNDP)</h2>
-        <p class="sub">Probe attivo UDP/5678 + ascolto risposte. La card Switch mostra solo il dispositivo collegato (match MAC/IP gateway).</p>
+        <h2 data-i18n="mikrotik.title">MikroTik (MNDP)</h2>
+        <p class="sub" data-i18n="mikrotik.help">Probe attivo UDP/5678 + ascolto risposte. La card Switch mostra solo il dispositivo collegato (match MAC/IP gateway).</p>
         <label class="field">
           <span>Durata ascolto (secondi)</span>
           <input id="mikrotik-seconds" type="number" min="2" max="60" value="6">
         </label>
         <div class="actions">
-          <button class="primary" id="mikrotik-scan">Scansiona MikroTik</button>
+          <button class="primary" id="mikrotik-scan" data-i18n="mikrotik.scan">Scansiona MikroTik</button>
           <button class="danger" id="mikrotik-stop" disabled>Ferma</button>
           <span class="export-group">
             <button class="secondary" id="mikrotik-export-json" disabled>JSON</button>
@@ -295,17 +295,17 @@
 
     <section class="panel" id="panel-plant">
       <div class="card">
-        <h2>Impianto OT</h2>
-        <p class="sub">Discovery broadcast in LAN (Weintek, eWON) e, opzionalmente, porte industriali su un IP target.</p>
+        <h2 data-i18n="plant.title">Impianto OT</h2>
+        <p class="sub" data-i18n="plant.help">Discovery broadcast in LAN (Weintek, eWON) e, opzionalmente, porte industriali su un IP target.</p>
         <p class="sub" id="plant-scenario-hint"></p>
         <label class="field">
           <span>IP target (opzionale)</span>
-          <input id="plant-host" placeholder="PLC / HMI / gateway — vuoto = solo discovery LAN">
+          <input id="plant-host" data-i18n-placeholder="plant.host_ph" placeholder="PLC / HMI / gateway — vuoto = solo discovery LAN">
         </label>
         <div class="actions">
-          <button class="secondary" id="plant-use-gateway">Usa gateway</button>
-          <button class="primary" id="plant-scan">Scansiona impianto</button>
-          <button class="danger" id="plant-stop" disabled>Ferma</button>
+          <button class="secondary" id="plant-use-gateway" data-i18n="actions.use_gateway">Usa gateway</button>
+          <button class="primary" id="plant-scan" data-i18n="plant.scan">Scansiona impianto</button>
+          <button class="danger" id="plant-stop" disabled data-i18n="actions.stop">Ferma</button>
           <span class="export-group">
             <button class="secondary" id="plant-export-json" disabled>JSON</button>
             <button class="secondary" id="plant-export-csv" disabled>CSV</button>
@@ -313,21 +313,21 @@
         </div>
         <p id="plant-msg" class="sub"></p>
         <div id="plant-industrial-chips" class="chip-list"></div>
-        <div class="section-title">Discovery LAN — Weintek HMI</div>
+        <div class="section-title" data-i18n="plant.weintek_section">Discovery LAN — Weintek HMI</div>
         <div id="plant-weintek" class="log"></div>
-        <div class="section-title">Discovery LAN — eWON</div>
+        <div class="section-title" data-i18n="plant.ewon_section">Discovery LAN — eWON</div>
         <div id="plant-ewon" class="log"></div>
-        <div class="section-title">Porte OT sul target</div>
+        <div class="section-title" data-i18n="plant.ports_section">Porte OT sul target</div>
         <div id="plant-ports-results" class="log"></div>
       </div>
     </section>
 
     <section class="panel" id="panel-cameras">
       <div class="card">
-        <h2>Telecamere IP</h2>
-        <p class="sub">ONVIF, Hikvision SADP (UDP/37020), Dahua DHDiscover (UDP/37810), mDNS e SSDP/UPnP.</p>
+        <h2 data-i18n="cameras.title">Telecamere IP</h2>
+        <p class="sub" data-i18n="cameras.help">ONVIF, Hikvision SADP (UDP/37020), Dahua DHDiscover (UDP/37810), mDNS e SSDP/UPnP.</p>
         <div class="actions">
-          <button class="primary" id="cameras-scan">Scansiona telecamere</button>
+          <button class="primary" id="cameras-scan" data-i18n="cameras.scan_full">Scansiona telecamere</button>
           <button class="danger" id="cameras-stop" disabled>Ferma</button>
           <span class="export-group">
             <button class="secondary" id="cameras-export-json" disabled>JSON</button>
@@ -341,10 +341,10 @@
 
     <section class="panel" id="panel-nas">
       <div class="card">
-        <h2>NAS</h2>
-        <p class="sub">Synology (9997), QNAP (7777), ASUSTOR (8888/8889), ReadyNAS RAIDar (22081), WS-Discovery, mDNS e SSDP.</p>
+        <h2 data-i18n="nas.title">NAS</h2>
+        <p class="sub" data-i18n="nas.help">Synology (9997), QNAP (7777), ASUSTOR (8888/8889), ReadyNAS RAIDar (22081), WS-Discovery, mDNS e SSDP.</p>
         <div class="actions">
-          <button class="primary" id="nas-scan">Scansiona NAS</button>
+          <button class="primary" id="nas-scan" data-i18n="nas.scan">Scansiona NAS</button>
           <button class="danger" id="nas-stop" disabled>Ferma</button>
           <span class="export-group">
             <button class="secondary" id="nas-export-json" disabled>JSON</button>
@@ -358,10 +358,10 @@
 
     <section class="panel" id="panel-printers">
       <div class="card">
-        <h2>Stampanti di rete</h2>
-        <p class="sub">Epson ENPC UDP/3289 (retail/fiscali) e Zebra Link-OS UDP/4201 (etichette industriali).</p>
+        <h2 data-i18n="printers.title">Stampanti di rete</h2>
+        <p class="sub" data-i18n="printers.help">Epson ENPC UDP/3289 (retail/fiscali) e Zebra Link-OS UDP/4201 (etichette industriali).</p>
         <div class="actions">
-          <button class="primary" id="printers-scan">Scansiona stampanti</button>
+          <button class="primary" id="printers-scan" data-i18n="printers.scan">Scansiona stampanti</button>
           <button class="danger" id="printers-stop" disabled>Ferma</button>
           <span class="export-group">
             <button class="secondary" id="printers-export-json" disabled>JSON</button>
@@ -375,17 +375,17 @@
 
     <section class="panel" id="panel-scan">
       <div class="card">
-        <h2>Target</h2>
-        <input id="scan-host" placeholder="IP host (es. 192.168.1.50)">
+        <h2 data-i18n="scan.target_title">Target</h2>
+        <input id="scan-host" data-i18n-placeholder="scan.host_ph" placeholder="IP host (es. 192.168.1.50)">
         <div class="actions">
           <button class="secondary" id="scan-use-gateway">Usa gateway</button>
         </div>
-        <p class="sub">Per Weintek, eWON e porte Modbus/OPC UA usa <strong>OT → Impianto</strong>.</p>
+        <p class="sub" data-i18n-html="scan.ot_hint">Per Weintek, eWON e porte Modbus/OPC UA usa <strong>OT → Impianto</strong>.</p>
       </div>
 
       <div class="card">
-        <h2>Porte standard</h2>
-        <p class="sub">SSH, HTTP/S, SMB, RDP, DNS, LDAP, SNMP…</p>
+        <h2 data-i18n="scan.standard_title">Porte standard</h2>
+        <p class="sub" data-i18n="scan.standard_help">SSH, HTTP/S, SMB, RDP, DNS, LDAP, SNMP…</p>
         <div id="scan-standard-chips" class="chip-list"></div>
         <div class="actions">
           <button class="primary" id="scan-standard-run">Scansiona standard</button>
@@ -394,8 +394,8 @@
       </div>
 
       <div class="card">
-        <h2>Porte custom</h2>
-        <input id="scan-custom-ports" placeholder="Es. 80,443,502,4840,11740">
+        <h2 data-i18n="scan.custom_title">Porte custom</h2>
+        <input id="scan-custom-ports" data-i18n-placeholder="scan.custom_ph" placeholder="Es. 80,443,502,4840,11740">
         <div class="actions">
           <button class="primary" id="scan-custom-run">Scansiona custom</button>
         </div>
@@ -403,10 +403,10 @@
       </div>
 
       <div class="card">
-        <h2>DNS e gateway</h2>
-        <input id="dns-hostname" placeholder="Hostname da risolvere (opzionale)">
+        <h2 data-i18n="scan.dns_title">DNS e gateway</h2>
+        <input id="dns-hostname" data-i18n-placeholder="scan.dns_ph" placeholder="Hostname da risolvere (opzionale)">
         <div class="actions">
-          <button class="primary" id="network-check-run">Verifica DNS + gateway</button>
+          <button class="primary" id="network-check-run" data-i18n="scan.network_check">Verifica DNS + gateway</button>
           <button class="secondary" id="dns-lookup-run">Solo risoluzione</button>
         </div>
         <div id="network-check-results" class="log"></div>
@@ -419,18 +419,18 @@
 
     <section class="panel" id="panel-hotspot">
       <div class="card">
-        <h2>Stato hotspot</h2>
+        <h2 data-i18n="hotspot.status_title">Stato hotspot</h2>
         <div id="hotspot-status-panel"></div>
         <div class="actions">
-          <button class="secondary" id="hotspot-restart">Riavvia hotspot</button>
+          <button class="secondary" id="hotspot-restart" data-i18n="actions.restart_hotspot">Riavvia hotspot</button>
         </div>
       </div>
       <div class="card">
-        <h2>Impostazioni Wi-Fi</h2>
-        <p class="sub">Modifica password e parametri della rete NDP-XXXX. Dopo il salvataggio riavvia l'hotspot.</p>
+        <h2 data-i18n="hotspot.settings_title">Impostazioni Wi-Fi</h2>
+        <p class="sub" data-i18n="hotspot.settings_help">Modifica password e parametri della rete NDP-XXXX. Dopo il salvataggio riavvia l'hotspot.</p>
         <div id="hotspot-form"></div>
         <div class="actions">
-          <button class="primary" id="hotspot-save">Salva e riavvia hotspot</button>
+          <button class="primary" id="hotspot-save" data-i18n="hotspot.save_restart">Salva e riavvia hotspot</button>
         </div>
         <p id="hotspot-msg" class="sub"></p>
       </div>
@@ -438,11 +438,11 @@
 
     <section class="panel" id="panel-power">
       <div class="card">
-        <h2>Spegnimento sistema</h2>
-        <p class="sub">Arresta in sicurezza NDP, hotspot Wi-Fi e spegne il Raspberry Pi. Sul display TFT compare la schermata di spegnimento.</p>
+        <h2 data-i18n="power.title">Spegnimento sistema</h2>
+        <p class="sub" data-i18n="power.help">Arresta in sicurezza NDP, hotspot Wi-Fi e spegne il Raspberry Pi. Sul display TFT compare la schermata di spegnimento.</p>
         <div id="power-status" class="sub"></div>
         <div class="actions">
-          <button class="danger" id="power-shutdown">Spegni NDP</button>
+          <button class="danger" id="power-shutdown" data-i18n="power.shutdown_btn">Spegni NDP</button>
         </div>
         <p id="power-msg" class="sub"></p>
       </div>
@@ -450,26 +450,26 @@
 
     <section class="panel" id="panel-config">
       <div class="card">
-        <h2>Configurazione guidata</h2>
-        <p class="sub">Ogni voce include una spiegazione. Per backup o profili rete usa Esporta / Invia mail.</p>
+        <h2 data-i18n="config.guided_title">Configurazione guidata</h2>
+        <p class="sub" data-i18n="config.guided_help">Ogni voce include una spiegazione. Per backup o profili rete usa Esporta / Invia mail.</p>
         <div id="config-form"></div>
         <div class="actions">
-          <button class="primary" id="config-save">Salva configurazione</button>
-          <button class="secondary" id="config-export">Esporta YAML</button>
-          <button class="secondary" id="config-email">📧 Invia backup mail</button>
-          <label class="secondary" style="display:inline-flex;align-items:center;gap:.35rem;padding:.7rem .9rem;border:1px solid var(--border);border-radius:10px;">
+          <button class="primary" id="config-save" data-i18n="config.save">Salva configurazione</button>
+          <button class="secondary" id="config-export" data-i18n="actions.export_yaml">Esporta YAML</button>
+          <button class="secondary" id="config-email" data-i18n="actions.email_backup">📧 Invia backup mail</button>
+          <label class="secondary" style="display:inline-flex;align-items:center;gap:.35rem;padding:.7rem .9rem;border:1px solid var(--border);border-radius:10px;" data-i18n="config.import_label">
             Importa<input type="file" id="config-import" accept=".yaml,.yml,.txt" style="display:none;width:auto;margin:0;padding:0;border:0;">
           </label>
         </div>
         <p id="config-msg" class="sub"></p>
       </div>
       <div class="card config-advanced">
-        <h2>YAML avanzato</h2>
-        <p class="sub">Modifica diretta del file (perde i commenti al salvataggio da form).</p>
+        <h2 data-i18n="config.yaml_title">YAML avanzato</h2>
+        <p class="sub" data-i18n="config.yaml_help">Modifica diretta del file (perde i commenti al salvataggio da form).</p>
         <textarea id="yaml"></textarea>
         <div class="actions">
-          <button class="primary" id="save">Salva YAML</button>
-          <button class="secondary" id="reload">Ricarica</button>
+          <button class="primary" id="save" data-i18n="config.save_yaml">Salva YAML</button>
+          <button class="secondary" id="reload" data-i18n="actions.reload">Ricarica</button>
         </div>
         <p id="msg"></p>
       </div>
@@ -535,6 +535,18 @@
       root.style.colorScheme = theme.color_scheme || 'dark';
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.content = w.bg;
+    }
+
+    function applyStaticI18n() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.textContent = t(el.getAttribute('data-i18n'));
+      });
+      document.querySelectorAll('[data-i18n-html]').forEach(el => {
+        el.innerHTML = t(el.getAttribute('data-i18n-html'));
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+      });
     }
 
     function applyNavLabels() {
@@ -690,14 +702,14 @@
       if (!entry) return '';
       const rows = [];
       if (entry.available) {
-        rows.push(row('Stato', 'rilevato', 'ok'));
+        rows.push(row(t('common.status'), 'rilevato', 'ok'));
         if (entry.switch_name || entry.identity) rows.push(row('Dispositivo', entry.identity || entry.switch_name || 'n/a'));
         if (entry.port_id) rows.push(row('Porta', entry.port_id));
         if (entry.vlan_id) rows.push(row('VLAN', entry.vlan_id));
         if (entry.system_description) rows.push(row('Descrizione', entry.system_description));
         if (entry.chassis_id) rows.push(row('MAC chassis', entry.chassis_id));
       } else {
-        rows.push(row('Stato', entry.message || 'non disponibile', 'bad'));
+        rows.push(row(t('common.status'), entry.message || 'non disponibile', 'bad'));
       }
       return `<div class="neighbor-section"><div class="section-title">${title}</div>${rows.join('')}</div>`;
     }
@@ -723,10 +735,10 @@
         ].filter(Boolean).join('');
         html += '</div>';
       } else if (primary && primary.message) {
-        html += row('Stato', primary.message, 'bad');
+        html += row(t('common.status'), primary.message, 'bad');
         html += '<div class="sub" style="margin-top:.45rem">Verifica LLDP abilitato sullo switch e <code>systemctl status lldpd</code> sulla Pi.</div>';
       } else {
-        html += row('Stato', 'In attesa', 'bad');
+        html += row(t('common.status'), 'In attesa', 'bad');
       }
 
       if (lldp) html += renderNeighborSource(neighborProtocolLabel(lldp), lldp);
@@ -894,6 +906,7 @@
         console.warn('appearance load failed', e);
       }
       applyNavLabels();
+      applyStaticI18n();
       const titleEl = document.getElementById('app-title');
       if (titleEl) titleEl.textContent = t('app.title');
       document.title = t('app.title');
@@ -910,17 +923,17 @@
     async function loadHotspot() {
       try {
         const j = await (await fetch('/api/hotspot/status')).json();
-        const auth = j.open_network ? 'rete aperta' : (j.password_hint || 'WPA2');
+        const auth = j.open_network ? t('common.open_network') : (j.password_hint || 'WPA2');
         const cls = j.active ? 'ok' : 'bad';
         document.getElementById('status-hotspot').innerHTML = [
-          row('Stato', j.active ? 'Attivo' : 'Spento', cls),
+          row(t('common.status'), j.active ? t('common.active') : t('common.inactive'), cls),
           row('SSID', j.ssid || 'n/a'),
           row('URL', j.web_url || 'n/a'),
           row('Auth', auth),
-          row('Nota', j.message || ''),
+          row(t('common.note'), j.message || ''),
         ].join('');
       } catch (e) {
-        document.getElementById('status-hotspot').innerHTML = row('Stato', 'n/d', 'bad');
+        document.getElementById('status-hotspot').innerHTML = row(t('common.status'), t('common.na'), 'bad');
       }
     }
 
@@ -929,20 +942,20 @@
       loadHotspot();
       const link = data.link || {}, ip = data.ip || {}, n = data.neighbor || {}, s = data.system || {};
       document.getElementById('status-link').innerHTML = [
-        row('Stato', link.carrier ? 'UP' : 'DOWN', link.carrier ? 'ok' : 'bad'),
-        row('MAC', link.mac_address || 'n/a'),
-        row('Velocità', link.speed_mbps ? link.speed_mbps + ' Mbps' : 'n/a'),
+        row(t('common.status'), link.carrier ? t('common.up') : t('common.down'), link.carrier ? 'ok' : 'bad'),
+        row(t('status.mac'), link.mac_address || 'n/a'),
+        row(t('status.velocity'), link.speed_mbps ? link.speed_mbps + ' Mbps' : 'n/a'),
       ].join('');
       const addresses = (ip.addresses || []).map(a => `${a.address}/${a.prefixlen}`).join(', ') || 'n/a';
       document.getElementById('status-network').innerHTML = [
-        row('IP', addresses), row('Gateway', ip.gateway || 'n/a'),
-        row('DNS', (ip.dns_servers || []).join(', ') || 'n/a'),
+        row(t('status.ip'), addresses), row(t('status.gateway'), ip.gateway || 'n/a'),
+        row(t('status.dns'), (ip.dns_servers || []).join(', ') || 'n/a'),
       ].join('');
       document.getElementById('status-switch').innerHTML = renderSwitchStatus(n, data.neighbors || []);
       document.getElementById('status-system').innerHTML = [
-        row('Hostname', s.hostname || 'n/a'),
-        row('Uptime', s.uptime_seconds != null ? Math.round(s.uptime_seconds) + ' s' : 'n/a'),
-        row('Temp', s.cpu_temperature_c != null ? s.cpu_temperature_c.toFixed(1) + ' °C' : 'n/a'),
+        row(t('status.hostname'), s.hostname || 'n/a'),
+        row(t('status.uptime'), s.uptime_seconds != null ? Math.round(s.uptime_seconds) + ' s' : 'n/a'),
+        row(t('status.temp'), s.cpu_temperature_c != null ? s.cpu_temperature_c.toFixed(1) + ' °C' : 'n/a'),
       ].join('');
       renderPingResults(data.ping || {});
     }
@@ -952,9 +965,9 @@
     function renderPingResults(ping) {
       const el = document.getElementById('ping-results');
       const data = pingResultsOverride || ping;
-      if (data.running) { el.innerHTML = row('Stato', data.message || 'In corso...'); return; }
+      if (data.running) { el.innerHTML = row(t('common.status'), data.message || 'In corso...'); return; }
       const results = data.results || [];
-      if (!results.length) { el.innerHTML = '<div class="sub">Nessun risultato.</div>'; return; }
+      if (!results.length) { el.innerHTML = '<div class="sub">' + t('common.no_results') + '</div>'; return; }
       el.innerHTML = results.map(item => {
         const ok = item.reachable;
         const rtt = item.rtt_ms != null ? item.rtt_ms.toFixed(0) + ' ms' : 'FAIL';
@@ -1060,7 +1073,7 @@
       document.getElementById('live-stop').disabled = true;
       const msg = document.getElementById('ping-msg');
       if (!silent && msg) {
-        msg.textContent = options.message || 'Ping live fermato.';
+        msg.textContent = options.message || t('ping.live_stopped');
       }
       if (!silent) {
         applyLivePingSummary();
@@ -1090,11 +1103,11 @@
       const msg = document.getElementById('mtu-msg');
       const log = document.getElementById('mtu-log');
       const resultEl = document.getElementById('mtu-result');
-      if (!host) { msg.textContent = 'Inserisci un host.'; return; }
+      if (!host) { msg.textContent = t('mtu.enter_host'); return; }
       stopMtu();
       log.innerHTML = '';
       resultEl.style.display = 'none';
-      msg.textContent = 'Test MTU in corso (da 1500)...';
+      msg.textContent = t('mtu.running');
       try {
         const r = await fetch('/api/mtu/discover/start', {
           method: 'POST',
@@ -1122,16 +1135,16 @@
             resultEl.style.display = 'block';
             if (data.mtu) {
               resultEl.innerHTML = `<div class="ok">MTU massimo: <strong>${data.mtu}</strong> verso ${data.host}</div>`;
-              msg.textContent = 'Test completato.';
+              msg.textContent = t('mtu.done');
             } else {
               resultEl.innerHTML = `<div class="bad">${data.message}</div>`;
-              msg.textContent = 'Nessun MTU valido trovato.';
+              msg.textContent = t('mtu.no_mtu');
             }
             stopMtu();
           }
           if (data.type === 'done' || data.type === 'stopped') stopMtu();
         };
-        mtuSource.onerror = () => { msg.textContent = 'Connessione test MTU interrotta.'; stopMtu(); };
+        mtuSource.onerror = () => { msg.textContent = t('mtu.interrupted'); stopMtu(); };
       } catch (e) {
         msg.textContent = 'Errore rete: ' + e;
       }
@@ -1141,12 +1154,12 @@
 
     document.getElementById('live-start').onclick = async () => {
       const hosts = readHostInputs();
-      if (!hosts.length) { document.getElementById('ping-msg').textContent = 'Inserisci almeno un host.'; return; }
+      if (!hosts.length) { document.getElementById('ping-msg').textContent = t('ping.enter_host'); return; }
       stopLive({ silent: true });
       pingResultsOverride = null;
       resetChart(hosts);
       const msg = document.getElementById('ping-msg');
-      msg.textContent = 'Avvio ping live...';
+      msg.textContent = t('ping.live_starting');
       try {
         const r = await fetch('/api/ping/live/start', {
           method: 'POST',
@@ -1158,7 +1171,7 @@
         const j = parsed.data;
         if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
         liveSessionId = j.session_id;
-        msg.textContent = 'Ping live attivo...';
+        msg.textContent = t('ping.live_active');
         document.getElementById('live-start').disabled = true;
         document.getElementById('live-stop').disabled = false;
         liveSource = new EventSource('/api/ping/live/' + liveSessionId + '/events');
@@ -1170,23 +1183,23 @@
             if (chartSeries[data.host].length > 60) chartSeries[data.host].shift();
             drawChart();
           }
-          if (data.type === 'done') stopLive({ message: 'Ping live completato.' });
+          if (data.type === 'done') stopLive({ message: t('ping.live_done') });
         };
         liveSource.onerror = () => {
-          document.getElementById('ping-msg').textContent = 'Connessione grafico interrotta.';
-          stopLive({ message: 'Ping live interrotto.' });
+          document.getElementById('ping-msg').textContent = t('ping.chart_interrupted');
+          stopLive({ message: t('ping.live_interrupted') });
         };
       } catch (e) {
         msg.textContent = 'Errore rete: ' + e;
       }
     };
 
-    document.getElementById('live-stop').onclick = () => stopLive({ message: 'Ping live fermato.' });
+    document.getElementById('live-stop').onclick = () => stopLive({ message: t('ping.live_stopped') });
 
     document.getElementById('suite-run').onclick = async () => {
       const hosts = readHostInputs();
       const msg = document.getElementById('ping-msg');
-      msg.textContent = 'Suite in corso...';
+      msg.textContent = t('ping.suite_running');
       pingResultsOverride = null;
       const r = await fetch('/api/ping/run', {
         method: 'POST',
@@ -1196,7 +1209,7 @@
       const parsed = await parseJsonResponse(r);
       if (parsed.error) { msg.textContent = parsed.error; return; }
       const j = parsed.data;
-      msg.textContent = parsed.ok ? 'Completato.' : formatApiError(j);
+      msg.textContent = parsed.ok ? t('common.completed') : formatApiError(j);
       if (parsed.ok) renderPingResults(j);
       loadStatus();
     };
@@ -1279,21 +1292,21 @@
           source: h.source || '',
         })));
         el.innerHTML = hosts.slice(0, 30).map(h => `<div>${h.ip} · ${h.mac}${h.vendor ? ' · ' + h.vendor : ''}</div>`).join('') ||
-          '<div>Nessun host</div>';
+          '<div>' + t('common.no_hosts') + '</div>';
         if (document.getElementById('oui-auto-refresh')?.checked) {
           loadOuiTable();
         }
       } catch (e) {
         stopProgress();
-        if (e.name !== 'AbortError') el.textContent = 'Errore rete: ' + e;
-        else el.textContent = 'Scansione interrotta.';
+        if (e.name !== 'AbortError') el.textContent = t('common.network_error', {detail: e});
+        else el.textContent = t('common.scan_aborted');
       } finally {
         scanBtn.disabled = false;
         endScan('discover-scan-stop');
       }
     };
     wireStopButton('discover-scan-stop', () => {
-      document.getElementById('discover-scan-results').textContent = 'Scansione interrotta.';
+      document.getElementById('discover-scan-results').textContent = t('common.scan_aborted');
     });
 
     document.getElementById('discover-services').onclick = async () => {
@@ -1357,15 +1370,15 @@
         el.innerHTML = html || '<div>Nessun servizio trovato</div>';
       } catch (e) {
         stopProgress();
-        if (e.name !== 'AbortError') el.textContent = 'Errore rete: ' + e;
-        else el.textContent = 'Scansione interrotta.';
+        if (e.name !== 'AbortError') el.textContent = t('common.network_error', {detail: e});
+        else el.textContent = t('common.scan_aborted');
       } finally {
         scanBtn.disabled = false;
         endScan('discover-services-stop');
       }
     };
     wireStopButton('discover-services-stop', () => {
-      document.getElementById('discover-services-results').textContent = 'Scansione interrotta.';
+      document.getElementById('discover-services-results').textContent = t('common.scan_aborted');
     });
 
     document.getElementById('passive-use-gateway').onclick = () => {
@@ -1526,7 +1539,7 @@
         await loadStatus();
       } catch (e) {
         if (e.name === 'AbortError') {
-          msg.textContent = 'Scansione interrotta.';
+          msg.textContent = t('common.scan_aborted');
           el.textContent = 'Interrotta.';
         } else {
           msg.textContent = 'Errore rete: ' + e;
@@ -1537,7 +1550,7 @@
       }
     };
     wireStopButton('mikrotik-stop', () => {
-      document.getElementById('mikrotik-msg').textContent = 'Scansione interrotta.';
+      document.getElementById('mikrotik-msg').textContent = t('common.scan_aborted');
       document.getElementById('mikrotik-results').textContent = 'Interrotta.';
     });
 
@@ -1571,7 +1584,7 @@
         msg.textContent = `${devices.length} telecamera/e trovata/e.`;
       } catch (e) {
         if (e.name === 'AbortError') {
-          msg.textContent = 'Scansione interrotta.';
+          msg.textContent = t('common.scan_aborted');
           el.textContent = 'Interrotta.';
         } else {
           msg.textContent = 'Errore rete: ' + e;
@@ -1582,7 +1595,7 @@
       }
     };
     wireStopButton('cameras-stop', () => {
-      document.getElementById('cameras-msg').textContent = 'Scansione interrotta.';
+      document.getElementById('cameras-msg').textContent = t('common.scan_aborted');
       document.getElementById('cameras-results').textContent = 'Interrotta.';
     });
 
@@ -1616,7 +1629,7 @@
         msg.textContent = `${devices.length} NAS trovato/i.`;
       } catch (e) {
         if (e.name === 'AbortError') {
-          msg.textContent = 'Scansione interrotta.';
+          msg.textContent = t('common.scan_aborted');
           el.textContent = 'Interrotta.';
         } else {
           msg.textContent = 'Errore rete: ' + e;
@@ -1627,7 +1640,7 @@
       }
     };
     wireStopButton('nas-stop', () => {
-      document.getElementById('nas-msg').textContent = 'Scansione interrotta.';
+      document.getElementById('nas-msg').textContent = t('common.scan_aborted');
       document.getElementById('nas-results').textContent = 'Interrotta.';
     });
 
@@ -1673,7 +1686,7 @@
       } catch (e) {
         stopProgress();
         if (e.name === 'AbortError') {
-          msg.textContent = 'Scansione interrotta.';
+          msg.textContent = t('common.scan_aborted');
           el.textContent = 'Interrotta.';
         } else {
           msg.textContent = 'Errore rete: ' + e;
@@ -1684,7 +1697,7 @@
       }
     };
     wireStopButton('printers-stop', () => {
-      document.getElementById('printers-msg').textContent = 'Scansione interrotta.';
+      document.getElementById('printers-msg').textContent = t('common.scan_aborted');
       document.getElementById('printers-results').textContent = 'Interrotta.';
     });
 
@@ -1703,7 +1716,7 @@
 
     async function runPortScan(profile, resultId) {
       const host = normalizeHost(document.getElementById('scan-host').value);
-      if (!host) { document.getElementById(resultId).textContent = 'Inserisci un host.'; return; }
+      if (!host) { document.getElementById(resultId).textContent = t('mtu.enter_host'); return; }
       const el = document.getElementById(resultId);
       const label = profile === 'custom' ? 'custom' : profile;
       const stopProgress = startProgressFeedback(el, [
@@ -1728,7 +1741,7 @@
         renderPortResults(el, j);
       } catch (e) {
         stopProgress();
-        el.textContent = 'Errore rete: ' + e;
+        el.textContent = t('common.network_error', {detail: e});
       }
     }
 
@@ -1766,11 +1779,11 @@
       const controller = beginScan('plant-stop');
       scanBtn.disabled = true;
       msg.textContent = host
-        ? 'Discovery LAN + porte OT sul target...'
-        : 'Discovery LAN (Weintek, eWON)...';
-      weintekEl.textContent = 'Discovery Weintek...';
-      ewonEl.textContent = 'Discovery eWON...';
-      portsEl.textContent = host ? 'Scansione porte OT sul target...' : 'Imposta un IP target per Modbus, OPC UA, S7…';
+        ? t('plant.scan_with_host')
+        : t('plant.scan_lan');
+      weintekEl.textContent = t('plant.weintek_running');
+      ewonEl.textContent = t('plant.ewon_running');
+      portsEl.textContent = host ? t('plant.ports_running') : t('plant.ports_hint');
       try {
         const params = new URLSearchParams({
           timeout_seconds: String(scenarioDefaults.industrial_timeout_seconds || 4),
@@ -1822,21 +1835,26 @@
         cacheScan('plant', j, rows);
         weintekEl.innerHTML = weintek.length
           ? weintek.map(renderIndustrialDevice).join('')
-          : '<div class="sub">Nessun HMI Weintek rilevato (UDP 59999/60000, 10275, 20249).</div>';
+          : '<div class="sub">' + t('plant.no_weintek') + '</div>';
         ewonEl.innerHTML = ewon.length
           ? ewon.map(renderIndustrialDevice).join('')
-          : '<div class="sub">Nessun gateway eWON rilevato (IPCONF/1507, OUI HMS).</div>';
+          : '<div class="sub">' + t('plant.no_ewon') + '</div>';
         if (j.port_scan) {
           renderPortResults(portsEl, j.port_scan);
           if (j.modbus) portsEl.innerHTML += renderModbusBlock(j.modbus);
         } else if (!host) {
-          portsEl.innerHTML = '<div class="sub">Nessun IP target: imposta gateway o IP PLC per la scansione porte.</div>';
+          portsEl.innerHTML = '<div class="sub">' + t('plant.no_target') + '</div>';
         }
-        msg.textContent = `${weintek.length + ewon.length} dispositivo/i OT in LAN` +
-          (host && j.port_scan ? ` · ${j.port_scan.open_count || 0} porte aperte su ${host}` : '') + '.';
+        const portsSuffix = host && j.port_scan
+          ? t('plant.ports_suffix', { count: j.port_scan.open_count || 0, host })
+          : '';
+        msg.textContent = t('plant.result_summary', {
+          count: weintek.length + ewon.length,
+          ports: portsSuffix,
+        });
       } catch (e) {
         if (e.name === 'AbortError') {
-          msg.textContent = 'Scansione interrotta.';
+          msg.textContent = t('common.scan_aborted');
           weintekEl.textContent = 'Interrotta.';
           ewonEl.textContent = '';
           portsEl.textContent = '';
@@ -1849,7 +1867,7 @@
       }
     }
     wireStopButton('plant-stop', () => {
-      document.getElementById('plant-msg').textContent = 'Scansione interrotta.';
+      document.getElementById('plant-msg').textContent = t('common.scan_aborted');
       document.getElementById('plant-weintek').textContent = 'Interrotta.';
       document.getElementById('plant-ewon').textContent = '';
       document.getElementById('plant-ports-results').textContent = '';
@@ -1948,7 +1966,7 @@
         renderNetworkResults(j);
       } catch (e) {
         stopProgress();
-        el.textContent = 'Errore rete: ' + e;
+        el.textContent = t('common.network_error', {detail: e});
       }
     };
 
@@ -1967,7 +1985,7 @@
         renderNetworkResults({ lookups: [j], dns_servers: [], gateway: null });
       } catch (e) {
         stopProgress();
-        el.textContent = 'Errore rete: ' + e;
+        el.textContent = t('common.network_error', {detail: e});
       }
     };
 
@@ -1993,7 +2011,7 @@
 
     function renderConfigForm(containerId, sectionFilter=null, sectionExclude=null) {
       const el = document.getElementById(containerId);
-      if (!configSchema.length) { el.innerHTML = '<div class="sub">Caricamento...</div>'; return; }
+      if (!configSchema.length) { el.innerHTML = '<div class="sub">' + t('common.loading') + '</div>'; return; }
       el.innerHTML = configSchema
         .filter(section => (!sectionFilter || section.id === sectionFilter) && (!sectionExclude || section.id !== sectionExclude))
         .map(section => {
@@ -2019,15 +2037,15 @@
         const j = await (await fetch('/api/hotspot/status')).json();
         const auth = j.open_network ? 'Rete aperta (nessuna password)' : (j.password_hint || 'WPA2');
         document.getElementById('hotspot-status-panel').innerHTML = [
-          row('Stato', j.active ? 'Attivo' : 'Spento', j.active ? 'ok' : 'bad'),
+          row(t('common.status'), j.active ? t('common.active') : t('common.inactive'), j.active ? 'ok' : 'bad'),
           row('SSID', j.ssid || 'n/a'),
           row('URL', j.web_url || 'n/a'),
           row('Auth', auth),
           row('Interfaccia', [j.interface, j.interface_mode, j.operstate].filter(Boolean).join(' · ') || 'n/a'),
-          row('Nota', j.message || ''),
+          row(t('common.note'), j.message || ''),
         ].join('');
       } catch (e) {
-        document.getElementById('hotspot-status-panel').innerHTML = row('Stato', 'n/d', 'bad');
+        document.getElementById('hotspot-status-panel').innerHTML = row(t('common.status'), 'n/d', 'bad');
       }
     }
 
@@ -2060,7 +2078,7 @@
       const msg = document.getElementById('config-msg');
       const btn = document.getElementById('config-save');
       btn.disabled = true;
-      msg.textContent = 'Salvataggio...';
+      msg.textContent = t('common.saving');
       try {
         const values = collectConfigValues('config-form');
         const r = await fetch('/api/config/values', {
@@ -2073,7 +2091,7 @@
           return;
         }
         const j = parsed.data || {};
-        msg.textContent = 'Salvato. Riavvio servizi in corso...';
+        msg.textContent = t('common.saved_restart');
         fetch('/api/services/restart', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
@@ -2091,7 +2109,7 @@
 
     document.getElementById('hotspot-save').onclick = async () => {
       const msg = document.getElementById('hotspot-msg');
-      msg.textContent = 'Salvataggio...';
+      msg.textContent = t('common.saving');
       const values = collectConfigValues('hotspot-form');
       const r = await fetch('/api/config/values', {
         method: 'PUT', headers: {'Content-Type': 'application/json'},
@@ -2176,16 +2194,16 @@
         }
         await sleep(1000);
       }
-      if (msgEl) msgEl.textContent = 'Timeout attesa spegnimento. Verifica sul display TFT.';
+      if (msgEl) msgEl.textContent = t('common.shutdown_timeout');
     }
 
     document.getElementById('power-shutdown').onclick = async () => {
       const msg = document.getElementById('power-msg');
       const statusEl = document.getElementById('power-status');
       const btn = document.getElementById('power-shutdown');
-      if (!window.confirm('Spegnere il Raspberry Pi e tutti i servizi NDP?')) return;
+      if (!window.confirm(t('common.confirm_shutdown'))) return;
       btn.disabled = true;
-      msg.textContent = 'Richiesta spegnimento inviata...';
+      msg.textContent = t('common.shutdown_sent');
       msg.className = 'sub';
       if (statusEl) statusEl.textContent = '';
       try {
@@ -2214,7 +2232,7 @@
         body: JSON.stringify({yaml: document.getElementById('yaml').value})
       });
       const j = await r.json();
-      msgEl.textContent = r.ok ? 'Salvato.' : formatApiError(j);
+      msgEl.textContent = r.ok ? t('common.yaml_saved') : formatApiError(j);
       msgEl.className = r.ok ? 'ok' : 'bad';
       if (r.ok) loadConfigForm();
     };

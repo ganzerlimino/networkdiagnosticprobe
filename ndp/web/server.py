@@ -106,13 +106,13 @@ def create_app(
 
     @app.get("/api/config/schema")
     def api_config_schema() -> dict[str, object]:
-        return {"sections": config_sections()}
+        return {"sections": config_sections(config.ui_locale)}
 
     @app.get("/api/config/values")
     def api_config_values() -> dict[str, object]:
         data = load_config_mapping(config_path)
         values: dict[str, object] = {}
-        for section in config_sections():
+        for section in config_sections(config.ui_locale):
             for field in section["fields"]:  # type: ignore[index]
                 key = str(field["key"])
                 values[key] = get_nested_value(data, key)
@@ -122,7 +122,7 @@ def create_app(
     def api_put_config_values(body: ConfigValuesPayload = Body()) -> dict[str, object]:
         data = load_config_mapping(config_path)
         try:
-            for section in config_sections():
+            for section in config_sections(config.ui_locale):
                 for field in section["fields"]:  # type: ignore[index]
                     key = str(field["key"])
                     if key not in body.values:

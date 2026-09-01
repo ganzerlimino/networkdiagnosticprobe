@@ -21,7 +21,7 @@ from ndp.ui.input import create_ui_input
 from ndp.ui.discovery_session import DiscoveryUISession
 from ndp.ui.framebuffer import RawFramebuffer
 from ndp.ui.layout import content_text_x, content_width, content_x_offset, draw_button_hints
-from ndp.ui.screens import ScreenId, lines_for_screen, next_screen, screen_ids_for_mode, shutdown_lines
+from ndp.ui.screens import ScreenId, lines_for_screen, next_screen, screen_ids_for_mode, screen_title, shutdown_lines, tft_text
 from ndp.ui.splash import draw_splash
 from ndp.ping.service import read_adhoc_host, run_ping_suite
 
@@ -489,11 +489,11 @@ class ProbeUI:
         if is_shutting_down():
             header = pygame.Rect(content_x, 0, text_width, 34)
             pygame.draw.rect(surface, COLOR_HEADER, header)
-            title = title_font.render("SHUTDOWN", True, COLOR_ACCENT)
+            title = title_font.render(tft_text(self.config, "tft.shutdown_title"), True, COLOR_ACCENT)
             surface.blit(title, (text_x, 6))
             y = 42
             line_step = self.config.ui_font_size + self.config.ui_line_spacing
-            for line in shutdown_lines(shutdown_message()):
+            for line in shutdown_lines(shutdown_message(), self.config):
                 rendered = body_font.render(line, True, COLOR_TEXT)
                 surface.blit(rendered, (text_x, y))
                 y += line_step
@@ -502,7 +502,7 @@ class ProbeUI:
         header = pygame.Rect(content_x, 0, text_width, 34)
         pygame.draw.rect(surface, COLOR_HEADER, header)
 
-        title = title_font.render(screen_id.name, True, COLOR_ACCENT)
+        title = title_font.render(screen_title(screen_id, self.config), True, COLOR_ACCENT)
         surface.blit(title, (text_x, 6))
 
         dots = self._screen_dots(screen_id)

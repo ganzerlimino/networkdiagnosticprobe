@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from enum import Enum
+from functools import lru_cache
+from typing import Any
 
 from ndp.core.state import ProbeState
 
@@ -19,13 +21,36 @@ def _hotspot_hint_lines(config: object | None, web_port: int) -> list[str]:
         return [f"Web  :{web_port}"]
 
 
-def shutdown_lines(message: str = "Spegnimento in corso...") -> list[str]:
+@lru_cache(maxsize=8)
+def _locale_bundle(locale_code: str) -> dict[str, Any]:
+    from ndp.locale.loader import load_locale
+
+    return load_locale(locale_code)
+
+
+def _t(config: object | None, key: str, **variables: object) -> str:
+    from ndp.locale.loader import translate
+
+    code = getattr(config, "ui_locale", "it") if config is not None else "it"
+    return translate(_locale_bundle(str(code)), key, **variables)
+
+
+def _label(config: object | None, name: str) -> str:
+    text = _t(config, f"tft.labels.{name}")
+    return text if text != f"tft.labels.{name}" else name
+
+
+def tft_text(config: object | None, key: str, **variables: object) -> str:
+    return _t(config, key, **variables)
+
+
+def shutdown_lines(message: str | None = None, config: object | None = None) -> list[str]:
     return [
-        "SPEGNIMENTO",
-        message,
+        _t(config, "tft.shutdown_title"),
+        message or _t(config, "tft.shutdown_message"),
         "",
-        "Non scollegare",
-        "l'alimentazione",
+        _t(config, "tft.shutdown_warn1"),
+        _t(config, "tft.shutdown_warn2"),
     ]
 
 
@@ -36,6 +61,12 @@ class ScreenId(Enum):
     PING = 3
     SYSTEM = 4
     DISCOVER = 5
+
+
+def screen_title(screen: ScreenId, config: object | None = None) -> str:
+    key = f"tft.screens.{screen.name.lower()}"
+    text = _t(config, key)
+    return text if text != key else screen.name.title()
 
 
 SCREEN_TITLES = {
@@ -93,30 +124,30 @@ def lines_for_screen(
         if state.ip.addresses:
             first = state.ip.addresses[0]
             ip = f"{first.address}/{first.prefixlen}"
-        link = "UP" if state.link.carrier else "DOWN"
+        link = _t(config, "common.up") if state.link.carrier else _t(config, "common.down")
         return [
-            f"Link   {link}",
-            f"Host   {_fmt(state.system.hostname)}",
-            f"IP     {ip}",
-            f"MAC    {_fmt(state.link.mac_address)}",
+            f"{_label(config, 'link'):<6} {link}",
+            f"{_label(config, 'host'):<6} {_fmt(state.system.hostname)}",
+            f"{_label(config, 'ip'):<6} {ip}",
+            f"{_label(config, 'mac'):<6} {_fmt(state.link.mac_address)}",
         ]
 
     if screen == ScreenId.SWITCH:
         if not state.link.carrier:
-            return ["Link down", "Collega il cavo"]
+            return [_t(config, "tft.link_down"), _t(config, "tft.plug_cable")]
         if state.neighbor.available:
             lines = [
-                f"Proto  {_fmt(state.neighbor.protocol)}",
-                f"Switch {_fmt(state.neighbor.switch_name)}",
-                f"Port   {_fmt(state.neighbor.port_id)}",
-                f"VLAN   {_fmt(state.neighbor.vlan_id)}",
+                f"{_label(config, 'proto'):<6} {_fmt(state.neighbor.protocol)}",
+                f"{_label(config, 'switch'):<6} {_fmt(state.neighbor.switch_name)}",
+                f"{_label(config, 'port'):<6} {_fmt(state.neighbor.port_id)}",
+                f"{_label(config, 'vlan'):<6} {_fmt(state.neighbor.vlan_id)}",
             ]
             if state.neighbor.med_capabilities:
                 lines.append(f"MED    {_fmt(state.neighbor.med_capabilities)}")
             if state.neighbor.poe_status:
                 lines.append(f"PoE    {_fmt(state.neighbor.poe_status)}")
             return lines
-        lines = ["No neighbor", _fmt(state.neighbor.message, "waiting")]
+        lines = [_t(config, "tft.no_neighbor"), _fmt(state.neighbor.message, _t(config, "tft.waiting"))]
         for entry in getattr(state, "neighbors", []) or []:
             if entry.available:
                 continue
@@ -130,28 +161,28 @@ def lines_for_screen(
             for addr in state.ip.addresses[:2]:
                 lines.append(f"{addr.family} {addr.address}/{addr.prefixlen}")
         else:
-            lines.append("No IP address")
-        lines.append(f"GW  {_fmt(state.ip.gateway)}")
+            lines.append(_t(config, "tft.no_ip"))
+        lines.append(f"{_label(config, 'gw'):<3} {_fmt(state.ip.gateway)}")
         dns = ", ".join(state.ip.dns_servers[:2]) if state.ip.dns_servers else "n/a"
-        lines.append(f"DNS {dns}")
+        lines.append(f"{_label(config, 'dns'):<3} {dns}")
         if state.link.speed_mbps:
             lines.append(f"Link {state.link.speed_mbps} Mbps")
         return lines[:5]
 
     if screen == ScreenId.PING:
         if state.ping.running:
-            return ["Ping in corso...", "", state.ping.message]
+            return [_t(config, "tft.ping_running"), "", state.ping.message]
         if not state.ping.results:
             adhoc = state.ping.adhoc_host or "n/a"
             lines = [
                 "8.8.8.8 + 1.1.1.1",
-                f"Adhoc: {adhoc[:16]}",
+                f"{_label(config, 'adhoc')}: {adhoc[:16]}",
                 "",
             ]
             if interactive:
-                lines.extend(["○ esegui ping", "ndp test ping", "--adhoc HOST"])
+                lines.extend([_t(config, "tft.run_ping"), "ndp test ping", "--adhoc HOST"])
             else:
-                lines.append(f"Avvia da telefono :{web_port}")
+                lines.append(_t(config, "tft.run_from_phone", port=web_port))
             return lines
         lines = [
             _ping_line(
@@ -164,9 +195,9 @@ def lines_for_screen(
             for item in state.ping.results[:6]
         ]
         if state.ping.adhoc_host:
-            lines.append(f"Adhoc {state.ping.adhoc_host[:16]}")
+            lines.append(f"{_label(config, 'adhoc')} {state.ping.adhoc_host[:16]}")
         if interactive:
-            lines.append("○ ripeti")
+            lines.append(_t(config, "tft.repeat"))
         return lines[:7]
 
     if screen == ScreenId.SYSTEM:
@@ -178,24 +209,24 @@ def lines_for_screen(
             temp = f"{state.system.cpu_temperature_c:.1f} C"
 
         lines = [
-            f"Host  {_fmt(state.system.hostname)}",
-            f"Up    {uptime}",
-            f"Temp  {temp}",
-            f"IF    {state.interface}",
+            f"{_label(config, 'host'):<6} {_fmt(state.system.hostname)}",
+            f"{_label(config, 'up'):<6} {uptime}",
+            f"{_label(config, 'temp'):<6} {temp}",
+            f"{_label(config, 'if'):<6} {state.interface}",
         ]
         if interactive:
-            lines.append("NDP ready")
+            lines.append(_t(config, "tft.ndp_ready"))
         else:
             lines.extend(_hotspot_hint_lines(config, web_port)[:2])
         return lines
 
     if screen == ScreenId.DISCOVER:
         if interactive:
-            return ["Discover screen"]
+            return [_t(config, "tft.discover_screen")]
         return [
             "Up/Down scan",
-            "Solo da telefono",
-            "o CLI:",
+            _t(config, "tft.updown_phone"),
+            _t(config, "tft.updown_cli"),
             "ndp discover updown",
         ]
 

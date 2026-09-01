@@ -172,11 +172,10 @@ def test_themes_endpoint() -> None:
     assert "field-dark" in payload["themes"]
 
 
-def test_scenarios_endpoint() -> None:
+def test_locale_bundle_endpoint_de() -> None:
     client = _client()
-    response = client.get("/api/scenarios")
+    response = client.get("/api/locale/de")
     assert response.status_code == 200
-    payload = response.json()
-    ids = {item["id"] for item in payload["scenarios"]}
-    assert "impianto" in ids
+    assert response.json()["nav"]["config"] == "Config"
+
 

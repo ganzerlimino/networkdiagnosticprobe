@@ -1,50 +1,238 @@
 {
-  "_meta": { "locale": "en", "name": "English", "version": 1, "fallback": "it" },
+  "_meta": { "locale": "en", "name": "English", "version": 2, "fallback": "it" },
   "app": { "title": "Network Diagnostic Probe" },
   "nav": {
-    "monitor": "Monitor",
-    "lan": "LAN",
-    "ot": "OT",
-    "sistema": "System",
-    "status": "Status",
-    "ping": "Ping",
-    "mtu": "MTU",
-    "discover": "Discover",
-    "passive": "Sniff",
-    "scan": "Scan",
-    "plant": "Plant",
-    "mikrotik": "MikroTik",
-    "cameras": "Cameras",
-    "nas": "NAS",
-    "printers": "Printers",
-    "hotspot": "Hotspot",
-    "config": "Config",
-    "power": "Shutdown"
+    "monitor": "Monitor", "lan": "LAN", "ot": "OT", "sistema": "System",
+    "status": "Status", "ping": "Ping", "mtu": "MTU",
+    "discover": "Discover", "passive": "Sniff", "scan": "Scan",
+    "plant": "Plant", "mikrotik": "MikroTik", "cameras": "Cameras",
+    "nas": "NAS", "printers": "Printers", "hotspot": "Hotspot",
+    "config": "Config", "power": "Shutdown"
   },
   "actions": {
-    "scan": "Scan",
-    "stop": "Stop",
-    "save": "Save",
-    "export_json": "JSON",
-    "export_csv": "CSV",
-    "use_gateway": "Use gateway"
+    "scan": "Scan", "stop": "Stop", "save": "Save",
+    "export_json": "JSON", "export_csv": "CSV", "use_gateway": "Use gateway",
+    "reload": "Reload", "start": "Start", "continue": "Continue",
+    "skip": "Skip", "cancel": "Cancel", "reset": "Reset",
+    "report_status": "📧 Status report", "report_full": "📧 Full report",
+    "report_ping": "📧 Ping report", "export_yaml": "Export YAML",
+    "email_backup": "📧 Email backup", "import": "Import",
+    "restart_hotspot": "Restart hotspot", "shutdown": "Shut down Raspberry Pi"
   },
   "appearance": {
     "locale": "UI language",
-    "locale_help": "Custom JSON files in /etc/ndp/locale/.",
+    "locale_help": "Choose language and save; custom files go in /etc/ndp/locale/.",
     "theme": "Color theme",
-    "theme_help": "Web UI and TFT display (restart ndp to apply TFT)."
+    "theme_help": "Web UI and TFT display (restart ndp for TFT)."
   },
   "scenario": {
     "label": "Scenario profile",
-    "help": "Discovery timeout and focus presets (Plant / Retail / Office).",
-    "impianto": "OT plant",
-    "retail": "Retail",
-    "ufficio": "Office"
+    "help": "Discovery timeout presets (Plant / Retail / Office).",
+    "impianto": "OT plant", "retail": "Retail", "ufficio": "Office"
+  },
+  "common": {
+    "status": "Status", "note": "Note", "auth": "Auth", "active": "Active",
+    "inactive": "Off", "open_network": "open network", "na": "n/a",
+    "loading": "Loading...", "completed": "Completed.",
+    "saving": "Saving...", "saved_restart": "Saved. Restarting services...",
+    "network_error": "Network error: {detail}",
+    "scan_aborted": "Scan aborted.", "no_results": "No results.",
+    "no_hosts": "No hosts", "in_progress": "In progress...",
+    "up": "UP", "down": "DOWN", "fail": "FAIL", "ok": "OK",
+    "samples": "samples", "speed_mbps": "{value} Mbps",
+    "uptime_s": "{value} s", "temp_c": "{value} °C",
+    "confirm_shutdown": "Shut down the Raspberry Pi and all NDP services?",
+    "shutdown_sent": "Shutdown request sent...",
+    "shutdown_timeout": "Shutdown wait timed out. Check the TFT display.",
+    "yaml_saved": "Saved.", "import_ok": "Imported."
+  },
+  "status": {
+    "hotspot": "Phone hotspot", "link": "Link", "network": "Network",
+    "switch": "Switch", "system": "System", "hostname": "Hostname",
+    "uptime": "Uptime", "temp": "Temp", "velocity": "Speed",
+    "gateway": "Gateway", "dns": "DNS", "mac": "MAC", "ip": "IP",
+    "ssid": "SSID", "url": "URL",
+    "lldp_hint": "Ensure LLDP is enabled on the switch and check <code>systemctl status lldpd</code> on the Pi.",
+    "summary": "Summary", "lldp_cdp": "LLDP / CDP", "mndp": "MNDP"
+  },
+  "ping": {
+    "live_title": "Live ping (up to 3 hosts)",
+    "live_help": "Pings run in parallel. Chart updates in real time.",
+    "host1_ph": "Host 1 (e.g. 8.8.8.8)", "host2_ph": "Host 2 (optional)", "host3_ph": "Host 3 (optional)",
+    "live_start": "Start live chart", "live_stop": "Stop chart",
+    "suite_run": "Full suite", "results_title": "Latest results",
+    "suite_help": "<strong>Full suite</strong> runs ICMP to 8.8.8.8, 1.1.1.1, up to 4 config hosts, optional adhoc host, and — if filled — the 3 fields above. All pings use <strong>eth0</strong> in parallel (count/timeout from config).",
+    "enter_host": "Enter at least one host.", "live_starting": "Starting live ping...",
+    "live_active": "Live ping active...", "live_done": "Live ping completed.",
+    "live_stopped": "Live ping stopped.", "live_interrupted": "Live ping interrupted.",
+    "chart_interrupted": "Chart connection lost.", "suite_running": "Suite running..."
+  },
+  "mtu": {
+    "title": "MTU path discovery",
+    "help": "Decremental test from 1500 downward with DF ping (no fragment). Useful for site-to-site VPN.",
+    "host_ph": "e.g. gateway or VPN peer IP", "start": "Start MTU test", "stop": "Stop",
+    "enter_host": "Enter a host.", "running": "MTU test running (from 1500)...",
+    "done": "Test completed.", "no_mtu": "No valid MTU found.",
+    "interrupted": "MTU test connection lost.",
+    "max_mtu": "Max MTU: <strong>{mtu}</strong> to {host}"
+  },
+  "discover": {
+    "wizard_title": "Up/Down wizard", "arp_title": "Quick ARP scan",
+    "services_title": "LAN services (mDNS / SSDP / L2)",
+    "services_help": "mDNS, SSDP and passive FDP/EDP/LLTD detection (ethertype).",
+    "oui_title": "MAC vendor (OUI)",
+    "oui_help": "OUI lookup from IEEE database, OT bundle and entries learned from ARP scans.",
+    "oui_search_ph": "e.g. Weintek, 00:90:E8, HMS", "oui_refresh": "Refresh table",
+    "start_wizard": "Start wizard", "scan_network": "Scan network",
+    "arp_progress": ["Preparing ARP scan", "Probing eth0 subnet", "Collecting host replies", "OUI vendor lookup"],
+    "services_progress": ["mDNS browse", "SSDP M-SEARCH", "L2 ethertype probe"]
+  },
+  "passive": {
+    "title": "Passive sniff (summary)",
+    "help": "Summary of detected L2/L3 protocols: STP/LACP/VLAN/IGMP, FDP/EDP/LLTD, mDNS, SSDP, DHCP Option 82, SNMP. Phases run in <strong>parallel</strong>: wall time ≈ seconds set (not the sum).",
+    "seconds": "Listen duration (s)", "snmp_ph": "empty = gateway",     "run": "Start sniff", "run_full": "Start passive check"
+  },
+  "mikrotik": {
+    "title": "MikroTik (MNDP)",
+    "help": "Active UDP/5678 probe + response listen. Switch card shows only the connected device (gateway MAC/IP match).",
+    "seconds": "Listen (s)", "scan": "Scan MikroTik"
   },
   "plant": {
+    "title": "OT plant",
+    "help": "LAN broadcast discovery (Weintek, eWON) and optional industrial ports on a target IP.",
+    "host_ph": "PLC / HMI / gateway — empty = LAN discovery only",
     "scan": "Scan plant",
+    "weintek_section": "LAN discovery — Weintek HMI",
+    "ewon_section": "LAN discovery — eWON",
+    "ports_section": "OT ports on target",
     "modbus_identified": "Modbus identified",
-    "modbus_open_only": "Port 502 open (identify unavailable)"
+    "modbus_open_only": "Port 502 open (identify unavailable)",
+    "scan_lan": "LAN discovery (Weintek, eWON)...",
+    "scan_with_host": "LAN discovery + OT ports on target...",
+    "weintek_running": "Weintek discovery...",
+    "ewon_running": "eWON discovery...",
+    "ports_running": "Scanning OT ports on target...",
+    "ports_hint": "Set a target IP for Modbus, OPC UA, S7…",
+    "no_target": "No target IP: set gateway or PLC IP for port scan.",
+    "no_weintek": "No Weintek HMI detected (UDP 59999/60000, 10275, 20249).",
+    "no_ewon": "No eWON gateway detected (IPCONF/1507, HMS OUI).",
+    "result_summary": "{count} OT device(s) on LAN{ports}",
+    "ports_suffix": " · {count} open ports on {host}"
+  },
+  "cameras": {
+    "title": "IP cameras",
+    "help": "ONVIF, Hikvision SADP (UDP/37020), Dahua DHDiscover (UDP/37810), mDNS and SSDP/UPnP.",
+    "scan": "Scan cameras", "scan_full": "Scan cameras"
+  },
+  "nas": {
+    "title": "NAS",
+    "help": "Synology (9997), QNAP (7777), ASUSTOR (8888/8889), ReadyNAS RAIDar (22081), WS-Discovery, mDNS and SSDP.",
+    "scan": "Scan NAS"
+  },
+  "printers": {
+    "title": "Network printers",
+    "help": "Epson ENPC UDP/3289 (retail/fiscal) and Zebra Link-OS UDP/4201 (industrial labels).",
+    "scan": "Scan printers"
+  },
+  "scan": {
+    "target_title": "Target", "host_ph": "Host IP (e.g. 192.168.1.50)",
+    "ot_hint": "For Weintek, eWON and Modbus/OPC UA ports use <strong>OT → Plant</strong>.",
+    "standard_title": "Standard ports",
+    "standard_help": "SSH, HTTP/S, SMB, RDP, DNS, LDAP, SNMP…",
+    "custom_title": "Custom ports",
+    "custom_ph": "E.g. 80,443,502,4840,11740",
+    "dns_title": "DNS and gateway", "dns_ph": "Hostname to resolve (optional)",
+    "run_ports": "Scan ports", "run_dns": "Network check",
+    "network_check": "DNS + gateway check"
+  },
+  "hotspot": {
+    "status_title": "Hotspot status", "settings_title": "Wi-Fi settings",
+    "settings_help": "Edit password and NDP-XXXX network parameters. Restart hotspot after saving.",
+    "save": "Save hotspot", "save_restart": "Save and restart hotspot", "restarting": "Restarting hotspot...",
+    "active": "Hotspot active.", "inactive_msg": "Hotspot not active",
+    "interface": "Interface", "open_auth": "Open network (no password)"
+  },
+  "power": {
+    "title": "System shutdown",
+    "help": "Safely stops NDP, Wi-Fi hotspot and shuts down the Raspberry Pi. Shutdown screen appears on the TFT.",
+    "shutdown_btn": "Shut down NDP"
+  },
+  "config": {
+    "guided_title": "Guided configuration",
+    "guided_help": "Each field includes a description. Use Export / Email for backups.",
+    "save": "Save configuration", "yaml_title": "Advanced YAML",
+    "yaml_help": "Direct file edit (form save drops comments).",
+    "save_yaml": "Save YAML",
+    "import_label": "Import",
+    "sections": {
+      "network": "Probe network", "ui": "TFT display", "web": "Web UI",
+      "hotspot": "Phone hotspot", "ping": "Ping", "discovery": "Discover",
+      "appearance": "Appearance", "logging": "Log", "console": "Console"
+    },
+    "fields": {
+      "interface": { "label": "Monitored interface", "help": "Usually eth0 (diagnostic cable)." },
+      "poll_interval_link_up": { "label": "Link UP polling (s)", "help": "Refresh when cable is connected." },
+      "poll_interval_link_down": { "label": "Link DOWN polling (s)", "help": "Refresh when cable is unplugged." },
+      "lldp.cache_ttl_seconds": { "label": "LLDP cache (s)", "help": "LLDP/CDP data validity." },
+      "ui.enabled": { "label": "TFT display enabled", "help": "Auto-rotate screens on display." },
+      "ui.framebuffer": { "label": "Framebuffer", "help": "Linux TFT device (e.g. /dev/fb1)." },
+      "ui.auto_cycle_seconds": { "label": "Screen rotation (s)", "help": "0 = disabled." },
+      "ui.input": { "label": "Local input", "help": "none = phone only." },
+      "ui.hint_edge": { "label": "Button hint edge", "help": "none recommended with input none." },
+      "ui.backlight_enabled": { "label": "Backlight", "help": "Enable GPIO backlight at startup." },
+      "web.enabled": { "label": "Web UI enabled", "help": "Mobile interface on HTTP port." },
+      "web.host": { "label": "Listen host", "help": "0.0.0.0 = all interfaces." },
+      "web.port": { "label": "HTTP port", "help": "Default 8080." },
+      "wifi_hotspot.enabled": { "label": "Hotspot enabled", "help": "Creates NDP-XXXX network for phone." },
+      "wifi_hotspot.ssid_prefix": { "label": "SSID prefix", "help": "Suffix = last 4 Wi-Fi MAC digits." },
+      "wifi_hotspot.password": { "label": "WPA2 password", "help": "Min 8 chars. Empty = open network (not recommended)." },
+      "wifi_hotspot.interface": { "label": "Wi-Fi interface", "help": "Usually wlan0." },
+      "wifi_hotspot.ip": { "label": "Hotspot IP", "help": "Phone URL: http://<ip>:8080/" },
+      "wifi_hotspot.channel": { "label": "Wi-Fi channel", "help": "2.4 GHz channel (e.g. 6)." },
+      "wifi_hotspot.country": { "label": "Regulatory country", "help": "ISO code (e.g. IT)." },
+      "ping.count": { "label": "ICMP packets", "help": "Ping count per destination." },
+      "ping.timeout_seconds": { "label": "Ping timeout (s)", "help": "Timeout per host." },
+      "ping.packet_size": { "label": "Packet size (bytes)", "help": "ICMP payload (-s). Default 56." },
+      "discovery.disconnect_wait_seconds": { "label": "Unplug wait (s)", "help": "Discover Up/Down wizard." },
+      "discovery.flush_arp_before_second_scan": { "label": "Flush ARP", "help": "Clear cache before 2nd scan." },
+      "discovery.verify_replug": { "label": "Verify replug", "help": "Final Up/Down wizard step." },
+      "discovery.mndp_listen_seconds": { "label": "MNDP listen (s)", "help": "MNDP probe duration for status and MikroTik tab." },
+      "discovery.passive_listen_seconds": { "label": "Default passive sniff (s)", "help": "Default Passive check tab duration." },
+      "discovery.scenario": { "label": "Scenario profile", "help": "Discovery timeout presets (plant/retail/office)." },
+      "ui.locale": { "label": "UI language", "help": "Choose language and save; restart ndp if needed." },
+      "ui.theme": { "label": "Color theme", "help": "Web UI and TFT (restart ndp for TFT)." },
+      "logging.level": { "label": "Log level", "help": "DEBUG, INFO, WARNING, ERROR." },
+      "console.enabled": { "label": "Console output", "help": "Periodic summary on journal." },
+      "console.refresh_seconds": { "label": "Console refresh (s)", "help": "Console print interval." }
+    }
+  },
+  "tft": {
+    "screens": {
+      "home": "Home", "switch": "Switch", "network": "Network",
+      "ping": "Ping", "system": "System", "discover": "Discover"
+    },
+    "shutdown_title": "SHUTDOWN",
+    "shutdown_message": "Shutting down...",
+    "shutdown_warn1": "Do not unplug",
+    "shutdown_warn2": "power",
+    "link_down": "Link down",
+    "plug_cable": "Connect cable",
+    "no_neighbor": "No neighbor",
+    "waiting": "waiting",
+    "no_ip": "No IP address",
+    "ping_running": "Ping running...",
+    "run_from_phone": "Start from phone :{port}",
+    "repeat": "○ repeat",
+    "run_ping": "○ run ping",
+    "ndp_ready": "NDP ready",
+    "discover_screen": "Discover screen",
+    "updown_phone": "Phone only",
+    "updown_cli": "or CLI:",
+    "labels": {
+      "link": "Link", "host": "Host", "ip": "IP", "mac": "MAC",
+      "proto": "Proto", "switch": "Switch", "port": "Port", "vlan": "VLAN",
+      "gw": "GW", "dns": "DNS", "up": "Up", "temp": "Temp", "if": "IF",
+      "adhoc": "Adhoc"
+    }
   }
 }

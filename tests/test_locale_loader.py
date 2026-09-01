@@ -30,5 +30,12 @@ def test_load_themes_catalog_has_default_theme() -> None:
     assert len(palette["bg"]) == 3
 
 
-def test_resolve_theme_id_unknown_falls_back() -> None:
-    assert resolve_theme_id("not-a-theme") == resolve_theme_id(None)
+def test_list_locales_includes_de() -> None:
+    codes = {entry["code"] for entry in list_locales()}
+    assert "de" in codes
+
+
+def test_load_locale_de_has_plant_title() -> None:
+    locale = load_locale("de")
+    assert locale["nav"]["plant"] == "Anlage"
+

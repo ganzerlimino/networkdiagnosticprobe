@@ -16,19 +16,29 @@ class ConfigField:
     section: str = "general"
 
 
-def config_sections() -> list[dict[str, object]]:
-    fields = _config_fields()
+def config_sections(locale_code: str = "it") -> list[dict[str, object]]:
+    from ndp.locale.loader import list_locales, load_locale, translate
+
+    locale = load_locale(locale_code)
+    locale_options = tuple(entry["code"] for entry in list_locales())
+    fields = _config_fields(locale_options)
     sections: dict[str, dict[str, object]] = {}
     for field in fields:
         section = sections.setdefault(
             field.section,
-            {"id": field.section, "title": _section_title(field.section), "fields": []},
+            {
+                "id": field.section,
+                "title": translate(locale, f"config.sections.{field.section}") or _section_title(field.section),
+                "fields": [],
+            },
         )
+        label = translate(locale, f"config.fields.{field.key}.label") or field.label
+        help_text = translate(locale, f"config.fields.{field.key}.help") or field.help
         section["fields"].append(
             {
                 "key": field.key,
-                "label": field.label,
-                "help": field.help,
+                "label": label,
+                "help": help_text,
                 "type": field.field_type,
                 "options": list(field.options),
             }
@@ -50,7 +60,8 @@ def _section_title(section_id: str) -> str:
     }.get(section_id, section_id)
 
 
-def _config_fields() -> tuple[ConfigField, ...]:
+def _config_fields(locale_options: tuple[str, ...]) -> tuple[ConfigField, ...]:
+    locales = locale_options or ("it", "en", "de")
     return (
         ConfigField("interface", "Interfaccia monitorata", "Di solito eth0 (cavo diagnostica).", "string", section="network"),
         ConfigField("poll_interval_link_up", "Polling link UP (s)", "Aggiornamento quando il cavo è collegato.", "float", section="network"),
@@ -81,7 +92,7 @@ def _config_fields() -> tuple[ConfigField, ...]:
         ConfigField("discovery.mndp_listen_seconds", "Ascolto MNDP (s)", "Durata probe MNDP per status e tab MikroTik.", "float", section="discovery"),
         ConfigField("discovery.passive_listen_seconds", "Sniff passivo default (s)", "Durata predefinita tab Passive check.", "float", section="discovery"),
         ConfigField("discovery.scenario", "Profilo scenario", "Preset timeout discovery (impianto/retail/ufficio).", "select", ("impianto", "retail", "ufficio"), section="discovery"),
-        ConfigField("ui.locale", "Lingua interfaccia", "it/en o JSON custom in /etc/ndp/locale/.", "select", ("it", "en"), section="appearance"),
+        ConfigField("ui.locale", "Lingua interfaccia", "Scegli la lingua e salva.", "select", locales, section="appearance"),
         ConfigField("ui.theme", "Tema colori", "Web UI e display TFT (riavvia ndp per TFT).", "select", ("field-dark", "industrial-amber", "high-contrast", "office-light", "night-vision"), section="appearance"),
         ConfigField("logging.level", "Livello log", "DEBUG, INFO, WARNING, ERROR.", "select", ("DEBUG", "INFO", "WARNING", "ERROR"), section="logging"),
         ConfigField("console.enabled", "Output console", "Riepilogo periodico su journal.", "bool", section="console"),
