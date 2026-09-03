@@ -7,6 +7,8 @@ from ndp.network.hotspot import (
     build_ssid,
     get_status,
     hotspot_display_lines,
+    hotspot_footer,
+    list_hotspot_stations,
     render_dnsmasq_conf,
     render_hostapd_conf,
     write_hotspot_configs,
@@ -40,7 +42,46 @@ def test_build_ssid_from_mac(wlan_mac: Path) -> None:
 
 def test_hotspot_display_lines(wlan_mac: Path) -> None:
     config = NdpConfig(wifi_hotspot_ip="192.168.50.1/24", web_port=8080)
-    assert hotspot_display_lines(config) == ["NDP-3456", "192.168.50.1:8080"]
+    assert hotspot_display_lines(config) == ["NDP-3456", "192.168.50.1:8080", "Tel: AP off"]
+
+
+def test_hotspot_footer_warns_without_client(wlan_mac: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config = NdpConfig(wifi_hotspot_ip="192.168.50.1/24", web_port=8080)
+    monkeypatch.setattr("ndp.network.hotspot._pid_running", lambda _path: True)
+    monkeypatch.setattr("ndp.network.hotspot.count_hotspot_clients", lambda _config: 0)
+    footer = hotspot_footer(config)
+    assert footer.lines[-1] == "Tel: assente"
+    assert footer.warn_no_client is True
+
+
+def test_hotspot_footer_ok_with_client(wlan_mac: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config = NdpConfig(wifi_hotspot_ip="192.168.50.1/24", web_port=8080)
+    monkeypatch.setattr("ndp.network.hotspot._pid_running", lambda _path: True)
+    monkeypatch.setattr("ndp.network.hotspot.count_hotspot_clients", lambda _config: 1)
+    footer = hotspot_footer(config)
+    assert footer.lines[-1] == "Tel: connesso"
+    assert footer.warn_no_client is False
+
+
+def test_list_hotspot_stations_parses_hostapd_cli(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ctrl = tmp_path / "hostapd"
+    ctrl.mkdir()
+    monkeypatch.setattr("ndp.network.hotspot.interface_exists", lambda _iface: True)
+    monkeypatch.setattr("ndp.network.hotspot.hostapd_ctrl_dir", lambda: ctrl)
+    monkeypatch.setattr("ndp.network.hotspot.shutil.which", lambda name: name == "hostapd_cli")
+
+    def fake_run(command: list[str], *, check: bool = False):
+        assert command[0] == "hostapd_cli"
+        assert command[1] == "-p"
+        assert command[2] == str(ctrl)
+        assert command[-1] == "list_sta"
+        return type("Result", (), {"returncode": 0, "stdout": "aa:bb:cc:dd:ee:01\naa:bb:cc:dd:ee:02\n"})()
+
+    monkeypatch.setattr("ndp.network.hotspot._run", fake_run)
+    assert list_hotspot_stations("wlan0") == ["aa:bb:cc:dd:ee:01", "aa:bb:cc:dd:ee:02"]
 
 
 def test_render_hostapd_wpa2() -> None:

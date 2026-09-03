@@ -20,12 +20,14 @@ logger = logging.getLogger(__name__)
 HOTSPOT_DIR = Path("/etc/ndp/hotspot")
 RUN_DIR = Path("/run/ndp")
 HOTSPOT_WATCH_INTERVAL_SECONDS = 30.0
+_CLIENT_CACHE_TTL_SECONDS = 2.0
 
 
 def hostapd_ctrl_dir() -> Path:
     return RUN_DIR / "hostapd"
 
 _SSID_SAFE = re.compile(r"[^A-Za-z0-9_-]")
+_MAC_ADDRESS = re.compile(r"^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$")
 
 
 @dataclass
@@ -41,6 +43,7 @@ class HotspotStatus:
     channel: int | None = None
     interface_mode: str | None = None
     operstate: str | None = None
+    clients_connected: int = 0
     message: str = ""
 
     def to_dict(self) -> dict[str, object]:
@@ -118,13 +121,104 @@ def interface_has_ip(interface: str, address: str) -> bool:
     return address in result.stdout
 
 
+def list_hotspot_stations(interface: str) -> list[str]:
+    """Return MAC addresses of Wi-Fi stations associated to the AP."""
+    if not interface_exists(interface):
+        return []
+
+    if shutil.which("hostapd_cli") and hostapd_ctrl_dir().is_dir():
+        result = _run(
+            ["hostapd_cli", "-p", str(hostapd_ctrl_dir()), "-i", interface, "list_sta"],
+            check=False,
+        )
+        if result.returncode == 0 and "FAIL" not in result.stdout:
+            stations = [
+                line.strip().lower()
+                for line in result.stdout.splitlines()
+                if _MAC_ADDRESS.match(line.strip())
+            ]
+            if stations:
+                return stations
+
+    if shutil.which("iw"):
+        result = _run(["iw", "dev", interface, "station", "dump"], check=False)
+        if result.returncode == 0:
+            stations: list[str] = []
+            for line in result.stdout.splitlines():
+                stripped = line.strip()
+                if stripped.startswith("Station "):
+                    mac = stripped.split()[1].lower()
+                    if _MAC_ADDRESS.match(mac):
+                        stations.append(mac)
+            return stations
+
+    return []
+
+
+_client_cache: dict[str, tuple[float, list[str]]] = {}
+
+
+def _cached_hotspot_stations(interface: str) -> list[str]:
+    now = time.monotonic()
+    cached = _client_cache.get(interface)
+    if cached and (now - cached[0]) < _CLIENT_CACHE_TTL_SECONDS:
+        return cached[1]
+    stations = list_hotspot_stations(interface)
+    _client_cache[interface] = (now, stations)
+    return stations
+
+
+def clear_hotspot_client_cache_for_tests() -> None:
+    _client_cache.clear()
+
+
+def count_hotspot_clients(config: NdpConfig) -> int:
+    if not config.wifi_hotspot_enabled or not _pid_running(hostapd_pid_path()):
+        return 0
+    return len(_cached_hotspot_stations(config.wifi_hotspot_interface))
+
+
+@dataclass(frozen=True)
+class HotspotFooter:
+    lines: tuple[str, ...]
+    warn_no_client: bool = False
+
+
+def _hotspot_client_line(config: NdpConfig, *, active: bool, client_count: int) -> str:
+    from ndp.locale.loader import load_locale, translate
+
+    locale = load_locale(config.ui_locale)
+    if not active:
+        return translate(locale, "tft.hotspot_ap_off") or "AP: off"
+    if client_count <= 0:
+        return translate(locale, "tft.hotspot_client_none") or "Tel: --"
+    if client_count == 1:
+        return translate(locale, "tft.hotspot_client_ok") or "Tel: OK"
+    return translate(locale, "tft.hotspot_client_multi", count=client_count) or f"Tel: {client_count}"
+
+
+def hotspot_footer(config: NdpConfig) -> HotspotFooter:
+    """Footer lines for the TFT (SSID, web URL, phone/client status)."""
+    if not config.wifi_hotspot_enabled or not config.web_enabled:
+        return HotspotFooter(lines=())
+
+    host, _ = _parse_cidr(config.wifi_hotspot_ip)
+    try:
+        ssid = build_ssid(config.wifi_hotspot_ssid_prefix, config.wifi_hotspot_interface)
+    except FileNotFoundError:
+        ssid = config.wifi_hotspot_ssid_prefix or "NDP"
+    active = _pid_running(hostapd_pid_path())
+    client_count = count_hotspot_clients(config) if active else 0
+    client_line = _hotspot_client_line(config, active=active, client_count=client_count)
+    return HotspotFooter(
+        lines=(ssid[:18], f"{host}:{config.web_port}", client_line[:22]),
+        warn_no_client=active and client_count == 0,
+    )
+
+
 def hotspot_display_lines(config: NdpConfig) -> list[str]:
     """Short connection hints for the framebuffer UI."""
-    if not config.wifi_hotspot_enabled or not config.web_enabled:
-        return []
-    ssid = build_ssid(config.wifi_hotspot_ssid_prefix, config.wifi_hotspot_interface)
-    host, _ = _parse_cidr(config.wifi_hotspot_ip)
-    return [ssid[:18], f"{host}:{config.web_port}"]
+    return list(hotspot_footer(config).lines)
 
 
 def build_ssid(prefix: str, interface: str) -> str:
@@ -351,6 +445,7 @@ def get_status(config: NdpConfig) -> HotspotStatus:
         )
 
     healthy, health_message = hotspot_health(config)
+    client_count = count_hotspot_clients(config) if healthy else 0
     state_file = hotspot_state_path()
     if state_file.is_file():
         try:
@@ -372,6 +467,7 @@ def get_status(config: NdpConfig) -> HotspotStatus:
         channel=config.wifi_hotspot_channel,
         operstate=operstate,
         interface_mode=mode,
+        clients_connected=client_count,
         message="Attivo" if healthy else health_message,
     )
 

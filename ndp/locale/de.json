@@ -240,6 +240,10 @@
     "discover_screen": "Discover-Bildschirm",
     "updown_phone": "Nur Telefon",
     "updown_cli": "oder CLI:",
+    "hotspot_client_ok": "Tel: verbunden",
+    "hotspot_client_none": "Tel: fehlt",
+    "hotspot_client_multi": "Tel: {count} Ger.",
+    "hotspot_ap_off": "Tel: AP aus",
     "labels": {
       "link": "Link", "host": "Host", "ip": "IP", "mac": "MAC",
       "proto": "Proto", "switch": "Switch", "port": "Port", "vlan": "VLAN",

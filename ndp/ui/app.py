@@ -579,12 +579,15 @@ class ProbeUI:
                 y_offset=self.config.ui_hint_y_offset,
             )
         elif self.config.web_enabled and self.config.wifi_hotspot_enabled:
-            from ndp.network.hotspot import hotspot_display_lines
+            from ndp.network.hotspot import hotspot_footer
 
-            footer_lines = hotspot_display_lines(self.config)
+            footer = hotspot_footer(self.config)
+            footer_warn = (255, 180, 60)
             footer_y = self.config.ui_height - 4
-            for line in reversed(footer_lines):
-                rendered = hint_font.render(line, True, COLOR_MUTED)
+            for index, line in enumerate(reversed(footer.lines)):
+                is_client_line = index == 0
+                color = footer_warn if (footer.warn_no_client and is_client_line) else COLOR_MUTED
+                rendered = hint_font.render(line, True, color)
                 footer_y -= rendered.get_height()
                 surface.blit(rendered, (text_x, footer_y))
 
