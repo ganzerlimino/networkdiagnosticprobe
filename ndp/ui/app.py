@@ -21,7 +21,17 @@ from ndp.ui.input import create_ui_input
 from ndp.ui.discovery_session import DiscoveryUISession
 from ndp.ui.framebuffer import RawFramebuffer
 from ndp.ui.layout import content_text_x, content_width, content_x_offset, draw_button_hints
-from ndp.ui.screens import ScreenId, lines_for_screen, next_screen, screen_ids_for_mode, screen_title, shutdown_lines, tft_text
+from ndp.ui.screens import (
+    ScreenId,
+    lines_for_screen,
+    next_screen,
+    screen_ids_for_mode,
+    screen_title,
+    shutdown_lines,
+    shutdown_palette,
+    shutdown_phase_message,
+    tft_text,
+)
 from ndp.ui.splash import draw_splash
 from ndp.ping.service import read_adhoc_host, run_ping_suite
 
@@ -484,17 +494,37 @@ class ProbeUI:
         content_x = content_x_offset(edge, margin)
         text_x = content_text_x(edge, margin, text_gap)
 
-        from ndp.system.shutdown import is_shutting_down, shutdown_message
+        from ndp.system.shutdown import is_shutting_down, shutdown_snapshot
 
         if is_shutting_down():
-            header = pygame.Rect(content_x, 0, text_width, 34)
-            pygame.draw.rect(surface, COLOR_HEADER, header)
-            title = title_font.render(tft_text(self.config, "tft.shutdown_title"), True, COLOR_ACCENT)
-            surface.blit(title, (text_x, 6))
-            y = 42
+            palette = shutdown_palette()
+            surface.fill(palette["bg"])
+            pygame.draw.rect(surface, palette["header"], pygame.Rect(0, 0, self.config.ui_width, 38))
+            stripe_h = 6
+            pygame.draw.rect(
+                surface,
+                palette["stripe"],
+                pygame.Rect(0, self.config.ui_height - stripe_h, self.config.ui_width, stripe_h),
+            )
+            pygame.draw.rect(
+                surface,
+                palette["accent"],
+                pygame.Rect(0, 0, self.config.ui_width, 3),
+            )
+            title = title_font.render(tft_text(self.config, "tft.shutdown_title"), True, palette["accent"])
+            surface.blit(title, (text_x, 8))
+            phase = str(shutdown_snapshot().get("phase", "in_progress"))
+            message = shutdown_phase_message(phase, self.config)
+            y = 44
             line_step = self.config.ui_font_size + self.config.ui_line_spacing
-            for line in shutdown_lines(shutdown_message(), self.config):
-                rendered = body_font.render(line, True, COLOR_TEXT)
+            for index, line in enumerate(shutdown_lines(message, self.config)):
+                if index == 0:
+                    continue
+                if not line:
+                    y += line_step // 2
+                    continue
+                color = palette["accent"] if index >= 3 else palette["text"]
+                rendered = body_font.render(line, True, color)
                 surface.blit(rendered, (text_x, y))
                 y += line_step
             return

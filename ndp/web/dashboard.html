@@ -73,6 +73,7 @@
     .config-highlight h2 { color: var(--accent); font-size: 1.05rem; }
     .config-highlight .field label { font-size: 1rem; }
     .config-highlight select { font-size: 1.05rem; padding: .75rem; }
+    #power-msg.power-active { color: var(--accent); font-size: 1.05rem; font-weight: 600; text-align: center; padding: .75rem 0; }
     .power-armed { outline: 2px solid var(--danger); }
     input[type="checkbox"] { width: auto; margin: 0; }
     .field-check { display: flex; align-items: flex-start; gap: .55rem; }
@@ -2149,7 +2150,38 @@
       renderConfigForm('config-quick-form', ['profile', 'appearance'], null, {hideSectionTitles: true});
       renderConfigForm('config-form', null, ['hotspot', 'profile', 'appearance']);
       renderConfigForm('hotspot-form', 'hotspot');
+      wireAppearancePreview();
       renderHotspotStatusPanel();
+    }
+
+    let appearancePreviewWired = false;
+
+    async function previewTheme(themeId) {
+      if (!themeId) return;
+      activeThemeId = themeId;
+      try {
+        const themesJson = await (await fetch('/api/themes')).json();
+        const theme = (themesJson.themes || {})[themeId];
+        if (theme) applyTheme(theme);
+      } catch (e) {
+        console.warn('theme preview failed', e);
+      }
+    }
+
+    function wireAppearancePreview() {
+      if (appearancePreviewWired) return;
+      appearancePreviewWired = true;
+      for (const containerId of ['config-quick-form', 'config-form']) {
+        const container = document.getElementById(containerId);
+        if (!container) continue;
+        container.addEventListener('change', (ev) => {
+          const target = ev.target;
+          if (!target || !target.getAttribute) return;
+          if (target.getAttribute('data-key') === 'ui.theme') {
+            previewTheme(target.value);
+          }
+        });
+      }
     }
 
     async function applyLocaleBundle(code) {
@@ -2264,10 +2296,6 @@
     document.getElementById('reload').onclick = () => { loadConfigForm(); loadStatus(); };
     async function loadConfig() { await loadConfigForm(); }
 
-    function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
     function resetShutdownConfirm() {
       shutdownConfirmPending = false;
       const btn = document.getElementById('power-shutdown');
@@ -2287,37 +2315,6 @@
         msg.className = 'sub';
       }
       if (statusEl) statusEl.textContent = '';
-    }
-
-    async function pollShutdownStatus(msgEl, statusEl) {
-      let offlineStreak = 0;
-      for (let attempt = 0; attempt < 90; attempt += 1) {
-        try {
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 2500);
-          const r = await fetch('/api/system/shutdown', { signal: controller.signal });
-          clearTimeout(timer);
-          const j = await r.json();
-          offlineStreak = 0;
-          if (statusEl) statusEl.textContent = '';
-          if (msgEl && !msgEl.textContent) msgEl.textContent = t('power.started_tft');
-        } catch (_err) {
-          offlineStreak += 1;
-          if (offlineStreak >= 2) {
-            if (statusEl) statusEl.textContent = '';
-            if (msgEl) {
-              msgEl.textContent = t('power.offline_safe');
-              msgEl.className = 'ok';
-            }
-            shutdownConfirmPending = false;
-            return;
-          }
-          if (msgEl) msgEl.textContent = t('power.connection_lost');
-        }
-        await sleep(1000);
-      }
-      if (msgEl) msgEl.textContent = t('common.shutdown_timeout');
-      shutdownConfirmPending = false;
     }
 
     document.getElementById('power-shutdown-cancel').onclick = () => resetShutdownConfirm();
@@ -2344,8 +2341,8 @@
       cancelBtn.style.display = 'none';
       shutdownConfirmPending = false;
       if (hint) hint.style.display = 'none';
-      msg.textContent = t('power.started_tft');
-      msg.className = 'sub';
+      msg.textContent = t('power.check_display');
+      msg.className = 'sub power-active';
       if (statusEl) statusEl.textContent = '';
       try {
         const r = await fetch('/api/system/shutdown', {
@@ -2356,12 +2353,12 @@
         const parsed = await parseJsonResponse(r);
         if (!r.ok) {
           msg.textContent = formatApiError(parsed.data || parsed);
+          msg.className = 'sub';
           resetShutdownConfirm();
-          return;
         }
-        await pollShutdownStatus(msg, statusEl);
       } catch (e) {
         msg.textContent = t('common.network_error', {detail: e});
+        msg.className = 'sub';
         resetShutdownConfirm();
       }
     };

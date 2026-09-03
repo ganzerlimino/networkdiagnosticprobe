@@ -106,7 +106,7 @@ def _config_fields(locale_options: tuple[str, ...]) -> tuple[ConfigField, ...]:
         ConfigField("discovery.passive_listen_seconds", "Sniff passivo default (s)", "Durata predefinita tab Passive check.", "float", section="discovery"),
         ConfigField("discovery.scenario", "Profilo scenario", "Preset timeout discovery (impianto/retail/ufficio).", "select", ("impianto", "retail", "ufficio"), section="profile"),
         ConfigField("ui.locale", "Lingua interfaccia", "Scegli la lingua e salva.", "select", locales, section="appearance"),
-        ConfigField("ui.theme", "Tema colori", "Web UI e display TFT (riavvia ndp per TFT).", "select", ("field-dark", "industrial-amber", "high-contrast", "office-light", "night-vision"), section="appearance"),
+        ConfigField("ui.theme", "Tema colori", "Anteprima immediata Web UI; salva per persistere. TFT: salva e riavvia ndp.", "select", ("field-dark", "industrial-amber", "high-contrast", "office-light", "night-vision"), section="appearance"),
         ConfigField("logging.level", "Livello log", "DEBUG, INFO, WARNING, ERROR.", "select", ("DEBUG", "INFO", "WARNING", "ERROR"), section="logging"),
         ConfigField("console.enabled", "Output console", "Riepilogo periodico su journal.", "bool", section="console"),
         ConfigField("console.refresh_seconds", "Refresh console (s)", "Intervallo stampa console.", "float", section="console"),

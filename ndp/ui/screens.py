@@ -44,6 +44,26 @@ def tft_text(config: object | None, key: str, **variables: object) -> str:
     return _t(config, key, **variables)
 
 
+def shutdown_palette() -> dict[str, tuple[int, int, int]]:
+    """High-visibility red palette for TFT shutdown (independent of UI theme)."""
+    return {
+        "bg": (96, 0, 0),
+        "header": (200, 0, 0),
+        "text": (255, 255, 255),
+        "muted": (255, 220, 180),
+        "accent": (255, 220, 0),
+        "stripe": (255, 255, 255),
+    }
+
+
+def shutdown_phase_message(phase: str, config: object | None = None) -> str:
+    key = {
+        "stopping_services": "tft.shutdown_stopping",
+        "powering_off": "tft.shutdown_poweroff",
+    }.get(phase, "tft.shutdown_message")
+    return _t(config, key)
+
+
 def shutdown_lines(message: str | None = None, config: object | None = None) -> list[str]:
     return [
         _t(config, "tft.shutdown_title"),
