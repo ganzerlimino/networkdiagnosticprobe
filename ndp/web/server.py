@@ -40,11 +40,16 @@ from ndp.web.api_models import (
     ServiceRestartPayload,
     ShutdownPayload,
 )
+from ndp import __version__
 from ndp.web.report import build_report
 
 logger = logging.getLogger(__name__)
 
 _DASHBOARD_HTML = (Path(__file__).parent / "dashboard.html").read_text(encoding="utf-8")
+_DASHBOARD_CACHE_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "Pragma": "no-cache",
+}
 
 
 def create_app(
@@ -77,8 +82,9 @@ def create_app(
     configure_shutdown_hooks(stop_hotspot=lambda: stop_hotspot(config))
 
     @app.get("/", response_class=HTMLResponse)
-    def index() -> str:
-        return _DASHBOARD_HTML
+    def index() -> HTMLResponse:
+        html = _DASHBOARD_HTML.replace("__NDP_VERSION__", __version__)
+        return HTMLResponse(content=html, headers=_DASHBOARD_CACHE_HEADERS)
 
     @app.get("/manifest.webmanifest")
     def manifest() -> FileResponse:

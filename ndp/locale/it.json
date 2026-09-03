@@ -160,10 +160,6 @@
     "confirm_hint": "Tocca di nuovo «Conferma spegnimento» per procedere, oppure Annulla.",
     "confirm_btn": "Conferma spegnimento",
     "check_display": "Controlla il display di NDP per uno spegnimento corretto",
-    "started_tft": "Spegnimento avviato — segui il display del probe.",
-    "phase": "Fase: {phase}",
-    "offline_safe": "Sistema spento. Puoi scollegare l'alimentazione in sicurezza.",
-    "connection_lost": "Connessione persa: spegnimento in corso...",
     "shutdown_btn": "Spegni NDP"
   },
   "config": {

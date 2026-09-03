@@ -159,10 +159,6 @@
     "confirm_hint": "Tap «Confirm shutdown» again to proceed, or Cancel.",
     "confirm_btn": "Confirm shutdown",
     "check_display": "Check the NDP display for a proper shutdown",
-    "started_tft": "Shutdown started — follow the probe display.",
-    "phase": "Phase: {phase}",
-    "offline_safe": "System off. You can unplug power safely.",
-    "connection_lost": "Connection lost: shutting down...",
     "shutdown_btn": "Shut down NDP"
   },
   "config": {

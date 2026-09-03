@@ -7,6 +7,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="NDP">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta name="ndp-version" content="__NDP_VERSION__">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/static/icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
@@ -504,6 +506,8 @@
     let localeCatalog = [];
     let scenarioCatalog = [];
     let shutdownConfirmPending = false;
+    let shutdownUiLocked = false;
+    let statusPollTimer = null;
 
     function t(key, vars) {
       let current = localeStrings;
@@ -1018,8 +1022,40 @@
     }
 
     async function loadStatus() {
-      const data = await (await fetch('/api/status')).json();
-      renderStatus(data);
+      if (shutdownUiLocked) return;
+      try {
+        const data = await (await fetch('/api/status')).json();
+        renderStatus(data);
+      } catch (_err) {
+        /* ignore while probe reboots or shuts down */
+      }
+    }
+
+    function stopBackgroundPolls() {
+      if (statusPollTimer) {
+        clearInterval(statusPollTimer);
+        statusPollTimer = null;
+      }
+      if (discPoll) {
+        clearInterval(discPoll);
+        discPoll = null;
+      }
+    }
+
+    function showShutdownPhoneMessage() {
+      shutdownUiLocked = true;
+      stopBackgroundPolls();
+      const msg = document.getElementById('power-msg');
+      const btn = document.getElementById('power-shutdown');
+      const cancelBtn = document.getElementById('power-shutdown-cancel');
+      const hint = document.getElementById('power-hint');
+      const statusEl = document.getElementById('power-status');
+      btn.disabled = true;
+      cancelBtn.style.display = 'none';
+      if (hint) hint.style.display = 'none';
+      if (statusEl) statusEl.textContent = '';
+      msg.textContent = t('power.check_display');
+      msg.className = 'sub power-active';
     }
 
     async function sendReport(section) {
@@ -2297,6 +2333,7 @@
     async function loadConfig() { await loadConfigForm(); }
 
     function resetShutdownConfirm() {
+      if (shutdownUiLocked) return;
       shutdownConfirmPending = false;
       const btn = document.getElementById('power-shutdown');
       const cancelBtn = document.getElementById('power-shutdown-cancel');
@@ -2319,7 +2356,7 @@
 
     document.getElementById('power-shutdown-cancel').onclick = () => resetShutdownConfirm();
 
-    document.getElementById('power-shutdown').onclick = async () => {
+    document.getElementById('power-shutdown').onclick = () => {
       const msg = document.getElementById('power-msg');
       const statusEl = document.getElementById('power-status');
       const btn = document.getElementById('power-shutdown');
@@ -2340,27 +2377,13 @@
       btn.disabled = true;
       cancelBtn.style.display = 'none';
       shutdownConfirmPending = false;
-      if (hint) hint.style.display = 'none';
-      msg.textContent = t('power.check_display');
-      msg.className = 'sub power-active';
-      if (statusEl) statusEl.textContent = '';
-      try {
-        const r = await fetch('/api/system/shutdown', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({confirm: true}),
-        });
-        const parsed = await parseJsonResponse(r);
-        if (!r.ok) {
-          msg.textContent = formatApiError(parsed.data || parsed);
-          msg.className = 'sub';
-          resetShutdownConfirm();
-        }
-      } catch (e) {
-        msg.textContent = t('common.network_error', {detail: e});
-        msg.className = 'sub';
-        resetShutdownConfirm();
-      }
+      showShutdownPhoneMessage();
+      fetch('/api/system/shutdown', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({confirm: true}),
+        keepalive: true,
+      }).catch(() => {});
     };
 
     document.getElementById('save').onclick = async () => {
@@ -2378,7 +2401,7 @@
     loadVersion(); loadConfig(); loadStatus(); pollDiscover(); startDiscPoll(); loadScanProfiles(); loadOuiTable();
     activateNavGroup('monitor', 'status');
     applyPanelFromUrl();
-    setInterval(loadStatus, 5000);
+    statusPollTimer = setInterval(loadStatus, 5000);
   </script>
 </body>
 </html>

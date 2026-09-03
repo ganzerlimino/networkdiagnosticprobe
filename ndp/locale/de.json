@@ -159,10 +159,6 @@
     "confirm_hint": "Erneut «Herunterfahren bestätigen» tippen oder Abbrechen.",
     "confirm_btn": "Herunterfahren bestätigen",
     "check_display": "NDP-Display für ordnungsgemäßes Herunterfahren prüfen",
-    "started_tft": "Herunterfahren gestartet — Probe-Display beachten.",
-    "phase": "Phase: {phase}",
-    "offline_safe": "System aus. Strom kann sicher getrennt werden.",
-    "connection_lost": "Verbindung verloren: Herunterfahren läuft...",
     "shutdown_btn": "NDP ausschalten"
   },
   "config": {
