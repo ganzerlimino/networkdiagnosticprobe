@@ -250,12 +250,14 @@ def create_app(
 
     @app.get("/api/themes")
     def api_themes() -> dict[str, object]:
-        from ndp.locale.loader import load_themes_catalog, resolve_theme_id
+        from ndp.locale.loader import list_themes, load_themes_catalog, resolve_theme_id
 
         catalog = load_themes_catalog()
+        active = resolve_theme_id(config.ui_theme)
         return {
-            "default": resolve_theme_id(config.ui_theme),
-            "active": resolve_theme_id(config.ui_theme),
+            "default": active,
+            "active": active,
+            "themes_list": list_themes(config.ui_locale),
             **catalog,
         }
 

@@ -123,10 +123,69 @@ def translate_config_field(
 
 
 def load_themes_catalog() -> dict[str, Any]:
-    for path in (_SYSTEM_LOCALE_DIR / "themes.json", _BUNDLED_DIR / "themes.json"):
-        if path.is_file():
-            return _load_json(path)
-    raise FileNotFoundError("themes.json not found")
+    bundled_path = _BUNDLED_DIR / "themes.json"
+    if not bundled_path.is_file():
+        raise FileNotFoundError("themes.json not found")
+    catalog = _load_json(bundled_path)
+    system_path = _SYSTEM_LOCALE_DIR / "themes.json"
+    if system_path.is_file():
+        overlay = _load_json(system_path)
+        catalog = _merge_themes_catalog(catalog, overlay)
+    return catalog
+
+
+def _merge_themes_catalog(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
+    merged = deepcopy(base)
+    for key in ("version", "default"):
+        if key in overlay:
+            merged[key] = overlay[key]
+    base_themes = merged.setdefault("themes", {})
+    overlay_themes = overlay.get("themes", {})
+    if not isinstance(base_themes, dict):
+        base_themes = {}
+        merged["themes"] = base_themes
+    if isinstance(overlay_themes, dict):
+        for theme_id, theme in overlay_themes.items():
+            if (
+                theme_id in base_themes
+                and isinstance(theme, dict)
+                and isinstance(base_themes.get(theme_id), dict)
+            ):
+                base_themes[theme_id] = _merge_dict(base_themes[theme_id], theme)  # type: ignore[arg-type]
+            else:
+                base_themes[theme_id] = theme
+    return merged
+
+
+def theme_display_name(theme: dict[str, Any], locale_code: str = "it") -> str:
+    name = theme.get("name")
+    locale = locale_code.strip().lower().split("-")[0] or "it"
+    if isinstance(name, dict):
+        for key in (locale, "it", "en"):
+            if key in name and name[key]:
+                return str(name[key])
+        for value in name.values():
+            if value:
+                return str(value)
+        return ""
+    if isinstance(name, str):
+        return name
+    return ""
+
+
+def list_themes(locale_code: str = "it") -> list[dict[str, str]]:
+    catalog = load_themes_catalog()
+    themes = catalog.get("themes", {})
+    if not isinstance(themes, dict):
+        return []
+    entries: list[dict[str, str]] = []
+    for theme_id in sorted(themes.keys()):
+        theme = themes[theme_id]
+        if not isinstance(theme, dict):
+            continue
+        label = theme_display_name(theme, locale_code) or str(theme_id)
+        entries.append({"id": str(theme_id), "name": label})
+    return entries
 
 
 def get_theme(theme_id: str) -> dict[str, Any] | None:

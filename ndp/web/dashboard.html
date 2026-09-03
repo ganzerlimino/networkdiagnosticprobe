@@ -505,6 +505,7 @@
     let scenarioMeta = null;
     let localeCatalog = [];
     let scenarioCatalog = [];
+    let themeCatalog = [];
     let shutdownConfirmPending = false;
     let shutdownUiLocked = false;
     let statusPollTimer = null;
@@ -2085,6 +2086,10 @@
         const entry = localeCatalog.find(item => item.code === opt);
         return entry ? entry.name : opt;
       }
+      if (field.key === 'ui.theme') {
+        const entry = themeCatalog.find(item => item.id === opt);
+        return entry ? entry.name : opt;
+      }
       return opt;
     }
 
@@ -2179,6 +2184,11 @@
           const scenJson = await scenResp.json();
           scenarioCatalog = scenJson.scenarios || [];
           scenarioMeta = scenarioCatalog.find(item => item.id === configValues['discovery.scenario']) || scenarioMeta;
+        }
+        const themesResp = await fetch('/api/themes');
+        if (themesResp.ok) {
+          const themesJson = await themesResp.json();
+          themeCatalog = themesJson.themes_list || [];
         }
       } catch (e) {
         console.warn('config catalogs load failed', e);

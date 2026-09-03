@@ -17,11 +17,12 @@ class ConfigField:
 
 
 def config_sections(locale_code: str = "it") -> list[dict[str, object]]:
-    from ndp.locale.loader import list_locales, load_locale, translate, translate_config_field
+    from ndp.locale.loader import list_locales, list_themes, load_locale, translate, translate_config_field
 
     locale = load_locale(locale_code)
     locale_options = tuple(entry["code"] for entry in list_locales())
-    fields = _config_fields(locale_options)
+    theme_options = tuple(entry["id"] for entry in list_themes(locale_code))
+    fields = _config_fields(locale_options, theme_options)
     sections: dict[str, dict[str, object]] = {}
     for field in fields:
         section = sections.setdefault(
@@ -73,8 +74,12 @@ def _section_title(section_id: str) -> str:
     }.get(section_id, section_id)
 
 
-def _config_fields(locale_options: tuple[str, ...]) -> tuple[ConfigField, ...]:
+def _config_fields(
+    locale_options: tuple[str, ...],
+    theme_options: tuple[str, ...] | None = None,
+) -> tuple[ConfigField, ...]:
     locales = locale_options or ("it", "en", "de")
+    themes = theme_options or ("field-dark",)
     return (
         ConfigField("interface", "Interfaccia monitorata", "Di solito eth0 (cavo diagnostica).", "string", section="network"),
         ConfigField("poll_interval_link_up", "Polling link UP (s)", "Aggiornamento quando il cavo è collegato.", "float", section="network"),
@@ -106,7 +111,7 @@ def _config_fields(locale_options: tuple[str, ...]) -> tuple[ConfigField, ...]:
         ConfigField("discovery.passive_listen_seconds", "Sniff passivo default (s)", "Durata predefinita tab Passive check.", "float", section="discovery"),
         ConfigField("discovery.scenario", "Profilo scenario", "Preset timeout discovery (impianto/retail/ufficio).", "select", ("impianto", "retail", "ufficio"), section="profile"),
         ConfigField("ui.locale", "Lingua interfaccia", "Scegli la lingua e salva.", "select", locales, section="appearance"),
-        ConfigField("ui.theme", "Tema colori", "Anteprima immediata Web UI; salva per persistere. TFT: salva e riavvia ndp.", "select", ("field-dark", "industrial-amber", "high-contrast", "office-light", "night-vision"), section="appearance"),
+        ConfigField("ui.theme", "Tema colori", "Anteprima immediata Web UI; salva per persistere. Temi custom in /etc/ndp/locale/themes.json. TFT: salva e riavvia ndp.", "select", themes, section="appearance"),
         ConfigField("logging.level", "Livello log", "DEBUG, INFO, WARNING, ERROR.", "select", ("DEBUG", "INFO", "WARNING", "ERROR"), section="logging"),
         ConfigField("console.enabled", "Output console", "Riepilogo periodico su journal.", "bool", section="console"),
         ConfigField("console.refresh_seconds", "Refresh console (s)", "Intervallo stampa console.", "float", section="console"),

@@ -1,0 +1,33 @@
+{
+  "default": "aziendale",
+  "themes": {
+    "aziendale": {
+      "name": {
+        "it": "Aziendale",
+        "en": "Corporate",
+        "de": "Unternehmen"
+      },
+      "color_scheme": "dark",
+      "web": {
+        "bg": "#0a1628",
+        "card": "#122240",
+        "surface": "#0d1a30",
+        "text": "#eef4ff",
+        "muted": "#8aa0c8",
+        "accent": "#0066cc",
+        "accent_text": "#ffffff",
+        "danger": "#e53935",
+        "border": "#1e3a66",
+        "header_alpha": "0.96",
+        "chart": ["#0066cc", "#4caf50", "#ff9800"]
+      },
+      "tft": {
+        "bg": [10, 22, 40],
+        "header": [18, 34, 64],
+        "text": [238, 244, 255],
+        "muted": [138, 160, 200],
+        "accent": [0, 102, 204]
+      }
+    }
+  }
+}
