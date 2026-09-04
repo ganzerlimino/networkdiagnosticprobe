@@ -1,6 +1,6 @@
 # Network Diagnostic Probe (NDP) — Documentazione completa
 
-**Versione software:** 0.19.1  
+**Versione software:** 0.23.1  
 **Repository:** [networkdiagnosticprobe](https://github.com/ganzerlimino/networkdiagnosticprobe.git)  
 **Scopo del documento:** recap tecnico, manuale operativo e riferimento per manutenzione futura.
 
@@ -24,6 +24,7 @@
 14. [Manutenzione e aggiornamenti](#14-manutenzione-e-aggiornamenti)
 15. [Risoluzione problemi](#15-risoluzione-problemi)
 16. [Riferimenti rapidi](#16-riferimenti-rapidi)
+17. [Lingue e temi (i18n)](#17-lingue-e-temi-i18n)
 
 ---
 
@@ -486,7 +487,8 @@ Cavo collegato
 | **Nessuna app nativa** | Zero installazione; solo browser |
 | **Navigazione a due livelli** | 4 macro-aree + sotto-tab scrollabili |
 | **Dark theme** | Leggibilità in ambiente industriale / cabine |
-| **Italiano** | UI e messaggi per operatori italiani |
+| **Multilingua** | IT / EN / DE — UI web, TFT, report email, menu Config |
+| **Temi colori** | 5 bundled + custom in `/etc/ndp/locale/themes.json` |
 | **Azioni con feedback** | Pulsanti Ferma, messaggi di stato, disable durante scan |
 | **Export sempre vicino** | JSON/CSV accanto a ogni scan |
 
@@ -549,6 +551,8 @@ URL diretto a un pannello: `http://192.168.50.1:8080/?panel=plant`
 
 #### Sistema → Config
 - Form guidato con spiegazioni per campo
+- **Lingua interfaccia** (IT / EN / DE) e **profilo scenario** in evidenza
+- **Tema colori** con anteprima immediata Web UI
 - YAML avanzato (textarea)
 - Export / import file
 - Salvataggio con restart asincrono servizio
@@ -992,14 +996,70 @@ ndp test display --color cycle       # Test TFT
 
 | Versione | Contenuto principale |
 |----------|---------------------|
+| **0.23.1** | Fix select lingua (esclusi file temi da elenco locale) |
+| **0.23.0** | i18n IT/EN/DE completo, report email multilingua |
+| **0.22.x** | `ndp theme validate`, schema temi, fix crash catalogo + hotspot NM |
+| **0.20–0.21** | Temi custom, scenari discovery, footer TFT client Wi‑Fi |
 | 0.19.1 | OT → Impianto (refactor UI industriale) |
 | 0.19.0 | Discovery stampanti Epson/Zebra |
 | 0.18.4 | Spegnimento controllato + fix save config |
-| 0.18.3 | Port/VLAN neighbor + config discovery MNDP/passive |
 | 0.12 | MTU discovery |
 | 0.10 | Hotspot Wi‑Fi integrato |
 | 0.7 | Display read-only + web mobile |
 
 ---
 
-*Documento generato per NDP v0.19.1 — aggiornare ad ogni release significativa.*
+## 17. Lingue e temi (i18n)
+
+### 17.1 Lingue supportate
+
+| Codice | Lingua | File |
+|--------|--------|------|
+| `it` | Italiano | `ndp/locale/it.json` |
+| `en` | English | `ndp/locale/en.json` |
+| `de` | Deutsch | `ndp/locale/de.json` |
+
+Impostazione: **Sistema → Config → Lingua interfaccia** (`ui.locale`). Salva e riavvia `ndp` se il TFT non aggiorna subito.
+
+I **report email** seguono la lingua configurata. I file in `/etc/ndp/locale/` che **non** hanno `_meta.locale` (es. `themes.bundled.json`, `themes.schema.json`) non compaiono nel menu lingue.
+
+### 17.2 Profili scenario discovery
+
+File: `ndp/scenarios/profiles.yaml` (copia in `/etc/ndp/scenarios/`).
+
+| ID | Uso |
+|----|-----|
+| `impianto` | HMI, gateway, Modbus/OPC UA — focus tab Impianto |
+| `retail` | Stampanti fiscali, Zebra, servizi LAN |
+| `ufficio` | Porte standard, NAS, mDNS/SSDP |
+
+Config: `discovery.scenario` nel form Config.
+
+### 17.3 Temi colori
+
+| File | Ruolo |
+|------|------|
+| `ndp/locale/themes.json` | 5 temi bundled |
+| `/etc/ndp/locale/themes.json` | Overlay custom (merge a runtime) |
+| `/etc/ndp/locale/themes.schema.json` | Schema JSON per validazione |
+
+```bash
+ndp theme validate
+ndp theme validate --file /etc/ndp/locale/themes.json
+ndp theme validate --json
+```
+
+Guida dettagliata: [CONFIGURAZIONE-TEMI.md](CONFIGURAZIONE-TEMI.md).
+
+### 17.4 Diagnostica sul dispositivo
+
+```bash
+cd ~/networkdiagnosticprobe
+sudo ./scripts/ndp-doctor.sh
+```
+
+Verifica servizi, hotspot, catalogo temi, locale e suggerisce recovery.
+
+---
+
+*Documento aggiornato per NDP v0.23.1 — rigenerare `docs/NDP-MANUALE-COMPLETO.docx` con `python3 scripts/generate-manuale-docx.py`.*

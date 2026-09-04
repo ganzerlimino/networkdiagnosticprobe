@@ -1,139 +1,158 @@
 # Network Diagnostic Probe (NDP)
 
+**Versione corrente: v0.23.1**
+
 Dispositivo portatile di diagnostica di rete basato su **Raspberry Pi 3**, pensato per rispondere rapidamente alla domanda: *cosa c'è dall'altra parte del cavo?*
 
-Collegando il probe a una porta switch, NDP mostra informazioni L2 (LLDP/CDP) e L3 (IP, gateway, DNS) senza bisogno di laptop o console.
+Collegando il probe a una porta switch, NDP mostra informazioni **L2** (LLDP/CDP, MNDP, sniff passivo) e **L3** (IP, gateway, DNS, ping, scan porte) senza laptop né console. Il **telefono** (via hotspot integrato) è il pannello di controllo; il **display TFT** è un mirror read-only in rotazione automatica.
 
-## Stato del progetto
+---
 
-**v0.12 — MTU discovery + fix API ping/scan**
+## Documentazione
 
-- Tab **MTU**: test decrementale da 1500 con ping DF (ideale per VPN site-to-site)
-- Fix `query.payload: Field required` su Ping live e Scan (FastAPI `Body()`)
-- Ping via **eth0** (`-I interface`) — evita fail quando l'hotspot è attivo su wlan0
-- Config: **dimensione pacchetto ICMP** (`ping.packet_size`)
+| Documento | Descrizione |
+|-----------|-------------|
+| **[docs/NDP-MANUALE-COMPLETO.docx](docs/NDP-MANUALE-COMPLETO.docx)** | **Manuale completo impaginato** (hardware, software, Web UI, OT, config, temi, i18n, troubleshooting) |
+| **[docs/DOCUMENTAZIONE.md](docs/DOCUMENTAZIONE.md)** | Stessa guida in Markdown (aggiornabile in repo) |
+| **[docs/MANUALE-ACCESSO-TELEFONO.md](docs/MANUALE-ACCESSO-TELEFONO.md)** | Hotspot, URL, accesso da telefono |
+| **[docs/CONFIGURAZIONE-TEMI.md](docs/CONFIGURAZIONE-TEMI.md)** | Temi colori custom (Web UI + TFT) |
 
-**v0.11 — Web UI: config guidata + hotspot**
+---
 
-- Tab **Hotspot** dedicata (password WPA2, SSID, canale, paese)
-- Tab **Config** con form guidato, spiegazioni per ogni voce, export/import YAML
-- Backup config via mail o download file
-- Fix messaggi errore `[object Object]` su Ping live e Scan porte
-- Comando `ndp` in PATH (`/usr/local/bin/ndp`)
+## Stato del progetto (v0.23.1)
 
-**v0.10 — Hotspot Wi-Fi per accesso telefono**
+Release di riferimento per uso sul campo. Funzionalità principali:
 
-- Rete Wi-Fi dedicata **NDP-XXXX** (`hostapd` + `dnsmasq`) su `wlan0`
-- Avvio automatico con `ndp-hotspot.service` prima di `ndp.service`
-- CLI `ndp hotspot start|stop|status|ensure` e API `/api/hotspot/status`
-- Scheda hotspot nella tab **Stato** della Web UI mobile
-- URL fisso dal telefono: `http://192.168.50.1:8080/` (senza Wi-Fi del cliente)
+| Area | Contenuto |
+|------|-----------|
+| **Core** | Link, IP, LLDP/CDP, sistema, polling, JSON/console |
+| **Hotspot** | Rete **NDP-XXXX** su `wlan0`, boot automatico, `ndp hotspot ensure` |
+| **Web UI mobile** | Monitor, LAN, OT, Sistema — PWA dark, export JSON/CSV, report email |
+| **Discover** | Wizard Up/Down, ARP, mDNS/SSDP, OUI, passive sniff, MNDP |
+| **OT** | Impianto (Weintek, eWON, Modbus), MikroTik, camere, NAS, stampanti Epson/Zebra |
+| **Scan** | Porte standard/custom, DNS, gateway, MTU path discovery |
+| **Config** | Form guidato, YAML, backup mail, profili scenario (impianto/retail/ufficio) |
+| **TFT** | Pygame su `/dev/fb1`, splash, spegnimento rosso ad alto contrasto |
+| **i18n** | Italiano, English, Deutsch (UI web, TFT, report email) |
+| **Temi** | 5 temi bundled + overlay `/etc/ndp/locale/themes.json`, `ndp theme validate` |
+| **Spegnimento** | Sequenza sicura da telefono con messaggio su TFT |
+| **Diagnostica** | `scripts/ndp-doctor.sh` per verifiche rapide sul Pi |
 
-**v0.9 — Port scan + DNS/gateway**
+### Changelog recente
 
-- Scan TCP **porte standard**, **industriali** (Modbus, MQTT, OPC UA, S7, PROFINET…) e **custom**
-- Verifica **DNS** (risoluzione hostname + server configurati) e **gateway** (ping + porte rapide)
-- Report email sezioni Scan e DNS
+| Versione | Novità principali |
+|----------|-------------------|
+| **0.23.1** | Fix menu lingue (esclusi file temi da select locale) |
+| **0.23.0** | i18n completo IT/EN/DE, report mail multilingua, stringhe Web UI |
+| **0.22.x** | Validatore temi (`ndp theme validate`), fix crash catalogo temi, fix hotspot NM |
+| **0.20–0.21** | Temi custom, scenari discovery, footer TFT client Wi‑Fi |
+| **0.19** | Tab OT (Impianto, camere, NAS, stampanti), navigazione Monitor/LAN/OT/Sistema |
+| **0.18** | Spegnimento controllato, MNDP in status, passive check |
+| **0.12** | MTU discovery |
+| **0.10** | Hotspot Wi‑Fi integrato |
+| **0.7** | Display read-only + Web UI come controllo principale |
 
-**v0.8 — Web mobile avanzata**
+Prossima milestone opzionale: **immagine SD pronta al flash** (pi-gen).
 
-- Wizard **Discover Up/Down** guidato da telefono (prompt + Continua/Salta)
-- **Ping live** verso 3 host in parallelo con grafico RTT in tempo reale (SSE)
-- **Report email** via app mail del telefono (`mailto:`) per pagina o report completo
-- Suite ping parallelizzata (fino a 3 worker)
-
-**v0.7 — Display read-only + telefono come controllo**
-
-- TFT a **rotazione automatica** delle schermate (nessun tasto/encoder necessario)
-- **Web UI mobile** come strumento principale: stato, ping, scan ARP, config
-- `ui.input: none` — nessun GPIO input sul dispositivo
-- Il touchscreen del display Joy-it **non è usato** (solo framebuffer)
-
-**v0.5 — Ping diagnostico**
-
-- ICMP verso **8.8.8.8**, **1.1.1.1**, fino a **4 host in config**, più **1 adhoc** al volo
-- Schermata **Ping** sul TFT; CLI `ndp test ping`
-- API web `/api/ping/*`
-
-**v0.4 — UI discovery + web config**
-
-- Splash screen e warmup all'avvio (tasti attivi solo quando pronto)
-- Schermata **Discover** con wizard Up/Down sul display TFT
-- Server HTTP per stato probe e modifica `config.yaml` (`web.enabled: true`)
-- Parametri UI documentati in `ndp/config/default.yaml`
-
-**v0.3 — UI Pygame (Joy-it RB-TFT3.2)**
-
-- 5 schermate: Home, Switch, Network, System, Discover
-- Output framebuffer raw su `/dev/fb1` (Pi OS Lite)
-- Legenda tasti laterale, font e spaziatura configurabili
-
-**v0.2 — Discovery Up/Down (CLI)**
-
-- Wizard guidato per trovare un dispositivo scollegandolo e confrontando due scansioni
-- ARP scan attivo (`arp-scan`) con fallback su tabella kernel
-- Pulizia cache ARP prima della seconda scansione
-- Verifica al ricollegamento (passo 5)
-
-**v0.1 — Core engine**
-
-- Collector per link Ethernet, IP stack, LLDP/CDP e metriche di sistema
-- Motore di polling con cache neighbor
-- Output console e JSON (`ndp --once --json`)
-- Script di installazione per Raspberry Pi OS Lite
-- Unit file systemd per avvio automatico
-
-Prossima milestone: immagine SD pronta al flash (pi-gen).
+---
 
 ## Hardware di riferimento
 
 | Componente | Modello |
 |------------|---------|
 | SBC | Raspberry Pi 3 Model B/B+ |
-| Display | Joy-it RB-TFT3.2 (solo output, no touch) |
-| Controllo | Smartphone via browser (`http://<ip-pi>:8080`) |
-| Rete | Ethernet RJ45 integrata |
+| Display | Joy-it RB-TFT3.2 (320×240, solo output) |
+| Controllo | Smartphone via browser (`http://192.168.50.1:8080/`) |
+| Rete diagnostica | Ethernet RJ45 (`eth0`) |
 | Alimentazione | Powerbank USB 5V |
 
-Il Pi 3 è scelto per il **basso costo**. Un boot di 60–90 secondi è accettabile per uno strumento da campo, non per un dispositivo consumer.
+Il touchscreen del TFT **non è usato**. Boot 60–90 s è accettabile per uno strumento da campo.
 
-## Architettura software
+---
 
-```
-  Smartphone ──Wi-Fi hotspot (NDP-XXXX)──► Web UI :8080   ping, discover, config
-  eth0 ────────────────────────────────► rete cliente     diagnostica L2/L3
-  TFT /dev/fb1 ◄────────────────────── mirror read-only, auto-cycle
-```
-
-Il display mostra i risultati in rotazione (Home → Switch → Network → Ping → System).  
-Tutta l'interazione (ping, scan rete, configurazione) avviene dal **telefono**, di norma collegato all'**hotspot integrato** del probe.
+## Architettura
 
 ```
-ndp-core (polling)
-    ├── collectors/link.py    → operstate, speed, duplex, MAC
-    ├── collectors/ip.py      → iproute2 JSON
-    ├── collectors/lldp.py    → lldpctl JSON
-    └── collectors/system.py  → hostname, uptime, temperatura
-
-ndp-discovery
-    ├── arp.py                → arp-scan, flush ARP cache
-    ├── diff.py               → confronto snapshot
-    └── wizard.py             → flusso Up/Down guidato (5 passi)
-
-ndp.service (systemd) → avvio automatico all'accensione
+  Smartphone ── Wi‑Fi NDP-XXXX ──► Web UI :8080   (ping, discover, config, spegnimento)
+  eth0 ─────────────────────────► rete cliente   (diagnostica L2/L3)
+  TFT /dev/fb1 ◄────────────────── mirror read-only, auto-cycle
 ```
 
-La UI locale (Pygame) è un **pannello informativo**; la Web UI (FastAPI) è il **piano di controllo**.
+```
+ndp (servizio systemd)
+ ├── collectors/     link, IP, LLDP, sistema
+ ├── discovery/      ARP, wizard Up/Down, vendor probes
+ ├── scan/           porte TCP, DNS, MTU
+ ├── network/        hotspot hostapd + dnsmasq
+ ├── web/            FastAPI + dashboard.html (PWA)
+ ├── ui/             Pygame framebuffer TFT
+ └── locale/         it, en, de + themes.json
+```
 
-### Profilo consigliato (Pi con display)
+---
+
+## Installazione su Raspberry Pi
+
+Su **Raspberry Pi OS Lite (64-bit)**:
+
+```bash
+git clone https://github.com/ganzerlimino/networkdiagnosticprobe.git ~/networkdiagnosticprobe
+cd ~/networkdiagnosticprobe
+git pull   # assicurati di essere su main aggiornato
+sudo ./scripts/install.sh
+```
+
+Con display Joy-it RB-TFT3.2 (installa driver e **riavvia**):
+
+```bash
+sudo ./scripts/install.sh --with-display
+```
+
+Lo script installa dipendenze di sistema, crea `/opt/ndp`, config in `/etc/ndp/`, abilita `ndp-hotspot`, `lldpd` e `ndp`.
+
+### Aggiornamento
+
+```bash
+cd ~/networkdiagnosticprobe
+git pull
+sudo ./scripts/install.sh
+sudo systemctl restart ndp-hotspot ndp
+```
+
+### Verifica
+
+```bash
+sudo ./scripts/ndp-doctor.sh    # diagnostica rapida
+sudo systemctl status ndp ndp-hotspot
+ndp --once
+ndp --once --json
+ndp hotspot status
+ndp theme validate              # valida temi custom
+```
+
+---
+
+## Uso rapido
+
+1. Accendi il probe, collega **eth0** alla rete da analizzare.
+2. Connetti il telefono all'hotspot **NDP-XXXX** (password in config).
+3. Apri **`http://192.168.50.1:8080/`**.
+4. **Monitor → Stato** per link, IP, switch LLDP.
+5. Usa **Discover**, **Ping**, **OT → Impianto** secondo il caso.
+6. **Sistema → Config** per lingua (IT/EN/DE), scenario, tema colori.
+7. **Sistema → Spegnimento** a fine intervento.
+
+URL alternativo sulla LAN cliente: `http://<IP-eth0>:8080/`.
+
+### Profilo config consigliato
 
 ```yaml
 ui:
   enabled: true
   input: none
+  locale: it          # it | en | de
+  theme: field-dark
   auto_cycle_seconds: 8
-  hint_edge: none
-  content_margin_side: 0
 
 web:
   enabled: true
@@ -142,167 +161,65 @@ web:
 wifi_hotspot:
   enabled: true
   ssid_prefix: "NDP"
-  password: "ndp-probe"
+  password: "ndp-probe"   # min 8 caratteri
+
+discovery:
+  scenario: impianto      # impianto | retail | ufficio
 ```
 
-Collega il telefono alla rete **NDP-XXXX** e apri `http://192.168.50.1:8080/`.  
-In alternativa, usa la stessa LAN del cliente: `http://<ip-eth0>:8080/`.
+---
 
-> Il touchscreen resistivo del Joy-it non è utilizzato da NDP. Non serve calibrarlo né abilitare driver touch.
-
-## Installazione rapida su Raspberry Pi
-
-Su Raspberry Pi OS Lite (64-bit), con rete disponibile:
+## Comandi CLI
 
 ```bash
-git clone https://github.com/ganzerlimino/networkdiagnosticprobe.git
-cd networkdiagnosticprobe
-git checkout cursor/ndp-core-skeleton-c93b
-sudo ./scripts/install.sh
+ndp --once [--json]                 # stato probe
+sudo ndp discover scan              # ARP scan
+sudo ndp discover updown            # wizard Up/Down
+ndp hotspot start|stop|status|ensure
+ndp theme validate [--file PATH] [--json]
+ndp test ping [--adhoc HOST]
+ndp test display --color cycle
 ```
 
-Con display Joy-it RB-TFT3.2 (installa driver LCD-show e **riavvia** la Pi):
+---
 
-```bash
-sudo ./scripts/install.sh --with-display
-# oppure, senza prompt interattivo:
-sudo NDP_INSTALL_DISPLAY=1 ./scripts/install.sh
-```
+## Temi e personalizzazione
 
-Lo script:
+- Temi bundled: `ndp/locale/themes.json`
+- Overlay custom: `/etc/ndp/locale/themes.json` (merge a runtime)
+- Schema: `/etc/ndp/locale/themes.schema.json`
+- Validazione: `ndp theme validate`
+- Guida: [docs/CONFIGURAZIONE-TEMI.md](docs/CONFIGURAZIONE-TEMI.md)
 
-1. Installa `lldpd`, `hostapd`, `dnsmasq`, `iproute2`, `ethtool`, `arp-scan`
-2. Crea un virtualenv in `/opt/ndp`
-3. Copia la configurazione in `/etc/ndp/config.yaml`
-4. Abilita `ndp-hotspot`, `lldpd` e `ndp`
+---
 
-### Verifica
-
-```bash
-sudo systemctl status ndp
-ndp --once
-ndp --once --json
-sudo ndp discover scan
-sudo ndp discover updown
-```
-
-> `arp-scan` e il wizard discovery richiedono privilegi root (raw socket / flush ARP).
-
-## Discovery Up/Down
-
-Workflow guidato per identificare un dispositivo quando non conosci il suo IP/MAC:
-
-1. **Baseline** — scansione ARP della subnet
-2. **Stacca** — l'utente scollega il device cercato
-3. **Flush ARP + attesa** — svuota la cache kernel e attende che la rete si stabilizzi
-4. **Seconda scansione** — confronto e lista device andati offline
-5. **Ricollega e verifica** — conferma che il MAC scomparso ricompare
-
-```bash
-sudo ndp discover updown
-sudo ndp discover updown --json
-sudo ndp discover updown --skip-verify
-```
-
-Comandi utili:
-
-```bash
-sudo ndp discover scan --save /tmp/baseline.json
-sudo ndp discover flush-arp
-sudo ndp discover diff /tmp/baseline.json /tmp/after.json
-```
-
-### Perché il flush ARP al passo 3?
-
-Senza pulizia, il kernel può conservare voci **stale** nella neighbor table anche dopo lo scollegamento fisico. La seconda scansione potrebbe quindi “vedere” ancora il device come presente. `ip neigh flush dev eth0` azzera la cache prima del countdown e della nuova scansione attiva, rendendo il diff molto più affidabile.
-
-## Sviluppo locale (PC o Pi)
+## Sviluppo e test
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+pip install -e ".[dev,web,ui]"
 pytest
-ndp --once
 ```
 
-Su un PC senza `lldpd` o senza interfaccia `eth0`, i collector gestiscono l'assenza dei dati senza crash.
+Rigenerare il manuale Word dopo modifiche a `docs/DOCUMENTAZIONE.md`:
 
-## Configurazione
-
-File predefinito: `/etc/ndp/config.yaml` — ogni chiave è commentata nel template `ndp/config/default.yaml`.
-
-```yaml
-ui:
-  enabled: true
-  input: none
-  auto_cycle_seconds: 8
-  hint_edge: none
-  content_margin_side: 0
-
-web:
-  enabled: true
-  port: 8080
-
-discovery:
-  disconnect_wait_seconds: 8
+```bash
+python3 scripts/generate-manuale-docx.py
 ```
 
-## Documentazione
-
-| Documento | Contenuto |
-|-----------|-----------|
-| **[docs/DOCUMENTAZIONE.md](docs/DOCUMENTAZIONE.md)** | Manuale completo: hardware, software, protocolli, Web UI, casi d'uso, config, manutenzione |
-| **[docs/MANUALE-ACCESSO-TELEFONO.md](docs/MANUALE-ACCESSO-TELEFONO.md)** | Accesso dal telefono, hotspot, troubleshooting Wi‑Fi |
-
-## Web UI (controllo da telefono)
-
-📖 **Guida dettagliata:** [docs/MANUALE-ACCESSO-TELEFONO.md](docs/MANUALE-ACCESSO-TELEFONO.md) — scenari Wi‑Fi, come trovare l'IP, troubleshooting.  
-📖 **Documentazione completa:** [docs/DOCUMENTAZIONE.md](docs/DOCUMENTAZIONE.md) — hardware, protocolli, casi d'uso, manutenzione.
-
-Con `web.enabled: true` apri `http://<ip-della-pi>:8080/` da browser sulla stessa rete:
-
-- **Stato** — link, IP, LLDP, sistema (aggiornamento automatico)
-- **Ping** — grafico live 1–3 host in parallelo, suite ICMP completa
-- **Discover** — wizard Up/Down guidato + scansione ARP rapida
-- **Scan** — porte standard / industriali / custom + DNS e gateway
-- **Config** — modifica e salva `/etc/ndp/config.yaml`
-- **Email** — pulsanti 📧 per inviare report pagina o completo (apre l'app mail del telefono)
-
-Dopo modifiche al config: `sudo systemctl restart ndp`
-
-Con `wifi_hotspot.enabled: true` (default), la Pi espone la rete **NDP-XXXX** all'avvio.  
-Verifica con `ndp hotspot status` o dalla tab **Stato** della Web UI. Vedi `docs/MANUALE-ACCESSO-TELEFONO.md`.
-
-### Input opzionale sul dispositivo
-
-Per prototipi con tasti TFT o encoder KY-040, imposta `ui.input: buttons` o `ui.input: encoder` in config. Il profilo di prodotto consigliato resta `none` (solo telefono).
-
-## Immagine SD pronta al flash
-
-Obiettivo release: scaricare un'immagine, flasharla con [Raspberry Pi Imager](https://www.raspberrypi.com/software/), inserire la SD e usare il probe.
-
-Per ora:
-
-1. Flash di Raspberry Pi OS Lite (64-bit)
-2. Esecuzione di `scripts/install.sh` al primo avvio
-
-La fase successiva automatizzerà questi passi con una stage **pi-gen** dedicata (`image/pi-gen/`). Vedi `scripts/build-sd-image.sh` per il piano di build.
+---
 
 ## Roadmap
 
-| Fase | Contenuto | Stato |
-|------|-----------|-------|
-| 0 | PoC hardware (display + lldpd) | Da validare su Pi reale |
-| 1 | Core engine Python | ✅ v0.1 |
-| 1b | Discovery Up/Down wizard | ✅ v0.2 |
-| 2 | UI Pygame su framebuffer | ✅ v0.3 |
-| 2b | Splash + schermate TFT | ✅ v0.4 |
-| 2c | Display read-only + web mobile | ✅ v0.7 |
-| 3 | Immagine SD custom (pi-gen) | Prossima |
-| 4 | Web config HTTP | ✅ v0.4 |
-| 4b | Hotspot Wi-Fi | ✅ v0.10 |
-| 5 | Case 3D | Pianificata |
+| Fase | Stato |
+|------|-------|
+| Core + discovery + UI TFT + Web | ✅ |
+| Hotspot + OT + i18n + temi | ✅ |
+| Immagine SD custom (pi-gen) | Pianificata |
+| Case 3D | Pianificata |
+
+---
 
 ## Licenza
 
