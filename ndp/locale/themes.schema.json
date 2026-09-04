@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ganzerlimino/networkdiagnosticprobe/docs/themes.schema.json",
+  "title": "NDP themes catalog",
+  "description": "Schema del file themes.json per Network Diagnostic Probe. Definisce colori Web UI (telefono) e display TFT. File tipico custom: /etc/ndp/locale/themes.json — viene unito (merge) ai temi bundled in /opt/ndp. Per un tema nuovo basta una voce in \"themes\"; per modificare un tema esistente basta includere solo i campi da cambiare. Validazione: python3 -m json.tool file.json && (opzionale) jsonschema. Documentazione: docs/CONFIGURAZIONE-TEMI.md",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Opzionale. Riferimento a questo schema, es. \"../themes.schema.json\" nell'esempio repo."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Versione formato catalogo temi NDP. Attualmente 1. Riservato per evoluzioni future."
+    },
+    "default": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "description": "ID del tema usato se ui.theme in config.yaml non esiste o non è valido. Opzionale nel file custom."
+    },
+    "themes": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Mappa id-tema → definizione. L'id diventa ui.theme in config (es. aziendale, acme-blue). Solo minuscole, cifre e trattini.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/theme"
+      }
+    }
+  },
+  "required": ["themes"],
+  "additionalProperties": false,
+  "$defs": {
+    "hexColor": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$",
+      "description": "Colore esadecimale Web UI nel formato #RRGGBB (es. #0066cc)."
+    },
+    "rgbTriplet": {
+      "type": "array",
+      "description": "Colore RGB per il display TFT: tre interi da 0 a 255, ordine [R, G, B].",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      }
+    },
+    "localizedName": {
+      "type": "object",
+      "description": "Nome del tema mostrato nel menu Config → Tema colori. Chiavi lingua breve (it, en, de, …).",
+      "propertyNames": {
+        "pattern": "^[a-z]{2}$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minProperties": 1
+    },
+    "webPalette": {
+      "type": "object",
+      "description": "Colori interfaccia web mobile (dashboard). Tutti in formato hex #RRGGBB. In un file overlay puoi includere solo i campi da cambiare.",
+      "properties": {
+        "bg": {
+          "$ref": "#/$defs/hexColor",
+          "description": "Sfondo generale della pagina."
+        },
+        "card": {
+          "$ref": "#/$defs/hexColor",
+          "description": "Sfondo pannelli e card (Monitor, Config, Discover, …)."
+        },
+        "surface": {
+          "$ref": "#/$defs/hexColor",
+          "description": "Sfondo secondario, aree inset e campi."
+        },
+        "text": {
+          "$ref": "#/$defs/hexColor",
+          "description": "Testo principale. Deve contrastare con bg e card."
+        },
+        "muted": {
+          "$ref": "#/$defs/hexColor",
+          "description": "Testo secondario, didascalie, label deboli."
+        },
+        "accent": {
+          "$ref": "#/$defs/hexColor",
+          "description": "Colore brand / primario: tab attivi, pulsante Salva, link, evidenziazioni."
+        },
+        "accent_text": {
+          "$ref": "#/$defs/hexColor",
+          "description": "Testo sopra sfondo accent (es. etichetta pulsante primario). Usare #ffffff su accent scuro, #000000 su accent chiaro."
+        },
+        "danger": {
+          "$ref": "#/$defs/hexColor",
+          "description": "Pulsante Spegni, errori, stati FAIL."
+        },
+        "border": {
+          "$ref": "#/$defs/hexColor",
+          "description": "Bordi card, separatori, contorni input."
+        },
+        "header_alpha": {
+          "type": "string",
+          "pattern": "^(1|0(\\.[0-9]+)?)$",
+          "description": "Opacità barra header sticky (0–1). Esempi: \"0.96\", \"1\"."
+        },
+        "chart": {
+          "type": "array",
+          "description": "Tre colori per le serie del grafico ping live.",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/hexColor"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "tftPalette": {
+      "type": "object",
+      "description": "Palette display TFT sul probe (320×240). Valori RGB 0–255. Richiede restart: sudo systemctl restart ndp. La schermata di spegnimento usa rosso fisso e NON segue il tema.",
+      "properties": {
+        "bg": {
+          "$ref": "#/$defs/rgbTriplet",
+          "description": "Sfondo schermate normali (Home, Switch, Ping, …)."
+        },
+        "header": {
+          "$ref": "#/$defs/rgbTriplet",
+          "description": "Barra titolo in alto."
+        },
+        "text": {
+          "$ref": "#/$defs/rgbTriplet",
+          "description": "Testo corpo schermata."
+        },
+        "muted": {
+          "$ref": "#/$defs/rgbTriplet",
+          "description": "Footer: SSID, IP:porta, stato telefono (Tel: connesso/assente)."
+        },
+        "accent": {
+          "$ref": "#/$defs/rgbTriplet",
+          "description": "Titolo schermata e valori in evidenza."
+        }
+      },
+      "additionalProperties": false
+    },
+    "theme": {
+      "type": "object",
+      "description": "Definizione di un singolo tema. In /etc/ndp/locale/themes.json puoi omettere campi: vengono fusi con il tema bundled omonimo.",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/localizedName"
+        },
+        "color_scheme": {
+          "type": "string",
+          "enum": ["dark", "light"],
+          "description": "dark = tema scuro (campo/industria); light = tema chiaro. Influenza color-scheme del browser."
+        },
+        "web": {
+          "$ref": "#/$defs/webPalette"
+        },
+        "tft": {
+          "$ref": "#/$defs/tftPalette"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "themes": {
+        "aziendale": {
+          "name": { "it": "Aziendale", "en": "Corporate" },
+          "color_scheme": "dark",
+          "web": {
+            "bg": "#0a1628",
+            "card": "#122240",
+            "surface": "#0d1a30",
+            "text": "#eef4ff",
+            "muted": "#8aa0c8",
+            "accent": "#0066cc",
+            "accent_text": "#ffffff",
+            "danger": "#e53935",
+            "border": "#1e3a66",
+            "header_alpha": "0.96",
+            "chart": ["#0066cc", "#4caf50", "#ff9800"]
+          },
+          "tft": {
+            "bg": [10, 22, 40],
+            "header": [18, 34, 64],
+            "text": [238, 244, 255],
+            "muted": [138, 160, 200],
+            "accent": [0, 102, 204]
+          }
+        }
+      }
+    },
+    {
+      "themes": {
+        "field-dark": {
+          "web": { "accent": "#0066cc" },
+          "tft": { "accent": [0, 102, 204] }
+        }
+      }
+    }
+  ]
+}

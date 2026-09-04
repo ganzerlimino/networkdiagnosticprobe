@@ -16,6 +16,7 @@ from ndp.cli.discover import add_discover_subparser, run_discover_command
 from ndp.cli.parser_common import add_config_argument
 from ndp.cli.hotspot import add_hotspot_subparser, run_hotspot_command
 from ndp.cli.test_display import add_test_subparser, run_test_command
+from ndp.cli.theme import add_theme_subparser, run_theme_command
 from ndp.console import render_status
 from ndp.core.config import load_config
 from ndp.core.engine import ProbeEngine
@@ -175,6 +176,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_discover_subparser(subparsers)
     add_hotspot_subparser(subparsers)
     add_test_subparser(subparsers)
+    add_theme_subparser(subparsers)
     return parser
 
 
@@ -190,6 +192,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "test":
         return run_test_command(args, getattr(args, "config", None))
+
+    if args.command == "theme":
+        return run_theme_command(args)
 
     if args.once:
         return run_once(getattr(args, "config", None), args.json)

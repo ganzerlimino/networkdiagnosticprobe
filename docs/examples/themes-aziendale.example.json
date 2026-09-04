@@ -1,5 +1,5 @@
 {
-  "$schema": "../themes.schema.json",
+  "$schema": "../../ndp/locale/themes.schema.json",
   "default": "aziendale",
   "themes": {
     "aziendale": {

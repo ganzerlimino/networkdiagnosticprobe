@@ -37,10 +37,18 @@ NDP include **5 temi predefiniti**. Puoi aggiungere temi **custom** (es. azienda
 
 ## 3. Struttura del file `themes.json`
 
-**Schema di riferimento (campo per campo):** [`docs/themes.schema.json`](themes.schema.json)  
-Apri quello file in un editor con supporto JSON Schema (VS Code, Cursor) per vedere descrizione e tipo di ogni voce mentre modifichi il tema.
+**Schema di riferimento (campo per campo):** [`ndp/locale/themes.schema.json`](../ndp/locale/themes.schema.json) (copia anche in `docs/themes.schema.json`)  
+Apri il file in un editor con supporto JSON Schema (VS Code, Cursor) per vedere descrizione e tipo di ogni voce mentre modifichi il tema.
 
-Dopo `install.sh` una copia è anche in `/etc/ndp/locale/themes.schema.json`.
+Dopo `install.sh` una copia è in `/etc/ndp/locale/themes.schema.json`.
+
+**Validazione rapida:**
+
+```bash
+ndp theme validate
+ndp theme validate --file /etc/ndp/locale/themes.json
+ndp theme validate --json
+```
 
 ```json
 {
@@ -167,11 +175,10 @@ Colori come array **RGB** `[R, G, B]` con valori interi **0–255**.
 
 File di esempio nel repository: `docs/examples/themes-aziendale.example.json` (include `"$schema"` verso lo schema).
 
-Validazione opzionale con Python:
+Validazione manuale alternativa:
 
 ```bash
-pip install jsonschema
-jsonschema -i docs/examples/themes-aziendale.example.json docs/themes.schema.json
+jsonschema -i /etc/ndp/locale/themes.json /etc/ndp/locale/themes.schema.json
 python3 -m json.tool /etc/ndp/locale/themes.json
 ```
 

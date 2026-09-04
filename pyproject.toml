@@ -12,12 +12,13 @@ license = { text = "MIT" }
 authors = [{ name = "Network Diagnostic Probe contributors" }]
 dependencies = [
     "PyYAML>=6.0",
+    "jsonschema>=4.0",
 ]
 
 [project.optional-dependencies]
 ui = ["pygame>=2.5"]
 web = ["fastapi>=0.100", "uvicorn[standard]>=0.23"]
-dev = ["pytest>=7.4", "jsonschema>=4.0"]
+dev = ["pytest>=7.4"]
 
 [project.scripts]
 ndp = "ndp.main:main"

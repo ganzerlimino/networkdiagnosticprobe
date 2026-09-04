@@ -179,7 +179,7 @@ for locale_file in "${NDP_ROOT}/ndp/locale/"*.json; do
   fi
 done
 install -m 0644 "${NDP_ROOT}/ndp/scenarios/profiles.yaml" "${NDP_CONFIG_DIR}/scenarios/profiles.yaml"
-install -m 0644 "${REPO_DIR}/docs/themes.schema.json" "${NDP_CONFIG_DIR}/locale/themes.schema.json"
+install -m 0644 "${NDP_ROOT}/ndp/locale/themes.schema.json" "${NDP_CONFIG_DIR}/locale/themes.schema.json"
 
 echo "==> Enabling lldpd"
 LLDPD_DEFAULT="/etc/default/lldpd"
