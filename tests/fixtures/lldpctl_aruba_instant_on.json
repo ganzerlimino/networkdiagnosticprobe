@@ -1,0 +1,42 @@
+{
+  "lldp": {
+    "interface": [
+      {
+        "name": "eth0",
+        "via": "LLDP",
+        "rid": "3",
+        "age": "0:00:08",
+        "chassis": [
+          {
+            "id": {
+              "type": "mac",
+              "value": "f4:03:43:12:34:56"
+            },
+            "name": {
+              "value": "Aruba-InstantOn-1930"
+            },
+            "descr": {
+              "value": "Aruba Instant On 1930 Switch"
+            }
+          }
+        ],
+        "port": [
+          {
+            "id": {
+              "type": "local",
+              "value": "5"
+            },
+            "descr": {
+              "value": "Port 5"
+            },
+            "vlan": {
+              "pvid": {
+                "value": "1"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

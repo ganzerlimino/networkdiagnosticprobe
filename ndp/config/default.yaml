@@ -1,30 +1,209 @@
-# Default NDP configuration. Copy to /etc/ndp/config.yaml to override.
+# Configurazione predefinita NDP.
+# Copia in /etc/ndp/config.yaml per personalizzare (install.sh lo fa al primo avvio).
 
 interface: eth0
+# Interfaccia di rete da monitorare (di solito eth0 sulla Raspberry Pi).
 
 poll_interval_link_up: 1
+# Secondi tra un aggiornamento e l'altro quando il link Ethernet è su (UP).
+
 poll_interval_link_down: 5
+# Secondi tra un aggiornamento e l'altro quando il cavo è scollegato (link DOWN).
 
 lldp:
   cache_ttl_seconds: 30
+  # Secondi di validità della cache LLDP/CDP prima di considerare i dati vecchi.
 
 ui:
-  enabled: false
-  brightness: 80
-  screensaver_timeout: 300
+  enabled: true
+  # true = schermo TFT a rotazione automatica; false = solo motore/CLI.
+
+  framebuffer: "/dev/fb1"
+  # Device framebuffer Linux del display Joy-it (su Lite/Bookworm di solito /dev/fb1).
+
+  width: 320
+  # Larghezza schermo in pixel (RB-TFT3.2-V3: 320).
+
+  height: 240
+  # Altezza schermo in pixel (RB-TFT3.2-V3: 240).
+
+  sdl_driver: "fbcon"
+  # Driver SDL per output video (su Lite spesso non disponibile; si usa backend raw).
+
+  backend: "auto"
+  # auto | raw | sdl — auto sceglie raw su Pi OS Lite se fbcon non funziona.
+
+  backlight_gpio: 18
+  # Pin GPIO che controlla la retroilluminazione del TFT Joy-it.
+
+  backlight_enabled: true
+  # true = accende la retroilluminazione all'avvio dell'UI.
+
+  rgb565_bgr: false
+  # Scambia canali R/B nel formato pixel RGB565 (solo se i colori sono sbagliati).
+
+  rgb565_swap_bytes: false
+  # Inverte l'ordine dei byte a 16 bit (solo se l'immagine appare corrotta).
+
+  font_size: 14
+  # Dimensione font del testo principale (pt); titolo = +4, icone tasti = -2.
+
+  fps: 20
+  # Aggiornamenti schermo al secondo.
+
+  input: none
+  # none = display read-only (telefono via web) | buttons | encoder
+
+  auto_cycle_seconds: 8
+  # Secondi tra una schermata e l'altra sul TFT (0 = disabilitato).
+
+  button_previous: 23
+  # GPIO del tasto "indietro" / schermata precedente (◀).
+
+  button_select: 24
+  # GPIO del tasto centrale "seleziona" / aggiorna dati (○).
+
+  button_next: 25
+  # GPIO del tasto "avanti" / schermata successiva (▶).
+
+  button_debounce_seconds: 0.03
+  # Secondi minimi tra due attivazioni dello stesso tasto (più basso = più reattivo).
+
+  button_trigger_mode: edge
+  # edge = tap breve (consigliato con button_poll_hz alto); level = finché premuto.
+
+  button_press_confirm_ms: 0
+  # Millisecondi che il tasto deve restare premuto prima di registrare (0 = immediato).
+
+  encoder_clk: 5
+  # GPIO CLK del KY-040 (BCM 5 = pin fisico 29, fuori dallo stack display).
+
+  encoder_dt: 6
+  # GPIO DT del KY-040 (BCM 6 = pin fisico 31).
+
+  encoder_sw: 19
+  # GPIO SW del KY-040 (BCM 19 = pin fisico 35, click = conferma).
+
+  encoder_steps_per_detent: 4
+  # Transizioni quadratura per un click meccanico; 4 = una schermata per dente.
+
+  encoder_sw_debounce_seconds: 0.03
+  # Antirimbalzo sul pulsante integrato nell'encoder.
+
+  hint_edge: none
+  # Bordo icone tasti: none (display read-only) | left | right | bottom
+
+  content_margin_side: 0
+  # Larghezza colonna icone; 0 = testo a tutta larghezza (consigliato con input: none).
+
+  content_text_gap: 0
+  # Spazio in pixel tra colonna icone e testo schermata; 0 = testo più vicino ai tasti.
+
+  hint_y_offset: 24
+  # Sposta le icone dei tasti verso il basso in pixel (~5 mm sul TFT da 3.2").
+
+  splash_enabled: true
+  # true = mostra splash screen all'avvio finché moduli e dati non sono pronti.
+
+  splash_message: "Network Diagnostic Probe"
+  # Testo principale mostrato sullo splash screen.
+
+  splash_min_seconds: 1.5
+  # Durata minima dello splash (secondi), anche se il caricamento finisce prima.
+
+  warmup_on_start: true
+  # true = precarica font, framebuffer e prima scansione probe prima dei tasti.
+
+  button_poll_hz: 200
+  # Frequenza lettura GPIO in thread dedicato (Hz); 200 = molto reattivo.
+
+  line_spacing: 6
+  # Pixel aggiuntivi tra una riga di testo e l'altra oltre alla dimensione font.
+
+  locale: it
+  # Lingua interfaccia web (it, en, o file custom in /etc/ndp/locale/).
+
+  theme: field-dark
+  # Tema colori web + TFT: field-dark, industrial-amber, high-contrast, office-light, night-vision.
 
 console:
   enabled: true
+  # true = stampa riepilogo periodico su stdout/journal quando l'UI è disabilitata.
+
   refresh_seconds: 5
+  # Intervallo in secondi tra una stampa console e l'altra.
 
 web:
-  enabled: false
+  enabled: true
+  # true = interfaccia web da telefono (controllo principale dello strumento).
+
   host: "0.0.0.0"
+  # Indirizzo di ascolto del server web (0.0.0.0 = tutte le interfacce).
+
   port: 8080
+  # Porta TCP del server web; apri http://<ip-pi>:8080/ per configurare.
 
 wifi_hotspot:
-  enabled: false
+  enabled: true
+  # true = crea rete Wi-Fi NDP-XXXX per collegare il telefono senza Wi-Fi cliente.
+
   ssid_prefix: "NDP"
+  # Prefisso SSID; suffisso = ultime 4 cifre MAC Wi-Fi (es. NDP-A3F2).
+
+  password: "ndp-probe"
+  # Password WPA2 (min 8 caratteri). Stringa vuota = rete aperta (sconsigliato).
+
+  interface: wlan0
+  # Interfaccia Wi-Fi della Raspberry Pi (di solito wlan0).
+
+  ip: "192.168.50.1"
+  # IP del probe sulla rete hotspot; apri http://192.168.50.1:8080/ dal telefono.
+
+  dhcp_start: "192.168.50.10"
+  dhcp_end: "192.168.50.50"
+  channel: 6
+  country: "IT"
+  # Codice paese regolatorio Wi-Fi (iw reg / hostapd).
+
+discovery:
+  disconnect_wait_seconds: 8
+  # Secondi di attesa dopo lo scollegamento del cavo nella procedura discover updown.
+
+  flush_arp_before_second_scan: true
+  # true = svuota la tabella ARP prima della seconda scansione (wizard Up/Down).
+
+  verify_replug: true
+  # true = verifica che il dispositivo ricompaia dopo il ricollegamento del cavo.
+
+  mndp_listen_seconds: 6
+  # Durata ascolto MNDP (secondi) per polling switch e scansione tab MikroTik.
+
+  passive_listen_seconds: 3
+  # Durata predefinita sniff passivo (tab Passive check).
+
+  scenario: impianto
+  # Profilo operativo: impianto | retail | ufficio (timeout discovery da profiles.yaml).
 
 logging:
   level: INFO
+  # Livello log: DEBUG, INFO, WARNING, ERROR.
+
+ping:
+  count: 2
+  # Numero di pacchetti ICMP inviati verso ogni destinazione.
+
+  timeout_seconds: 3
+  # Timeout massimo in secondi per ogni singolo host.
+
+  packet_size: 56
+  # Dimensione payload ICMP in byte (-s di ping). Default Linux: 56 (64 byte on wire).
+
+  adhoc_path: "/var/lib/ndp/ping_adhoc.host"
+  # File con un solo host temporaneo (uno alla volta), impostabile al volo.
+
+  custom_targets: []
+  # Fino a 4 destinazioni salvate in config (oltre a 8.8.8.8 e 1.1.1.1). Esempio:
+  # - label: Gateway
+  #   host: gateway
+  # - label: Server LAN
+  #   host: 192.168.10.50

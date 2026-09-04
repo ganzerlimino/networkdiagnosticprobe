@@ -1,0 +1,52 @@
+# Preset discovery / OT scan per contesto operativo
+
+default: impianto
+
+scenarios:
+  impianto:
+    name:
+      it: Impianto OT
+      en: OT plant
+      de: OT-Anlage
+    description:
+      it: HMI, gateway, Modbus/OPC UA — focus tab Impianto
+      en: HMI, gateways, Modbus/OPC UA — plant tab focus
+      de: HMI, Gateways, Modbus/OPC UA — Fokus Tab Anlage
+    industrial_timeout_seconds: 4
+    include_port_profile: true
+    passive_listen_seconds: 5
+    printer_timeout_seconds: 4
+    nas_timeout_seconds: 4
+    camera_timeout_seconds: 4
+
+  retail:
+    name:
+      it: Retail / punto vendita
+      en: Retail / POS
+      de: Retail / POS
+    description:
+      it: Stampanti fiscali Epson, Zebra, servizi LAN standard
+      en: Epson fiscal printers, Zebra, standard LAN services
+      de: Epson-Fiskaldrucker, Zebra, Standard-LAN-Dienste
+    industrial_timeout_seconds: 3
+    include_port_profile: false
+    passive_listen_seconds: 4
+    printer_timeout_seconds: 6
+    nas_timeout_seconds: 3
+    camera_timeout_seconds: 3
+
+  ufficio:
+    name:
+      it: Ufficio / IT
+      en: Office / IT
+      de: Büro / IT
+    description:
+      it: Scan porte standard, NAS, mDNS/SSDP
+      en: Standard ports, NAS, mDNS/SSDP
+      de: Standard-Ports, NAS, mDNS/SSDP
+    industrial_timeout_seconds: 3
+    include_port_profile: false
+    passive_listen_seconds: 4
+    printer_timeout_seconds: 4
+    nas_timeout_seconds: 5
+    camera_timeout_seconds: 3

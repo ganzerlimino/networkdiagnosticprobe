@@ -1,0 +1,2427 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c1220">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NDP">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta name="ndp-version" content="__NDP_VERSION__">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/static/icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <title>NDP</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c1220; --card: #18243f; --surface: #0f1728; --text: #e8f0ff; --muted: #9eb0d0;
+      --accent: #50c878; --accent-text: #062010; --danger: #ff8080; --border: #2a3a5c;
+      --header-bg: rgba(12,18,32,.96);
+      --c1: #50c878; --c2: #5eb8ff; --c3: #ffb85e;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 5rem; }
+    header { position: sticky; top: 0; z-index: 3; background: var(--header-bg); border-bottom: 1px solid var(--border); padding: .85rem 1rem; }
+    h1 { margin: 0; font-size: 1.1rem; }
+    .sub { color: var(--muted); font-size: .82rem; margin-top: .2rem; }
+    nav { display: flex; flex-direction: column; gap: .4rem; padding: .55rem 1rem; border-bottom: 1px solid var(--border); position: sticky; top: 3.4rem; z-index: 2; background: var(--bg); }
+    .nav-primary { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; }
+    .nav-primary button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 10px; padding: .55rem .35rem; font-size: .78rem; font-weight: 600; }
+    .nav-primary button.active { border-color: var(--accent); color: var(--accent); }
+    .nav-secondary { display: none; gap: .35rem; overflow-x: auto; }
+    .nav-secondary.open { display: flex; }
+    .nav-secondary button { flex: 0 0 auto; min-width: 4.5rem; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: .45rem .7rem; font-size: .78rem; white-space: nowrap; }
+    .nav-secondary button.active { border-color: var(--accent); color: var(--accent); }
+    nav button.active { border-color: var(--accent); color: var(--accent); }
+    main { padding: 1rem; }
+    .panel { display: none; } .panel.active { display: block; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: .9rem; margin-bottom: .75rem; }
+    .card h2 { margin: 0 0 .55rem; font-size: .95rem; color: var(--accent); }
+    .row { display: flex; justify-content: space-between; gap: .6rem; padding: .3rem 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: .9rem; }
+    .row:last-child { border-bottom: 0; }
+    .label { color: var(--muted); }
+    .ok { color: var(--accent); } .bad { color: var(--danger); }
+    .actions { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .65rem; }
+    button.primary, button.secondary, button.danger {
+      border: 0; border-radius: 10px; padding: .7rem .9rem; font-size: .92rem; font-weight: 600;
+    }
+    button.primary { background: var(--accent); color: var(--accent-text); flex: 1; }
+    button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    button.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+    button:disabled { opacity: .45; }
+    .export-group { display: flex; gap: .35rem; flex-wrap: wrap; }
+    input, textarea { width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: .65rem .75rem; font-size: 1rem; margin-top: .35rem; }
+    textarea { min-height: 16rem; font-family: ui-monospace, monospace; font-size: .82rem; }
+    .host-grid { display: grid; gap: .5rem; }
+    .prompt { background: var(--surface); border-radius: 10px; padding: .75rem; font-size: .92rem; line-height: 1.4; margin-bottom: .6rem; }
+    .log { font-size: .82rem; color: var(--muted); max-height: 8rem; overflow-y: auto; }
+    .log div { padding: .15rem 0; }
+    canvas { width: 100%; height: 180px; background: var(--surface); border-radius: 10px; display: block; }
+    .legend { display: flex; flex-wrap: wrap; gap: .6rem; font-size: .78rem; margin-top: .4rem; }
+    .legend span::before { content: ''; display: inline-block; width: .65rem; height: .65rem; border-radius: 50%; margin-right: .3rem; vertical-align: middle; }
+    .l1::before { background: var(--c1); } .l2::before { background: var(--c2); } .l3::before { background: var(--c3); }
+    .chip-list { display: flex; flex-wrap: wrap; gap: .35rem; margin: .4rem 0; }
+    .chip { font-size: .75rem; padding: .2rem .45rem; border-radius: 6px; background: var(--surface); color: var(--muted); }
+    .open { color: var(--accent); font-weight: 600; }
+    .closed { color: var(--muted); }
+    .field { margin-bottom: .85rem; }
+    .field label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .2rem; }
+    .field-help { margin: 0 0 .35rem; color: var(--muted); font-size: .78rem; line-height: 1.35; }
+    .section-title { margin: 1rem 0 .5rem; font-size: .85rem; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+    .section-title:first-child { margin-top: 0; }
+    .config-highlight { border-color: var(--accent); background: linear-gradient(135deg, var(--card) 0%, rgba(80,200,120,.08) 100%); }
+    .config-highlight h2 { color: var(--accent); font-size: 1.05rem; }
+    .config-highlight .field label { font-size: 1rem; }
+    .config-highlight select { font-size: 1.05rem; padding: .75rem; }
+    #power-msg.power-active { color: var(--accent); font-size: 1.05rem; font-weight: 600; text-align: center; padding: .75rem 0; }
+    .power-armed { outline: 2px solid var(--danger); }
+    input[type="checkbox"] { width: auto; margin: 0; }
+    .field-check { display: flex; align-items: flex-start; gap: .55rem; }
+    .field-check input { margin-top: .2rem; }
+    .oui-table { width: 100%; border-collapse: collapse; font-size: .78rem; margin-top: .5rem; }
+    .oui-table th, .oui-table td { text-align: left; padding: .35rem .4rem; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .oui-table th { color: var(--muted); font-weight: 600; }
+    .oui-scroll { max-height: 10rem; overflow-y: auto; }
+    .device-block { margin: .45rem 0; padding: .45rem .55rem; background: var(--surface); border-radius: 8px; }
+    .device-block .title { color: var(--text); font-weight: 600; }
+    .device-meta { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
+    .port-open { color: var(--accent); }
+    .progress-wrap { margin: .35rem 0 .5rem; }
+    .progress-bar { height: 4px; background: var(--surface); border-radius: 999px; overflow: hidden; }
+    .progress-bar > span { display: block; height: 100%; width: 35%; background: var(--accent); border-radius: 999px; animation: progress-indeterminate 1.1s ease-in-out infinite; }
+    @keyframes progress-indeterminate { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+    .progress-meta { font-size: .78rem; color: var(--muted); margin-top: .35rem; }
+    .neighbor-section { margin-top: .65rem; padding-top: .55rem; border-top: 1px solid rgba(255,255,255,.06); }
+    .neighbor-section:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="app-title">Network Diagnostic Probe</h1>
+    <div class="sub" id="version">...</div>
+  </header>
+  <nav>
+    <div class="nav-primary">
+      <button class="active" data-nav-group="monitor">Monitor</button>
+      <button data-nav-group="lan">LAN</button>
+      <button data-nav-group="ot">OT</button>
+      <button data-nav-group="sistema">Sistema</button>
+    </div>
+    <div class="nav-secondary open" id="nav-secondary"></div>
+  </nav>
+  <main>
+    <section class="panel active" id="panel-status">
+      <div class="card"><h2 data-i18n="status.hotspot">Hotspot telefono</h2><div id="status-hotspot"></div></div>
+      <div class="card"><h2 data-i18n="status.link">Link</h2><div id="status-link"></div></div>
+      <div class="card"><h2 data-i18n="status.network">Rete</h2><div id="status-network"></div></div>
+      <div class="card"><h2 data-i18n="status.switch">Switch</h2><div id="status-switch"></div></div>
+      <div class="card"><h2 data-i18n="status.system">Sistema</h2><div id="status-system"></div></div>
+      <div class="actions">
+        <button class="secondary" onclick="sendReport('status')" data-i18n="actions.report_status">📧 Report stato</button>
+        <button class="secondary" onclick="sendReport('all')" data-i18n="actions.report_full">📧 Report completo</button>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-ping">
+      <div class="card">
+        <h2 data-i18n="ping.live_title">Ping live (fino a 3 host)</h2>
+        <p class="sub" data-i18n-html="ping.live_help">I ping partono in parallelo. Grafico aggiornato in tempo reale.</p>
+        <div class="host-grid">
+          <input id="host1" data-i18n-placeholder="ping.host1_ph" placeholder="Host 1 (es. 8.8.8.8)">
+          <input id="host2" data-i18n-placeholder="ping.host2_ph" placeholder="Host 2 (opzionale)">
+          <input id="host3" data-i18n-placeholder="ping.host3_ph" placeholder="Host 3 (opzionale)">
+        </div>
+        <canvas id="ping-chart" width="600" height="240"></canvas>
+        <div class="legend">
+          <span class="l1" id="leg1">Host 1</span>
+          <span class="l2" id="leg2">Host 2</span>
+          <span class="l3" id="leg3">Host 3</span>
+        </div>
+        <div class="actions">
+          <button class="primary" id="live-start" data-i18n="ping.live_start">Avvia grafico live</button>
+          <button class="secondary" id="live-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <button class="secondary" id="suite-run" data-i18n="ping.suite_run">Suite completa</button>
+        </div>
+        <p id="ping-msg" class="sub"></p>
+      </div>
+      <div class="card">
+        <h2 data-i18n="ping.results_title">Ultimi risultati</h2>
+        <p class="sub" data-i18n-html="ping.suite_help"><strong>Suite completa</strong> esegue ICMP verso 8.8.8.8, 1.1.1.1, fino a 4 host in config, eventuale host adhoc e — se compilati — i 3 campi sopra. Tutti i ping partono da <strong>eth0</strong> in parallelo (count/timeout da config).</p>
+        <div id="ping-results"></div>
+        <div class="actions">
+          <button class="secondary" onclick="sendReport('ping')" data-i18n="actions.report_ping">📧 Report ping</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-mtu">
+      <div class="card">
+        <h2 data-i18n="mtu.title">MTU path discovery</h2>
+        <p class="sub" data-i18n="mtu.help">Test decrementale da 1500 verso il basso con ping DF (no fragment). Utile per VPN site-to-site.</p>
+        <label class="field">
+          <span data-i18n="mtu.remote_host">Host remoto</span>
+          <input id="mtu-host" data-i18n-placeholder="mtu.host_ph" placeholder="es. gateway o IP peer VPN">
+        </label>
+        <div class="actions">
+          <button class="primary" id="mtu-start" data-i18n="mtu.start">Avvia test MTU</button>
+          <button class="secondary" id="mtu-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <button class="secondary" id="mtu-use-gateway" data-i18n="actions.use_gateway">Usa gateway</button>
+        </div>
+        <p id="mtu-msg" class="sub"></p>
+        <div id="mtu-result" class="prompt" style="display:none"></div>
+        <div class="log" id="mtu-log"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-discover">
+      <div class="card">
+        <h2 data-i18n="discover.wizard_title">Wizard Up/Down</h2>
+        <div class="phase" id="disc-phase">idle</div>
+        <div class="prompt" id="disc-prompt" data-i18n="common.loading">Caricamento...</div>
+        <div class="log" id="disc-log"></div>
+        <div class="actions">
+          <button class="primary" id="disc-start" data-i18n="discover.start_wizard">Avvia wizard</button>
+          <button class="secondary" id="disc-continue" disabled data-i18n="actions.continue">Continua</button>
+          <button class="secondary" id="disc-skip" disabled data-i18n="discover.skip_verify">Salta verifica</button>
+          <button class="danger" id="disc-cancel" disabled data-i18n="actions.cancel">Annulla</button>
+        </div>
+        <div id="disc-result" class="log"></div>
+        <div class="actions">
+          <button class="secondary" onclick="sendReport('discover')" data-i18n="discover.report">📧 Report discover</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="discover.arp_title">Scansione rapida ARP</h2>
+        <div class="actions">
+          <button class="secondary" id="discover-scan" data-i18n="discover.scan_network">Scansiona rete</button>
+          <button class="danger" id="discover-scan-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <span class="export-group">
+            <button class="secondary" id="discover-scan-export-json" disabled>JSON</button>
+            <button class="secondary" id="discover-scan-export-csv" disabled>CSV</button>
+          </span>
+        </div>
+        <div id="discover-scan-results" class="log"></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="discover.services_title">Servizi LAN (mDNS / SSDP / L2)</h2>
+        <p class="sub" data-i18n="discover.services_help">mDNS, SSDP e rilevamento passivo FDP/EDP/LLTD (ethertype).</p>
+        <div class="actions">
+          <button class="secondary" id="discover-services" data-i18n="actions.scan">Scansiona servizi</button>
+          <button class="danger" id="discover-services-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <span class="export-group">
+            <button class="secondary" id="discover-services-export-json" disabled>JSON</button>
+            <button class="secondary" id="discover-services-export-csv" disabled>CSV</button>
+          </span>
+        </div>
+        <div id="discover-services-results" class="log"></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="discover.oui_title">Vendor MAC (OUI)</h2>
+        <p class="sub" data-i18n="discover.oui_help">Lookup OUI da database IEEE, bundle OT e voci apprese dalle scansioni ARP.</p>
+        <label class="field">
+          <span data-i18n="discover.oui_search_label">Cerca vendor o prefisso</span>
+          <input id="oui-search" data-i18n-placeholder="discover.oui_search_ph" placeholder="es. Weintek, 00:90:E8, HMS">
+        </label>
+        <div class="field field-check">
+          <input type="checkbox" id="oui-auto-refresh" checked>
+          <label for="oui-auto-refresh" data-i18n="discover.oui_auto_refresh">Aggiorna automaticamente dopo scansione ARP</label>
+        </div>
+        <div class="actions">
+          <button class="secondary" id="oui-refresh" data-i18n="discover.oui_refresh">Aggiorna tabella</button>
+          <button class="secondary" id="oui-reload-db" data-i18n="discover.oui_reload_db">Ricarica database OUI</button>
+        </div>
+        <p id="oui-msg" class="sub"></p>
+        <div class="oui-scroll">
+          <table class="oui-table">
+            <thead><tr><th>OUI</th><th>Vendor</th><th data-i18n="common.source">Fonte</th></tr></thead>
+            <tbody id="oui-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-passive">
+      <div class="card">
+        <h2 data-i18n="passive.title">Sniff passivo (riepilogo)</h2>
+        <p class="sub" data-i18n-html="passive.help">Riepilogo protocolli L2/L3 rilevati: STP/LACP/VLAN/IGMP, FDP/EDP/LLTD, mDNS, SSDP, DHCP Option 82, SNMP. Le fasi girano in <strong>parallelo</strong>: durata effettiva ≈ i secondi impostati (non la somma).</p>
+        <label class="field">
+          <span data-i18n="passive.listen_seconds">Durata ascolto (secondi)</span>
+          <input id="passive-seconds" type="number" min="1" max="60" value="3">
+        </label>
+        <label class="field">
+          <span data-i18n="passive.snmp_host">Host SNMP (opzionale)</span>
+          <input id="passive-snmp-host" data-i18n-placeholder="passive.snmp_ph" placeholder="vuoto = gateway">
+        </label>
+        <div class="actions">
+          <button class="primary" id="passive-run" data-i18n="passive.run_full">Avvia passive check</button>
+          <button class="danger" id="passive-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <button class="secondary" id="passive-use-gateway" data-i18n="passive.use_gateway_snmp">Usa gateway SNMP</button>
+          <span class="export-group">
+            <button class="secondary" id="passive-export-json" disabled>JSON</button>
+            <button class="secondary" id="passive-export-csv" disabled>CSV</button>
+          </span>
+        </div>
+        <p id="passive-msg" class="sub"></p>
+        <div class="section-title" data-i18n="passive.section_summary">Riepilogo protocolli</div>
+        <div id="passive-summary-results" class="log"></div>
+        <div class="section-title" data-i18n="passive.section_l2">Frame L2 broadcast</div>
+        <div id="passive-l2-results" class="log"></div>
+        <div class="section-title" data-i18n="passive.section_l2probe">L2 ethertype (FDP/EDP/LLTD)</div>
+        <div id="passive-l2probe-results" class="log"></div>
+        <div class="section-title" data-i18n="passive.section_services">mDNS / SSDP</div>
+        <div id="passive-service-results" class="log"></div>
+        <div class="section-title" data-i18n="passive.section_dhcp">DHCP Option 82</div>
+        <div id="passive-dhcp-results" class="log"></div>
+        <div class="section-title" data-i18n="passive.section_snmp">SNMP probe</div>
+        <div id="passive-snmp-results" class="log"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-mikrotik">
+      <div class="card">
+        <h2 data-i18n="mikrotik.title">MikroTik (MNDP)</h2>
+        <p class="sub" data-i18n="mikrotik.help">Probe attivo UDP/5678 + ascolto risposte. La card Switch mostra solo il dispositivo collegato (match MAC/IP gateway).</p>
+        <label class="field">
+          <span data-i18n="passive.listen_seconds">Durata ascolto (secondi)</span>
+          <input id="mikrotik-seconds" type="number" min="2" max="60" value="6">
+        </label>
+        <div class="actions">
+          <button class="primary" id="mikrotik-scan" data-i18n="mikrotik.scan">Scansiona MikroTik</button>
+          <button class="danger" id="mikrotik-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <span class="export-group">
+            <button class="secondary" id="mikrotik-export-json" disabled>JSON</button>
+            <button class="secondary" id="mikrotik-export-csv" disabled>CSV</button>
+          </span>
+        </div>
+        <p id="mikrotik-msg" class="sub"></p>
+        <div id="mikrotik-results" class="log"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-plant">
+      <div class="card">
+        <h2 data-i18n="plant.title">Impianto OT</h2>
+        <p class="sub" data-i18n="plant.help">Discovery broadcast in LAN (Weintek, eWON) e, opzionalmente, porte industriali su un IP target.</p>
+        <p class="sub" id="plant-scenario-hint"></p>
+        <label class="field">
+          <span data-i18n="plant.target_ip">IP target (opzionale)</span>
+          <input id="plant-host" data-i18n-placeholder="plant.host_ph" placeholder="PLC / HMI / gateway — vuoto = solo discovery LAN">
+        </label>
+        <div class="actions">
+          <button class="secondary" id="plant-use-gateway" data-i18n="actions.use_gateway">Usa gateway</button>
+          <button class="primary" id="plant-scan" data-i18n="plant.scan">Scansiona impianto</button>
+          <button class="danger" id="plant-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <span class="export-group">
+            <button class="secondary" id="plant-export-json" disabled>JSON</button>
+            <button class="secondary" id="plant-export-csv" disabled>CSV</button>
+          </span>
+        </div>
+        <p id="plant-msg" class="sub"></p>
+        <div id="plant-industrial-chips" class="chip-list"></div>
+        <div class="section-title" data-i18n="plant.weintek_section">Discovery LAN — Weintek HMI</div>
+        <div id="plant-weintek" class="log"></div>
+        <div class="section-title" data-i18n="plant.ewon_section">Discovery LAN — eWON</div>
+        <div id="plant-ewon" class="log"></div>
+        <div class="section-title" data-i18n="plant.ports_section">Porte OT sul target</div>
+        <div id="plant-ports-results" class="log"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-cameras">
+      <div class="card">
+        <h2 data-i18n="cameras.title">Telecamere IP</h2>
+        <p class="sub" data-i18n="cameras.help">ONVIF, Hikvision SADP (UDP/37020), Dahua DHDiscover (UDP/37810), mDNS e SSDP/UPnP.</p>
+        <div class="actions">
+          <button class="primary" id="cameras-scan" data-i18n="cameras.scan_full">Scansiona telecamere</button>
+          <button class="danger" id="cameras-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <span class="export-group">
+            <button class="secondary" id="cameras-export-json" disabled>JSON</button>
+            <button class="secondary" id="cameras-export-csv" disabled>CSV</button>
+          </span>
+        </div>
+        <p id="cameras-msg" class="sub"></p>
+        <div id="cameras-results" class="log"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-nas">
+      <div class="card">
+        <h2 data-i18n="nas.title">NAS</h2>
+        <p class="sub" data-i18n="nas.help">Synology (9997), QNAP (7777), ASUSTOR (8888/8889), ReadyNAS RAIDar (22081), WS-Discovery, mDNS e SSDP.</p>
+        <div class="actions">
+          <button class="primary" id="nas-scan" data-i18n="nas.scan">Scansiona NAS</button>
+          <button class="danger" id="nas-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <span class="export-group">
+            <button class="secondary" id="nas-export-json" disabled>JSON</button>
+            <button class="secondary" id="nas-export-csv" disabled>CSV</button>
+          </span>
+        </div>
+        <p id="nas-msg" class="sub"></p>
+        <div id="nas-results" class="log"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-printers">
+      <div class="card">
+        <h2 data-i18n="printers.title">Stampanti di rete</h2>
+        <p class="sub" data-i18n="printers.help">Epson ENPC UDP/3289 (retail/fiscali) e Zebra Link-OS UDP/4201 (etichette industriali).</p>
+        <div class="actions">
+          <button class="primary" id="printers-scan" data-i18n="printers.scan">Scansiona stampanti</button>
+          <button class="danger" id="printers-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <span class="export-group">
+            <button class="secondary" id="printers-export-json" disabled>JSON</button>
+            <button class="secondary" id="printers-export-csv" disabled>CSV</button>
+          </span>
+        </div>
+        <p id="printers-msg" class="sub"></p>
+        <div id="printers-results" class="log"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-scan">
+      <div class="card">
+        <h2 data-i18n="scan.target_title">Target</h2>
+        <input id="scan-host" data-i18n-placeholder="scan.host_ph" placeholder="IP host (es. 192.168.1.50)">
+        <div class="actions">
+          <button class="secondary" id="scan-use-gateway" data-i18n="actions.use_gateway">Usa gateway</button>
+        </div>
+        <p class="sub" data-i18n-html="scan.ot_hint">Per Weintek, eWON e porte Modbus/OPC UA usa <strong>OT → Impianto</strong>.</p>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="scan.standard_title">Porte standard</h2>
+        <p class="sub" data-i18n="scan.standard_help">SSH, HTTP/S, SMB, RDP, DNS, LDAP, SNMP…</p>
+        <div id="scan-standard-chips" class="chip-list"></div>
+        <div class="actions">
+          <button class="primary" id="scan-standard-run" data-i18n="scan.scan_standard">Scansiona standard</button>
+        </div>
+        <div id="scan-standard-results" class="log"></div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="scan.custom_title">Porte custom</h2>
+        <input id="scan-custom-ports" data-i18n-placeholder="scan.custom_ph" placeholder="Es. 80,443,502,4840,11740">
+        <div class="actions">
+          <button class="primary" id="scan-custom-run" data-i18n="scan.scan_custom">Scansiona custom</button>
+        </div>
+        <div id="scan-custom-results" class="log"></div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="scan.dns_title">DNS e gateway</h2>
+        <input id="dns-hostname" data-i18n-placeholder="scan.dns_ph" placeholder="Hostname da risolvere (opzionale)">
+        <div class="actions">
+          <button class="primary" id="network-check-run" data-i18n="scan.network_check">Verifica DNS + gateway</button>
+          <button class="secondary" id="dns-lookup-run" data-i18n="scan.dns_only">Solo risoluzione</button>
+        </div>
+        <div id="network-check-results" class="log"></div>
+        <div class="actions">
+          <button class="secondary" onclick="sendReport('scan')" data-i18n="actions.report_ports">📧 Report porte</button>
+          <button class="secondary" onclick="sendReport('network')" data-i18n="actions.report_dns">📧 Report DNS</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-hotspot">
+      <div class="card">
+        <h2 data-i18n="hotspot.status_title">Stato hotspot</h2>
+        <div id="hotspot-status-panel"></div>
+        <div class="actions">
+          <button class="secondary" id="hotspot-restart" data-i18n="actions.restart_hotspot">Riavvia hotspot</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="hotspot.settings_title">Impostazioni Wi-Fi</h2>
+        <p class="sub" data-i18n="hotspot.settings_help">Modifica password e parametri della rete NDP-XXXX. Dopo il salvataggio riavvia l'hotspot.</p>
+        <div id="hotspot-form"></div>
+        <div class="actions">
+          <button class="primary" id="hotspot-save" data-i18n="hotspot.save_restart">Salva e riavvia hotspot</button>
+        </div>
+        <p id="hotspot-msg" class="sub"></p>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-power">
+      <div class="card">
+        <h2 data-i18n="power.title">Spegnimento sistema</h2>
+        <p class="sub" data-i18n="power.help">Arresta in sicurezza NDP, hotspot Wi-Fi e spegne il Raspberry Pi. Sul display TFT compare la schermata di spegnimento.</p>
+        <p class="sub" id="power-hint" data-i18n="power.phone_hint">Dopo la conferma, guarda il display del probe: lo spegnimento viene mostrato lì.</p>
+        <div id="power-status" class="sub"></div>
+        <div class="actions">
+          <button class="danger" id="power-shutdown" data-i18n="power.shutdown_btn">Spegni NDP</button>
+          <button class="secondary" id="power-shutdown-cancel" style="display:none" data-i18n="actions.cancel">Annulla</button>
+        </div>
+        <p id="power-msg" class="sub"></p>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-config">
+      <div class="card config-highlight" id="config-quick-card">
+        <h2 data-i18n="config.quick_title">Lingua e profilo scansione</h2>
+        <p class="sub" data-i18n="config.quick_help">Impostazioni principali per uso sul campo. Ricorda di salvare in fondo alla pagina.</p>
+        <div id="config-quick-form"></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="config.guided_title">Configurazione guidata</h2>
+        <p class="sub" data-i18n="config.guided_help">Ogni voce include una spiegazione. Per backup o profili rete usa Esporta / Invia mail.</p>
+        <div id="config-form"></div>
+        <div class="actions">
+          <button class="primary" id="config-save" data-i18n="config.save">Salva configurazione</button>
+          <button class="secondary" id="config-export" data-i18n="actions.export_yaml">Esporta YAML</button>
+          <button class="secondary" id="config-email" data-i18n="actions.email_backup">📧 Invia backup mail</button>
+          <label class="secondary" style="display:inline-flex;align-items:center;gap:.35rem;padding:.7rem .9rem;border:1px solid var(--border);border-radius:10px;" data-i18n="config.import_label">
+            Importa<input type="file" id="config-import" accept=".yaml,.yml,.txt" style="display:none;width:auto;margin:0;padding:0;border:0;">
+          </label>
+        </div>
+        <p id="config-msg" class="sub"></p>
+      </div>
+      <div class="card config-advanced">
+        <h2 data-i18n="config.yaml_title">YAML avanzato</h2>
+        <p class="sub" data-i18n="config.yaml_help">Modifica diretta del file (perde i commenti al salvataggio da form).</p>
+        <textarea id="yaml"></textarea>
+        <div class="actions">
+          <button class="primary" id="save" data-i18n="config.save_yaml">Salva YAML</button>
+          <button class="secondary" id="reload" data-i18n="actions.reload">Ricarica</button>
+        </div>
+        <p id="msg"></p>
+      </div>
+    </section>
+  </main>
+  <script>
+    const COLORS = ['#50c878', '#5eb8ff', '#ffb85e'];
+    let liveSessionId = null;
+    let liveSource = null;
+    let chartSeries = {};
+    let chartHosts = [];
+    let statusData = null;
+    let configSchema = [];
+    let configValues = {};
+    let localeStrings = {};
+    let activeLocale = 'it';
+    let activeThemeId = 'field-dark';
+    let scenarioDefaults = {};
+    let scenarioMeta = null;
+    let localeCatalog = [];
+    let scenarioCatalog = [];
+    let themeCatalog = [];
+    let shutdownConfirmPending = false;
+    let shutdownUiLocked = false;
+    let statusPollTimer = null;
+
+    function t(key, vars) {
+      let current = localeStrings;
+      for (const part of key.split('.')) {
+        if (!current || typeof current !== 'object' || !(part in current)) return key;
+        current = current[part];
+      }
+      if (typeof current !== 'string') return key;
+      let text = current;
+      if (vars) {
+        for (const [name, value] of Object.entries(vars)) {
+          text = text.replace('{' + name + '}', String(value));
+        }
+      }
+      return text;
+    }
+
+    function hexToRgb(hex) {
+      const clean = String(hex || '').replace('#', '');
+      const full = clean.length === 3 ? clean.split('').map(ch => ch + ch).join('') : clean;
+      const num = parseInt(full, 16);
+      if (Number.isNaN(num)) return '12, 18, 32';
+      return `${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}`;
+    }
+
+    function applyTheme(theme) {
+      if (!theme || !theme.web) return;
+      const w = theme.web;
+      const root = document.documentElement;
+      root.style.setProperty('--bg', w.bg);
+      root.style.setProperty('--card', w.card);
+      root.style.setProperty('--surface', w.surface);
+      root.style.setProperty('--text', w.text);
+      root.style.setProperty('--muted', w.muted);
+      root.style.setProperty('--accent', w.accent);
+      root.style.setProperty('--accent-text', w.accent_text || '#062010');
+      root.style.setProperty('--danger', w.danger);
+      root.style.setProperty('--border', w.border);
+      root.style.setProperty('--header-bg', `rgba(${hexToRgb(w.bg)}, ${w.header_alpha || '0.96'})`);
+      const charts = w.chart || [w.accent, w.text, w.muted];
+      root.style.setProperty('--c1', charts[0] || w.accent);
+      root.style.setProperty('--c2', charts[1] || w.accent);
+      root.style.setProperty('--c3', charts[2] || w.accent);
+      root.style.colorScheme = theme.color_scheme || 'dark';
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.content = w.bg;
+    }
+
+    function applyStaticI18n() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.textContent = t(el.getAttribute('data-i18n'));
+      });
+      document.querySelectorAll('[data-i18n-html]').forEach(el => {
+        el.innerHTML = t(el.getAttribute('data-i18n-html'));
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+      });
+      ['leg1', 'leg2', 'leg3'].forEach((id, index) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = t('ping.host_leg', {n: index + 1});
+      });
+    }
+
+    function applyNavLabels() {
+      document.querySelectorAll('.nav-primary button[data-nav-group]').forEach(btn => {
+        btn.textContent = t('nav.' + btn.dataset.navGroup);
+      });
+      for (const group of Object.values(NAV_GROUPS)) {
+        group.panels.forEach(panel => {
+          panel.label = t('nav.' + panel.id);
+        });
+      }
+      const activePanel = document.querySelector('.panel.active');
+      const panelId = activePanel ? activePanel.id.replace('panel-', '') : NAV_GROUPS[activeNavGroup].default;
+      renderNavSecondary(activeNavGroup, panelId);
+    }
+
+    function updateScenarioHints() {
+      const hint = document.getElementById('plant-scenario-hint');
+      if (!hint) return;
+      if (!scenarioMeta) {
+        hint.textContent = '';
+        return;
+      }
+      const localeKey = activeLocale.split('-')[0];
+      const scenarioId = scenarioMeta.id || '';
+      const name = (scenarioMeta.name && scenarioMeta.name[localeKey])
+        || t('scenario.' + scenarioId)
+        || scenarioId;
+      const desc = (scenarioMeta.description && scenarioMeta.description[localeKey])
+        || t('scenario.' + scenarioId + '_desc')
+        || '';
+      hint.textContent = t('scenario.label') + ': ' + name + (desc ? ' — ' + desc : '');
+    }
+
+    function renderModbusBlock(modbus) {
+      if (!modbus) return '';
+      if (modbus.reachable) {
+        const objects = modbus.objects || {};
+        const lines = Object.entries(objects).map(([key, value]) => `${key}: ${value}`).join(' · ');
+        return `<div class="device-block"><div class="title">${t('plant.modbus_identified')}</div><div class="device-meta">${modbus.summary || ''}</div><div class="device-meta">${lines}</div></div>`;
+      }
+      return `<div class="sub">${t('plant.modbus_open_only')}${modbus.error ? ' (' + modbus.error + ')' : ''}</div>`;
+    }
+
+    function formatApiError(payload, fallback) {
+      fallback = fallback || t('common.error');
+      if (!payload) return fallback;
+      const detail = payload.detail ?? payload.message ?? payload.error;
+      if (!detail) return fallback;
+      if (typeof detail === 'string') return detail;
+      if (Array.isArray(detail)) {
+        return detail.map(item => {
+          if (typeof item === 'string') return item;
+          const loc = Array.isArray(item.loc) ? item.loc.join('.') : '';
+          return `${loc}: ${item.msg || JSON.stringify(item)}`.trim();
+        }).join(' · ');
+      }
+      if (typeof detail === 'object') return JSON.stringify(detail);
+      return String(detail);
+    }
+
+    async function parseJsonResponse(response) {
+      const text = await response.text();
+      if (!text) return { ok: response.ok, data: null, raw: '' };
+      try {
+        return { ok: response.ok, data: JSON.parse(text), raw: text };
+      } catch (e) {
+        const snippet = text.length > 120 ? text.slice(0, 120) + '…' : text;
+        return {
+          ok: false,
+          data: null,
+          raw: text,
+          error: response.ok
+            ? t('common.invalid_json_response')
+            : t('common.server_error', {status: response.status, detail: snippet.trim()})
+        };
+      }
+    }
+
+    function normalizeHost(value) {
+      return String(value || '').trim().replace(/^https?:\/\//i, '').split('/')[0].trim();
+    }
+
+    function readHostInputs() {
+      return ['host1','host2','host3']
+        .map(id => normalizeHost(document.getElementById(id).value))
+        .filter(Boolean);
+    }
+
+    const scanCache = {};
+    let activeScanAbort = null;
+
+    function stampNow() {
+      return new Date().toISOString().replace(/[:.]/g, '-');
+    }
+
+    function setExportEnabled(prefix, enabled) {
+      ['json', 'csv'].forEach(fmt => {
+        const btn = document.getElementById(`${prefix}-export-${fmt}`);
+        if (btn) btn.disabled = !enabled;
+      });
+    }
+
+    function downloadText(filename, content, mime) {
+      const blob = new Blob([content], {type: mime});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function csvEscape(value) {
+      const text = value == null ? '' : String(value);
+      return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+
+    function rowsToCsv(rows) {
+      if (!rows || !rows.length) return '';
+      const keys = Object.keys(rows[0]);
+      return [
+        keys.map(csvEscape).join(','),
+        ...rows.map(row => keys.map(key => csvEscape(row[key])).join(',')),
+      ].join('\n');
+    }
+
+    function cacheScan(key, data, rows) {
+      scanCache[key] = { data, rows: rows || [], exported_at: stampNow() };
+      setExportEnabled(key, true);
+    }
+
+    function startProgressFeedback(container, phases) {
+      const steps = Array.isArray(phases) && phases.length ? phases : [t('common.scanning')];
+      let phaseIndex = 0;
+      const started = Date.now();
+      container.innerHTML = '<div class="progress-wrap"><div class="progress-bar"><span></span></div><div class="progress-meta"></div></div>';
+      const meta = container.querySelector('.progress-meta');
+      const tick = () => {
+        const elapsed = Math.floor((Date.now() - started) / 1000);
+        if (elapsed >= 3 && phaseIndex < steps.length - 1 && elapsed % 3 === 0) {
+          phaseIndex += 1;
+        }
+        meta.textContent = `${steps[phaseIndex]} (${elapsed}s)`;
+      };
+      tick();
+      const timer = setInterval(tick, 500);
+      return () => clearInterval(timer);
+    }
+
+    function neighborProtocolLabel(entry) {
+      const proto = (entry && entry.protocol) || '';
+      if (proto.toUpperCase() === 'CDP') return 'CDP';
+      if (proto.toUpperCase() === 'LLDP') return 'LLDP';
+      if (proto === 'MNDP') return 'MNDP';
+      return proto || 'Neighbor';
+    }
+
+    function renderNeighborSource(title, entry) {
+      if (!entry) return '';
+      const rows = [];
+      if (entry.available) {
+        rows.push(row(t('common.status'), 'rilevato', 'ok'));
+        if (entry.switch_name || entry.identity) rows.push(row('Dispositivo', entry.identity || entry.switch_name || 'n/a'));
+        if (entry.port_id) rows.push(row('Porta', entry.port_id));
+        if (entry.vlan_id) rows.push(row('VLAN', entry.vlan_id));
+        if (entry.system_description) rows.push(row('Descrizione', entry.system_description));
+        if (entry.chassis_id) rows.push(row('MAC chassis', entry.chassis_id));
+      } else {
+        rows.push(row(t('common.status'), entry.message || 'non disponibile', 'bad'));
+      }
+      return `<div class="neighbor-section"><div class="section-title">${title}</div>${rows.join('')}</div>`;
+    }
+
+    function renderSwitchStatus(primary, neighbors) {
+      const list = Array.isArray(neighbors) ? neighbors : [];
+      const lldp = list.find(n => n.protocol && ['LLDP', 'CDP'].includes(String(n.protocol).toUpperCase()));
+      const mndp = list.find(n => n.protocol === 'MNDP');
+      let html = '';
+
+      if (primary && primary.available) {
+        html += `<div class="neighbor-section"><div class="section-title">Riepilogo</div>`;
+        html += [
+          row('Dispositivo', primary.identity || primary.switch_name || 'n/a'),
+          row('Protocollo', primary.protocol || 'n/a'),
+          row('Porta', primary.port_id || 'n/a'),
+          row('VLAN', primary.vlan_id || 'n/a'),
+          primary.board ? row('Modello', primary.board) : '',
+          primary.system_description ? row('Descrizione', primary.system_description) : '',
+          primary.chassis_id ? row('MAC chassis', primary.chassis_id) : '',
+          primary.med_capabilities ? row('LLDP-MED', primary.med_capabilities) : '',
+          primary.poe_status ? row('PoE', [primary.poe_status, primary.poe_allocated_w != null ? primary.poe_allocated_w + ' W' : ''].filter(Boolean).join(' · ')) : '',
+        ].filter(Boolean).join('');
+        html += '</div>';
+      } else if (primary && primary.message) {
+        html += row(t('common.status'), primary.message, 'bad');
+        html += '<div class="sub" style="margin-top:.45rem">' + t('status.lldp_hint') + '</div>';
+      } else {
+        html += row(t('common.status'), t('common.waiting_status'), 'bad');
+      }
+
+      if (lldp) html += renderNeighborSource(neighborProtocolLabel(lldp), lldp);
+      if (mndp) html += renderNeighborSource('MNDP (MikroTik)', mndp);
+      return html;
+    }
+
+    function exportCached(key, format) {
+      const entry = scanCache[key];
+      if (!entry) {
+        alert('Esegui prima una scansione.');
+        return;
+      }
+      const stamp = entry.exported_at || 'scan';
+      if (format === 'json') {
+        downloadText(`ndp-${key}-${stamp}.json`, JSON.stringify(entry.data, null, 2), 'application/json');
+        return;
+      }
+      if (!entry.rows.length) {
+        alert(t('common.export_no_csv'));
+        return;
+      }
+      downloadText(`ndp-${key}-${stamp}.csv`, rowsToCsv(entry.rows), 'text/csv');
+    }
+
+    function wireExportButtons(prefix) {
+      document.getElementById(`${prefix}-export-json`).onclick = () => exportCached(prefix, 'json');
+      document.getElementById(`${prefix}-export-csv`).onclick = () => exportCached(prefix, 'csv');
+    }
+
+    function beginScan(stopBtnId) {
+      if (activeScanAbort) activeScanAbort.abort();
+      activeScanAbort = new AbortController();
+      const stopBtn = document.getElementById(stopBtnId);
+      if (stopBtn) stopBtn.disabled = false;
+      return activeScanAbort;
+    }
+
+    function endScan(stopBtnId) {
+      const stopBtn = document.getElementById(stopBtnId);
+      if (stopBtn) stopBtn.disabled = true;
+      activeScanAbort = null;
+    }
+
+    function wireStopButton(stopBtnId, onStop) {
+      const stopBtn = document.getElementById(stopBtnId);
+      if (!stopBtn) return;
+      stopBtn.onclick = () => {
+        if (activeScanAbort) activeScanAbort.abort();
+        if (onStop) onStop();
+      };
+    }
+
+    const NAV_GROUPS = {
+      monitor: { panels: [
+        { id: 'status', label: 'Stato' },
+        { id: 'ping', label: 'Ping' },
+        { id: 'mtu', label: 'MTU' },
+      ], default: 'status' },
+      lan: { panels: [
+        { id: 'discover', label: 'Discover' },
+        { id: 'passive', label: 'Sniff' },
+        { id: 'scan', label: 'Scan' },
+      ], default: 'discover' },
+      ot: { panels: [
+        { id: 'plant', label: 'Impianto' },
+        { id: 'mikrotik', label: 'MikroTik' },
+        { id: 'cameras', label: 'Camere' },
+        { id: 'nas', label: 'NAS' },
+        { id: 'printers', label: 'Stampanti' },
+      ], default: 'plant' },
+      sistema: { panels: [
+        { id: 'hotspot', label: 'Hotspot' },
+        { id: 'config', label: 'Config' },
+        { id: 'power', label: 'Spegnimento' },
+      ], default: 'hotspot' },
+    };
+    let activeNavGroup = 'monitor';
+
+    function panelNavGroup(panelId) {
+      return Object.entries(NAV_GROUPS).find(([, group]) =>
+        group.panels.some(item => item.id === panelId)
+      )?.[0] || 'monitor';
+    }
+
+    function renderNavSecondary(groupId, activePanel) {
+      const group = NAV_GROUPS[groupId];
+      const el = document.getElementById('nav-secondary');
+      if (!group) {
+        el.classList.remove('open');
+        el.innerHTML = '';
+        return;
+      }
+      el.classList.add('open');
+      el.innerHTML = group.panels.map(item =>
+        `<button data-panel="${item.id}" class="${item.id === activePanel ? 'active' : ''}">${item.label}</button>`
+      ).join('');
+      el.querySelectorAll('button[data-panel]').forEach(btn => {
+        btn.onclick = () => activatePanel(btn.dataset.panel);
+      });
+    }
+
+    function activateNavGroup(groupId, preferredPanel) {
+      activeNavGroup = groupId;
+      document.querySelectorAll('.nav-primary button[data-nav-group]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.navGroup === groupId);
+      });
+      const group = NAV_GROUPS[groupId];
+      const panelId = preferredPanel && group.panels.some(item => item.id === preferredPanel)
+        ? preferredPanel
+        : group.default;
+      renderNavSecondary(groupId, panelId);
+      activatePanel(panelId, { skipNavGroup: true });
+    }
+
+    function activatePanel(panelId, options = {}) {
+      if (!options.skipNavGroup) {
+        const groupId = panelNavGroup(panelId);
+        if (groupId !== activeNavGroup) {
+          activateNavGroup(groupId, panelId);
+          return;
+        }
+        renderNavSecondary(groupId, panelId);
+      }
+      document.querySelectorAll('.panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === `panel-${panelId}`);
+      });
+    }
+
+    function applyPanelFromUrl() {
+      const panel = new URLSearchParams(window.location.search).get('panel');
+      if (panel) activateNavGroup(panelNavGroup(panel), panel);
+    }
+
+    ['discover-scan', 'discover-services', 'passive', 'mikrotik', 'cameras', 'nas', 'printers', 'plant'].forEach(wireExportButtons);
+
+    document.querySelectorAll('.nav-primary button[data-nav-group]').forEach(btn => {
+      btn.onclick = () => activateNavGroup(btn.dataset.navGroup);
+    });
+
+    function row(label, value, cls='') {
+      return `<div class="row"><span class="label">${label}</span><span class="${cls}">${value}</span></div>`;
+    }
+
+    async function loadVersion() {
+      const j = await (await fetch('/api/version')).json();
+      activeLocale = j.locale || 'it';
+      activeThemeId = j.theme || 'field-dark';
+      scenarioDefaults = j.defaults || {};
+      document.documentElement.lang = activeLocale;
+      document.getElementById('version').textContent = `v${j.version} · ${j.interface}`;
+      try {
+        const [locResp, themesResp, scenResp] = await Promise.all([
+          fetch(`/api/locale/${activeLocale}`),
+          fetch('/api/themes'),
+          fetch('/api/scenarios'),
+        ]);
+        localeStrings = await locResp.json();
+        const themesJson = await themesResp.json();
+        const theme = (themesJson.themes || {})[activeThemeId];
+        if (theme) applyTheme(theme);
+        const scenJson = await scenResp.json();
+        scenarioMeta = (scenJson.scenarios || []).find(item => item.id === j.scenario) || null;
+      } catch (e) {
+        console.warn('appearance load failed', e);
+      }
+      applyNavLabels();
+      applyStaticI18n();
+      const titleEl = document.getElementById('app-title');
+      if (titleEl) titleEl.textContent = t('app.title');
+      document.title = t('app.title');
+      updateScenarioHints();
+      const defaults = scenarioDefaults;
+      if (defaults.mndp_listen_seconds != null) {
+        document.getElementById('mikrotik-seconds').value = defaults.mndp_listen_seconds;
+      }
+      if (defaults.passive_listen_seconds != null) {
+        document.getElementById('passive-seconds').value = defaults.passive_listen_seconds;
+      }
+    }
+
+    async function loadHotspot() {
+      try {
+        const j = await (await fetch('/api/hotspot/status')).json();
+        const auth = j.open_network ? t('common.open_network') : (j.password_hint || 'WPA2');
+        const cls = j.active ? 'ok' : 'bad';
+        document.getElementById('status-hotspot').innerHTML = [
+          row(t('common.status'), j.active ? t('common.active') : t('common.inactive'), cls),
+          row('SSID', j.ssid || 'n/a'),
+          row('URL', j.web_url || 'n/a'),
+          row('Auth', auth),
+          row(t('common.note'), j.message || ''),
+        ].join('');
+      } catch (e) {
+        document.getElementById('status-hotspot').innerHTML = row(t('common.status'), t('common.na'), 'bad');
+      }
+    }
+
+    function renderStatus(data) {
+      statusData = data;
+      loadHotspot();
+      const link = data.link || {}, ip = data.ip || {}, n = data.neighbor || {}, s = data.system || {};
+      document.getElementById('status-link').innerHTML = [
+        row(t('common.status'), link.carrier ? t('common.up') : t('common.down'), link.carrier ? 'ok' : 'bad'),
+        row(t('status.mac'), link.mac_address || 'n/a'),
+        row(t('status.velocity'), link.speed_mbps ? link.speed_mbps + ' Mbps' : 'n/a'),
+      ].join('');
+      const addresses = (ip.addresses || []).map(a => `${a.address}/${a.prefixlen}`).join(', ') || 'n/a';
+      document.getElementById('status-network').innerHTML = [
+        row(t('status.ip'), addresses), row(t('status.gateway'), ip.gateway || 'n/a'),
+        row(t('status.dns'), (ip.dns_servers || []).join(', ') || 'n/a'),
+      ].join('');
+      document.getElementById('status-switch').innerHTML = renderSwitchStatus(n, data.neighbors || []);
+      document.getElementById('status-system').innerHTML = [
+        row(t('status.hostname'), s.hostname || 'n/a'),
+        row(t('status.uptime'), s.uptime_seconds != null ? Math.round(s.uptime_seconds) + ' s' : 'n/a'),
+        row(t('status.temp'), s.cpu_temperature_c != null ? s.cpu_temperature_c.toFixed(1) + ' °C' : 'n/a'),
+      ].join('');
+      renderPingResults(data.ping || {});
+    }
+
+    let pingResultsOverride = null;
+
+    function renderPingResults(ping) {
+      const el = document.getElementById('ping-results');
+      const data = pingResultsOverride || ping;
+      if (data.running) { el.innerHTML = row(t('common.status'), data.message || t('common.in_progress')); return; }
+      const results = data.results || [];
+      if (!results.length) { el.innerHTML = '<div class="sub">' + t('common.no_results') + '</div>'; return; }
+      el.innerHTML = results.map(item => {
+        const ok = Boolean(item.reachable);
+        const rttMs = item.rtt_ms != null ? Number(item.rtt_ms) : null;
+        const rtt = rttMs != null && !Number.isNaN(rttMs) ? rttMs.toFixed(0) + ' ms' : t('common.fail');
+        const stats = item.samples ? ` · ${item.samples} ${t('common.samples')}` : '';
+        return row(item.label || item.host, `${item.host} · ${rtt}${stats}`, ok ? 'ok' : 'bad');
+      }).join('');
+    }
+
+    function summarizeLivePingResults() {
+      return chartHosts.map(host => {
+        const points = chartSeries[host] || [];
+        if (!points.length) return null;
+        const okPoints = points.filter(p => p.reachable && p.rtt_ms != null);
+        const avg = okPoints.length
+          ? okPoints.reduce((sum, p) => sum + p.rtt_ms, 0) / okPoints.length
+          : null;
+        return {
+          label: host,
+          host,
+          reachable: okPoints.length > 0,
+          rtt_ms: avg,
+          samples: `${okPoints.length}/${points.length}`,
+        };
+      }).filter(Boolean);
+    }
+
+    function applyLivePingSummary() {
+      const results = summarizeLivePingResults();
+      if (!results.length) return;
+      pingResultsOverride = { running: false, results };
+      renderPingResults({});
+    }
+
+    async function loadStatus() {
+      if (shutdownUiLocked) return;
+      try {
+        const data = await (await fetch('/api/status')).json();
+        renderStatus(data);
+      } catch (_err) {
+        /* ignore while probe reboots or shuts down */
+      }
+    }
+
+    function stopBackgroundPolls() {
+      if (statusPollTimer) {
+        clearInterval(statusPollTimer);
+        statusPollTimer = null;
+      }
+      if (discPoll) {
+        clearInterval(discPoll);
+        discPoll = null;
+      }
+    }
+
+    function showShutdownPhoneMessage() {
+      shutdownUiLocked = true;
+      stopBackgroundPolls();
+      const msg = document.getElementById('power-msg');
+      const btn = document.getElementById('power-shutdown');
+      const cancelBtn = document.getElementById('power-shutdown-cancel');
+      const hint = document.getElementById('power-hint');
+      const statusEl = document.getElementById('power-status');
+      btn.disabled = true;
+      cancelBtn.style.display = 'none';
+      if (hint) hint.style.display = 'none';
+      if (statusEl) statusEl.textContent = '';
+      msg.textContent = t('power.check_display');
+      msg.className = 'sub power-active';
+    }
+
+    async function sendReport(section) {
+      const r = await fetch('/api/report?section=' + encodeURIComponent(section));
+      const j = await r.json();
+      const url = 'mailto:?subject=' + encodeURIComponent(j.subject) + '&body=' + encodeURIComponent(j.body);
+      window.location.href = url;
+    }
+
+    function resetChart(hosts) {
+      chartHosts = hosts;
+      chartSeries = {};
+      hosts.forEach(h => chartSeries[h] = []);
+      hosts.forEach((h, i) => {
+        const leg = document.getElementById('leg' + (i+1));
+        if (leg) { leg.textContent = h; leg.style.display = 'inline'; }
+      });
+      for (let i = hosts.length; i < 3; i++) {
+        const leg = document.getElementById('leg' + (i+1));
+        if (leg) leg.style.display = 'none';
+      }
+      drawChart();
+    }
+
+    function drawChart() {
+      const canvas = document.getElementById('ping-chart');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = '#2a3a5c';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = 20 + (h - 40) * i / 4;
+        ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(w - 10, y); ctx.stroke();
+      }
+      let maxRtt = 50;
+      chartHosts.forEach(host => {
+        (chartSeries[host] || []).forEach(p => { if (p.rtt_ms) maxRtt = Math.max(maxRtt, p.rtt_ms); });
+      });
+      chartHosts.forEach((host, idx) => {
+        const points = chartSeries[host] || [];
+        if (!points.length) return;
+        ctx.strokeStyle = COLORS[idx];
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        points.forEach((p, i) => {
+          const x = 40 + (w - 50) * (i / Math.max(1, points.length - 1));
+          const y = p.rtt_ms == null ? h - 20 : h - 20 - (p.rtt_ms / maxRtt) * (h - 40);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      });
+      ctx.fillStyle = '#9eb0d0';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('0 ms', 4, h - 18);
+      ctx.fillText(Math.round(maxRtt) + ' ms', 4, 24);
+    }
+
+    function stopLive(options = {}) {
+      const silent = options.silent === true;
+      if (liveSource) { liveSource.close(); liveSource = null; }
+      if (liveSessionId) {
+        fetch('/api/ping/live/' + liveSessionId + '/stop', {method: 'POST'});
+        liveSessionId = null;
+      }
+      document.getElementById('live-start').disabled = false;
+      document.getElementById('live-stop').disabled = true;
+      const msg = document.getElementById('ping-msg');
+      if (!silent && msg) {
+        msg.textContent = options.message || t('ping.live_stopped');
+      }
+      if (!silent) {
+        applyLivePingSummary();
+      }
+    }
+
+    let mtuSessionId = null;
+    let mtuSource = null;
+
+    function stopMtu() {
+      if (mtuSource) { mtuSource.close(); mtuSource = null; }
+      if (mtuSessionId) {
+        fetch('/api/mtu/discover/' + mtuSessionId + '/stop', {method: 'POST'});
+        mtuSessionId = null;
+      }
+      document.getElementById('mtu-start').disabled = false;
+      document.getElementById('mtu-stop').disabled = true;
+    }
+
+    document.getElementById('mtu-use-gateway').onclick = () => {
+      const gw = statusData && statusData.ip && statusData.ip.gateway;
+      if (gw) document.getElementById('mtu-host').value = gw;
+    };
+
+    document.getElementById('mtu-start').onclick = async () => {
+      const host = normalizeHost(document.getElementById('mtu-host').value);
+      const msg = document.getElementById('mtu-msg');
+      const log = document.getElementById('mtu-log');
+      const resultEl = document.getElementById('mtu-result');
+      if (!host) { msg.textContent = t('mtu.enter_host'); return; }
+      stopMtu();
+      log.innerHTML = '';
+      resultEl.style.display = 'none';
+      msg.textContent = t('mtu.running');
+      try {
+        const r = await fetch('/api/mtu/discover/start', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({host, start_mtu: 1500, min_mtu: 576})
+        });
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { msg.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
+        mtuSessionId = j.session_id;
+        document.getElementById('mtu-start').disabled = true;
+        document.getElementById('mtu-stop').disabled = false;
+        mtuSource = new EventSource('/api/mtu/discover/' + mtuSessionId + '/events');
+        mtuSource.onmessage = (ev) => {
+          const data = JSON.parse(ev.data);
+          if (data.type === 'probe') {
+            const cls = data.reachable ? 'ok' : 'bad';
+            const line = document.createElement('div');
+            line.className = cls;
+            line.textContent = `MTU ${data.mtu} · payload ${data.payload_size}B · ${data.reachable ? 'OK' : data.message}`;
+            log.prepend(line);
+          }
+          if (data.type === 'result') {
+            resultEl.style.display = 'block';
+            if (data.mtu) {
+              resultEl.innerHTML = `<div class="ok">MTU massimo: <strong>${data.mtu}</strong> verso ${data.host}</div>`;
+              msg.textContent = t('mtu.done');
+            } else {
+              resultEl.innerHTML = `<div class="bad">${data.message}</div>`;
+              msg.textContent = t('mtu.no_mtu');
+            }
+            stopMtu();
+          }
+          if (data.type === 'done' || data.type === 'stopped') stopMtu();
+        };
+        mtuSource.onerror = () => { msg.textContent = t('mtu.interrupted'); stopMtu(); };
+      } catch (e) {
+        msg.textContent = t('common.network_error', {detail: e});
+      }
+    };
+
+    document.getElementById('mtu-stop').onclick = stopMtu;
+
+    document.getElementById('live-start').onclick = async () => {
+      const hosts = readHostInputs();
+      if (!hosts.length) { document.getElementById('ping-msg').textContent = t('ping.enter_host'); return; }
+      stopLive({ silent: true });
+      pingResultsOverride = null;
+      resetChart(hosts);
+      const msg = document.getElementById('ping-msg');
+      msg.textContent = t('ping.live_starting');
+      try {
+        const r = await fetch('/api/ping/live/start', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({hosts, interval: 1, max_samples: 60})
+        });
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { msg.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
+        liveSessionId = j.session_id;
+        msg.textContent = t('ping.live_active');
+        document.getElementById('live-start').disabled = true;
+        document.getElementById('live-stop').disabled = false;
+        liveSource = new EventSource('/api/ping/live/' + liveSessionId + '/events');
+        liveSource.onmessage = (ev) => {
+          const data = JSON.parse(ev.data);
+          if (data.type === 'sample') {
+            if (!chartSeries[data.host]) chartSeries[data.host] = [];
+            chartSeries[data.host].push(data);
+            if (chartSeries[data.host].length > 60) chartSeries[data.host].shift();
+            drawChart();
+          }
+          if (data.type === 'done') stopLive({ message: t('ping.live_done') });
+        };
+        liveSource.onerror = () => {
+          document.getElementById('ping-msg').textContent = t('ping.chart_interrupted');
+          stopLive({ message: t('ping.live_interrupted') });
+        };
+      } catch (e) {
+        msg.textContent = t('common.network_error', {detail: e});
+      }
+    };
+
+    document.getElementById('live-stop').onclick = () => stopLive({ message: t('ping.live_stopped') });
+
+    document.getElementById('suite-run').onclick = async () => {
+      const extraHosts = readHostInputs();
+      const msg = document.getElementById('ping-msg');
+      msg.textContent = t('ping.suite_running');
+      const r = await fetch('/api/ping/run', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({hosts: extraHosts.length ? extraHosts : null})
+      });
+      const parsed = await parseJsonResponse(r);
+      if (parsed.error) { msg.textContent = parsed.error; return; }
+      if (!parsed.ok) { msg.textContent = formatApiError(parsed.data || parsed); return; }
+      const j = parsed.data;
+      pingResultsOverride = j;
+      msg.textContent = t('common.completed');
+      renderPingResults(j);
+    };
+
+    let discPoll = null;
+    function renderDiscover(d) {
+      document.getElementById('disc-phase').textContent = d.phase || 'idle';
+      document.getElementById('disc-prompt').textContent = d.prompt || '';
+      const log = (d.lines || d.display_lines || []).map(l => `<div>${l}</div>`).join('');
+      document.getElementById('disc-log').innerHTML = log;
+      const idle = d.idle && d.phase !== 'done';
+      document.getElementById('disc-start').disabled = !idle;
+      document.getElementById('disc-continue').disabled = !d.waiting_for_user;
+      document.getElementById('disc-skip').disabled = !(d.waiting_for_user && d.allow_skip);
+      document.getElementById('disc-cancel').disabled = idle && !d.error;
+      if (d.result && d.result.diff) {
+        const diff = d.result.diff;
+        let html = '';
+        if (diff.probable_match) {
+          const h = diff.probable_match;
+          html = `<div class="ok">MATCH: ${h.ip} ${h.mac}</div>`;
+        } else if (diff.offline_hosts && diff.offline_hosts.length) {
+          html = diff.offline_hosts.map(h => `<div>${h.ip} ${h.mac}</div>`).join('');
+        }
+        document.getElementById('disc-result').innerHTML = html;
+      }
+    }
+
+    async function pollDiscover() {
+      const d = await (await fetch('/api/discover/updown')).json();
+      renderDiscover(d);
+    }
+
+    function startDiscPoll() {
+      if (discPoll) return;
+      discPoll = setInterval(pollDiscover, 1000);
+    }
+
+    document.getElementById('disc-start').onclick = async () => {
+      await fetch('/api/discover/updown/start', {method: 'POST'});
+      startDiscPoll(); pollDiscover();
+    };
+    document.getElementById('disc-continue').onclick = async () => {
+      await fetch('/api/discover/updown/continue', {method: 'POST'});
+      pollDiscover();
+    };
+    document.getElementById('disc-skip').onclick = async () => {
+      await fetch('/api/discover/updown/skip', {method: 'POST'});
+      pollDiscover();
+    };
+    document.getElementById('disc-cancel').onclick = async () => {
+      await fetch('/api/discover/updown/cancel', {method: 'POST'});
+      pollDiscover();
+    };
+
+    document.getElementById('discover-scan').onclick = async () => {
+      const el = document.getElementById('discover-scan-results');
+      const scanBtn = document.getElementById('discover-scan');
+      const controller = beginScan('discover-scan-stop');
+      scanBtn.disabled = true;
+      const stopProgress = startProgressFeedback(el, [
+        'Preparazione scansione ARP',
+        'Invio probe sulla subnet eth0',
+        'Raccolta risposte host',
+        'Lookup vendor OUI',
+      ]);
+      try {
+        const r = await fetch('/api/discover/scan', { signal: controller.signal });
+        stopProgress();
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { el.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { el.textContent = formatApiError(j); return; }
+        const hosts = j.hosts || [];
+        cacheScan('discover-scan', j, hosts.map(h => ({
+          ip: h.ip || '',
+          mac: h.mac || '',
+          vendor: h.vendor || '',
+          hostname: h.hostname || '',
+          source: h.source || '',
+        })));
+        el.innerHTML = hosts.slice(0, 30).map(h => `<div>${h.ip} · ${h.mac}${h.vendor ? ' · ' + h.vendor : ''}</div>`).join('') ||
+          '<div>' + t('common.no_hosts') + '</div>';
+        if (document.getElementById('oui-auto-refresh')?.checked) {
+          loadOuiTable();
+        }
+      } catch (e) {
+        stopProgress();
+        if (e.name !== 'AbortError') el.textContent = t('common.network_error', {detail: e});
+        else el.textContent = t('common.scan_aborted');
+      } finally {
+        scanBtn.disabled = false;
+        endScan('discover-scan-stop');
+      }
+    };
+    wireStopButton('discover-scan-stop', () => {
+      document.getElementById('discover-scan-results').textContent = t('common.scan_aborted');
+    });
+
+    document.getElementById('discover-services').onclick = async () => {
+      const el = document.getElementById('discover-services-results');
+      const scanBtn = document.getElementById('discover-services');
+      const controller = beginScan('discover-services-stop');
+      scanBtn.disabled = true;
+      const stopProgress = startProgressFeedback(el, [
+        'Query mDNS (_services._dns-sd)',
+        'Ricerca dispositivi SSDP/UPnP',
+        'Sniff ethertype FDP/EDP/LLTD',
+      ]);
+      try {
+        const r = await fetch('/api/discover/services', { signal: controller.signal });
+        stopProgress();
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { el.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { el.textContent = formatApiError(j); return; }
+        let html = '';
+        const mdns = (j.mdns && j.mdns.services) || [];
+        html += `<div class="ok">mDNS: ${mdns.length} servizi</div>`;
+        mdns.slice(0, 10).forEach(s => {
+          html += `<div>${s.name || s.service_type} · ${s.host || ''}${s.port ? ':' + s.port : ''}</div>`;
+        });
+        const ssdp = (j.ssdp && j.ssdp.devices) || [];
+        html += `<div class="ok">SSDP: ${ssdp.length} dispositivi</div>`;
+        ssdp.slice(0, 10).forEach(d => {
+          html += `<div>${d.usn} · ${d.host || ''}</div>`;
+        });
+        const l2 = (j.l2_probes && j.l2_probes.hits) || [];
+        if (l2.length) {
+          html += `<div class="ok">L2 probe: ${l2.map(h => h.protocol + ' ' + h.frame_count).join(', ')}</div>`;
+        } else {
+          html += '<div class="sub">Nessun frame FDP/EDP/LLTD rilevato</div>';
+        }
+        const rows = [
+          ...mdns.map(s => ({
+            type: 'mDNS',
+            name: s.name || s.service_type || '',
+            host: s.host || '',
+            port: s.port || '',
+            service_type: s.service_type || '',
+          })),
+          ...ssdp.map(d => ({
+            type: 'SSDP',
+            name: d.usn || d.st || '',
+            host: d.host || '',
+            port: '',
+            service_type: d.st || '',
+          })),
+          ...l2.map(h => ({
+            type: 'L2',
+            name: h.protocol || '',
+            host: '',
+            port: '',
+            service_type: String(h.frame_count || ''),
+          })),
+        ];
+        cacheScan('discover-services', j, rows);
+        el.innerHTML = html || '<div>' + t('discover.no_services') + '</div>';
+      } catch (e) {
+        stopProgress();
+        if (e.name !== 'AbortError') el.textContent = t('common.network_error', {detail: e});
+        else el.textContent = t('common.scan_aborted');
+      } finally {
+        scanBtn.disabled = false;
+        endScan('discover-services-stop');
+      }
+    };
+    wireStopButton('discover-services-stop', () => {
+      document.getElementById('discover-services-results').textContent = t('common.scan_aborted');
+    });
+
+    document.getElementById('passive-use-gateway').onclick = () => {
+      const gw = statusData && statusData.ip && statusData.ip.gateway;
+      if (gw) document.getElementById('passive-snmp-host').value = gw;
+    };
+
+    document.getElementById('passive-run').onclick = async () => {
+      const msg = document.getElementById('passive-msg');
+      const summaryEl = document.getElementById('passive-summary-results');
+      const l2El = document.getElementById('passive-l2-results');
+      const l2probeEl = document.getElementById('passive-l2probe-results');
+      const serviceEl = document.getElementById('passive-service-results');
+      const dhcpEl = document.getElementById('passive-dhcp-results');
+      const snmpEl = document.getElementById('passive-snmp-results');
+      const scanBtn = document.getElementById('passive-run');
+      const seconds = Math.min(60, Math.max(1, Number(document.getElementById('passive-seconds').value) || 3));
+      const snmpHost = normalizeHost(document.getElementById('passive-snmp-host').value);
+      const controller = beginScan('passive-stop');
+      scanBtn.disabled = true;
+      const stopProgress = startProgressFeedback(msg, [
+        t('passive.progress_l2', {seconds}),
+        t('passive.progress_mdns'),
+        t('passive.progress_l2probe'),
+        snmpHost ? t('passive.progress_snmp_host', {host: snmpHost}) : t('passive.progress_snmp_gw'),
+      ]);
+      [summaryEl, l2El, l2probeEl, serviceEl, dhcpEl, snmpEl].forEach(el => el.textContent = t('common.waiting'));
+      try {
+        const params = new URLSearchParams({listen_seconds: String(seconds)});
+        if (snmpHost) params.set('snmp_host', snmpHost);
+        const r = await fetch('/api/discover/passive-check?' + params.toString(), { signal: controller.signal });
+        stopProgress();
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { msg.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
+
+        const summary = j.summary || [];
+        summaryEl.innerHTML = summary.length
+          ? summary.map(row => `<div class="${row.status === 'detected' || row.status === 'ok' ? 'ok' : 'sub'}">${row.protocol} · ${row.category} · ${row.detail}</div>`).join('')
+          : '<div class="sub">' + t('passive.no_protocols') + '</div>';
+
+        const l2 = (j.l2_passive && j.l2_passive.hits) || [];
+        l2El.innerHTML = l2.length
+          ? l2.map(hit => `<div class="ok">${hit.protocol}${hit.variant ? ' (' + hit.variant + ')' : ''}: ${hit.frame_count} frame</div>`).join('')
+          : `<div class="sub">${(j.l2_passive && j.l2_passive.message) || t('passive.no_frames')}</div>`;
+
+        const l2p = (j.l2_probes && j.l2_probes.hits) || [];
+        l2probeEl.innerHTML = l2p.length
+          ? l2p.map(hit => `<div class="ok">${hit.protocol} ${hit.ethertype}: ${hit.frame_count} frame</div>`).join('')
+          : '<div class="sub">' + t('passive.no_l2probe') + '</div>';
+
+        const mdns = (j.mdns && j.mdns.services) || [];
+        const ssdp = (j.ssdp && j.ssdp.devices) || [];
+        serviceEl.innerHTML = [
+          `<div class="ok">mDNS: ${mdns.length} servizi</div>`,
+          mdns.slice(0, 8).map(s => `<div>${s.name || s.service_type} · ${s.host || ''}${s.port ? ':' + s.port : ''}</div>`).join(''),
+          `<div class="ok">SSDP: ${ssdp.length} dispositivi</div>`,
+          ssdp.slice(0, 8).map(d => `<div>${d.usn} · ${d.host || ''}</div>`).join(''),
+        ].join('');
+
+        const dhcp = (j.dhcp_option82 && j.dhcp_option82.samples) || [];
+        dhcpEl.innerHTML = dhcp.length
+          ? dhcp.map(s => `<div class="ok">${[s.message_type, s.circuit_id, s.remote_id].filter(Boolean).join(' · ')}</div>`).join('')
+          : `<div class="sub">${(j.dhcp_option82 && j.dhcp_option82.message) || t('passive.no_option82')}</div>`;
+
+        const snmp = j.snmp && j.snmp.result;
+        if (snmp && snmp.reachable) {
+          snmpEl.innerHTML = `<div class="ok">${snmp.host}:161 · ${snmp.community || 'n/a'}</div>${snmp.sys_descr ? '<div>' + snmp.sys_descr + '</div>' : ''}`;
+        } else if (snmp) {
+          snmpEl.innerHTML = `<div class="bad">${snmp.host}:161 · ${snmp.error || t('common.no_response')}</div>`;
+        } else {
+          snmpEl.innerHTML = `<div class="sub">${(j.snmp && j.snmp.message) || t('passive.snmp_skipped')}</div>`;
+        }
+
+        const rows = [
+          ...summary.map(row => ({
+            section: 'summary',
+            protocol: row.protocol || '',
+            category: row.category || '',
+            detail: row.detail || '',
+            status: row.status || '',
+          })),
+          ...l2.map(hit => ({
+            section: 'l2_passive',
+            protocol: hit.protocol || '',
+            category: hit.variant || '',
+            detail: String(hit.frame_count || ''),
+            status: 'detected',
+          })),
+          ...mdns.map(s => ({
+            section: 'mdns',
+            protocol: 'mDNS',
+            category: s.service_type || '',
+            detail: `${s.name || ''} ${s.host || ''}${s.port ? ':' + s.port : ''}`.trim(),
+            status: 'detected',
+          })),
+          ...ssdp.map(d => ({
+            section: 'ssdp',
+            protocol: 'SSDP',
+            category: d.st || '',
+            detail: `${d.usn || ''} ${d.host || ''}`.trim(),
+            status: 'detected',
+          })),
+        ];
+        cacheScan('passive', j, rows);
+        const dur = j.duration_seconds != null ? j.duration_seconds : '?';
+        msg.textContent = t('passive.done_msg', {duration: dur, seconds});
+      } catch (e) {
+        stopProgress();
+        if (e.name === 'AbortError') msg.textContent = 'Sniff interrotto.';
+        else msg.textContent = t('common.network_error', {detail: e});
+      } finally {
+        scanBtn.disabled = false;
+        endScan('passive-stop');
+      }
+    };
+    wireStopButton('passive-stop', () => {
+      document.getElementById('passive-msg').textContent = 'Sniff interrotto.';
+    });
+
+    document.getElementById('mikrotik-scan').onclick = async () => {
+      const msg = document.getElementById('mikrotik-msg');
+      const el = document.getElementById('mikrotik-results');
+      const scanBtn = document.getElementById('mikrotik-scan');
+      const seconds = Math.min(60, Math.max(2, Number(document.getElementById('mikrotik-seconds').value) || 6));
+      const controller = beginScan('mikrotik-stop');
+      scanBtn.disabled = true;
+      msg.textContent = t('mikrotik.scanning', {seconds});
+      el.textContent = '...';
+      try {
+        const r = await fetch(`/api/discover/mikrotik?listen_seconds=${seconds}`, { signal: controller.signal });
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { msg.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
+        const devices = j.devices || [];
+        cacheScan('mikrotik', j, devices.map(d => ({
+          identity: d.identity || '',
+          board: d.board || '',
+          ipv4: d.ipv4 || '',
+          mac: d.mac || '',
+          interface: d.interface || '',
+          version: d.version || '',
+          connected: d.connected ? 'yes' : 'no',
+        })));
+        if (!devices.length) {
+          el.innerHTML = '<div class="sub">' + t('mikrotik.none_found') + '</div>';
+        } else {
+          el.innerHTML = devices.map(d => {
+            const cls = d.connected ? 'ok' : '';
+            const tag = d.connected ? 'COLLEGATO · ' : '';
+            const port = d.interface ? t('mikrotik.port_suffix', {port: d.interface}) : '';
+            return `<div class="${cls}">${tag}${d.identity || d.board || 'MikroTik'} · ${d.ipv4 || 'n/a'} · ${d.mac || 'n/a'}${port}</div>`;
+          }).join('');
+        }
+        msg.textContent = t('common.devices_found', {count: devices.length});
+        await loadStatus();
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          msg.textContent = t('common.scan_aborted');
+          el.textContent = t('common.interrupted_short');
+        } else {
+          msg.textContent = t('common.network_error', {detail: e});
+        }
+      } finally {
+        scanBtn.disabled = false;
+        endScan('mikrotik-stop');
+      }
+    };
+    wireStopButton('mikrotik-stop', () => {
+      document.getElementById('mikrotik-msg').textContent = t('common.scan_aborted');
+      document.getElementById('mikrotik-results').textContent = t('common.interrupted_short');
+    });
+
+    document.getElementById('cameras-scan').onclick = async () => {
+      const msg = document.getElementById('cameras-msg');
+      const el = document.getElementById('cameras-results');
+      const scanBtn = document.getElementById('cameras-scan');
+      const controller = beginScan('cameras-stop');
+      scanBtn.disabled = true;
+      msg.textContent = t('cameras.scanning');
+      el.textContent = '...';
+      try {
+        const r = await fetch(`/api/discover/cameras?timeout_seconds=${scenarioDefaults.camera_timeout_seconds || 6}`, { signal: controller.signal });
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { msg.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
+        const devices = j.devices || [];
+        cacheScan('cameras', j, devices.map(d => ({
+          name: d.name || '',
+          source: d.source || '',
+          host: d.host || '',
+          port: d.port || '',
+          manufacturer: d.manufacturer || '',
+          model: d.model || '',
+          protocols: (d.protocols || []).join(';'),
+        })));
+        el.innerHTML = devices.length
+          ? devices.map(d => `<div class="ok">${d.name} · ${d.source} · ${d.host || ''}${d.port ? ':' + d.port : ''} · ${(d.protocols || []).join(', ')}</div>`).join('')
+          : '<div class="sub">' + t('cameras.none_found') + '</div>';
+        msg.textContent = t('common.cameras_found', {count: devices.length});
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          msg.textContent = t('common.scan_aborted');
+          el.textContent = t('common.interrupted_short');
+        } else {
+          msg.textContent = t('common.network_error', {detail: e});
+        }
+      } finally {
+        scanBtn.disabled = false;
+        endScan('cameras-stop');
+      }
+    };
+    wireStopButton('cameras-stop', () => {
+      document.getElementById('cameras-msg').textContent = t('common.scan_aborted');
+      document.getElementById('cameras-results').textContent = t('common.interrupted_short');
+    });
+
+    document.getElementById('nas-scan').onclick = async () => {
+      const msg = document.getElementById('nas-msg');
+      const el = document.getElementById('nas-results');
+      const scanBtn = document.getElementById('nas-scan');
+      const controller = beginScan('nas-stop');
+      scanBtn.disabled = true;
+      msg.textContent = t('nas.scanning');
+      el.textContent = '...';
+      try {
+        const r = await fetch(`/api/discover/nas?timeout_seconds=${scenarioDefaults.nas_timeout_seconds || 6}`, { signal: controller.signal });
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { msg.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
+        const devices = j.devices || [];
+        cacheScan('nas', j, devices.map(d => ({
+          name: d.name || '',
+          source: d.source || '',
+          host: d.host || '',
+          model: d.model || '',
+          version: d.version || '',
+          serial: d.serial || '',
+          protocols: (d.protocols || []).join(';'),
+        })));
+        el.innerHTML = devices.length
+          ? devices.map(d => `<div class="ok">${d.name} · ${d.source} · ${d.host || 'n/a'} · ${d.model || ''} ${(d.protocols || []).join(', ')}</div>`).join('')
+          : '<div class="sub">' + t('nas.none_found') + '</div>';
+        msg.textContent = t('common.nas_found', {count: devices.length});
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          msg.textContent = t('common.scan_aborted');
+          el.textContent = t('common.interrupted_short');
+        } else {
+          msg.textContent = t('common.network_error', {detail: e});
+        }
+      } finally {
+        scanBtn.disabled = false;
+        endScan('nas-stop');
+      }
+    };
+    wireStopButton('nas-stop', () => {
+      document.getElementById('nas-msg').textContent = t('common.scan_aborted');
+      document.getElementById('nas-results').textContent = t('common.interrupted_short');
+    });
+
+    document.getElementById('printers-scan').onclick = async () => {
+      const msg = document.getElementById('printers-msg');
+      const el = document.getElementById('printers-results');
+      const scanBtn = document.getElementById('printers-scan');
+      const controller = beginScan('printers-stop');
+      scanBtn.disabled = true;
+      const stopProgress = startProgressFeedback(msg, [
+        t('printers.progress_epson'),
+        t('printers.progress_zebra'),
+        t('printers.progress_collect'),
+      ]);
+      el.textContent = '';
+      try {
+        const r = await fetch(`/api/discover/printers?timeout_seconds=${scenarioDefaults.printer_timeout_seconds || 6}`, { signal: controller.signal });
+        stopProgress();
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { msg.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { msg.textContent = formatApiError(j); return; }
+        const devices = j.devices || [];
+        cacheScan('printers', j, devices.map(d => ({
+          name: d.name || '',
+          vendor: d.vendor || '',
+          category: d.category || '',
+          source: d.source || '',
+          host: d.host || '',
+          mac: d.mac || '',
+          model: d.model || '',
+          hostname: d.hostname || '',
+          protocols: (d.protocols || []).join(';'),
+        })));
+        el.innerHTML = devices.length
+          ? devices.map(d => {
+              const tag = d.category === 'retail' ? 'RETAIL' : (d.category === 'industrial' ? 'IND' : d.vendor || '');
+              const extra = [d.model, d.hostname, d.mac].filter(Boolean).join(' · ');
+              return `<div class="ok">${tag} · ${d.name} · ${d.source} · ${d.host || 'n/a'}${extra ? ' · ' + extra : ''}</div>`;
+            }).join('')
+          : '<div class="sub">' + t('printers.none_found') + '</div>';
+        msg.textContent = `${devices.length} stampante/i trovata/e (Epson ${j.epson_count || 0}, Zebra ${j.zebra_count || 0}).`;
+      } catch (e) {
+        stopProgress();
+        if (e.name === 'AbortError') {
+          msg.textContent = t('common.scan_aborted');
+          el.textContent = t('common.interrupted_short');
+        } else {
+          msg.textContent = t('common.network_error', {detail: e});
+        }
+      } finally {
+        scanBtn.disabled = false;
+        endScan('printers-stop');
+      }
+    };
+    wireStopButton('printers-stop', () => {
+      document.getElementById('printers-msg').textContent = t('common.scan_aborted');
+      document.getElementById('printers-results').textContent = t('common.interrupted_short');
+    });
+
+    function renderPortResults(el, data) {
+      if (!data || !data.entries) { el.innerHTML = '<div class="sub">' + t('common.no_results') + '</div>'; return; }
+      const open = data.open_ports || [];
+      const header = `<div class="ok">${data.host} · ${open.length} aperte / ${data.scanned_count} (${Math.round(data.duration_ms)} ms)</div>`;
+      const lines = data.entries.map(e => {
+        const cls = e.open ? 'open' : 'closed';
+        const mark = e.open ? 'OPEN' : 'closed';
+        const lat = e.latency_ms != null ? ` ${e.latency_ms.toFixed(0)}ms` : '';
+        return `<div class="${cls}">${e.port} ${e.service} · ${mark}${lat}</div>`;
+      }).join('');
+      el.innerHTML = header + lines;
+    }
+
+    async function runPortScan(profile, resultId) {
+      const host = normalizeHost(document.getElementById('scan-host').value);
+      if (!host) { document.getElementById(resultId).textContent = t('mtu.enter_host'); return; }
+      const el = document.getElementById(resultId);
+      const label = profile === 'custom' ? 'custom' : profile;
+      const stopProgress = startProgressFeedback(el, [
+        `Connessione a ${host}`,
+        `Scansione profilo ${label} (TCP connect)`,
+        'Raccolta porte aperte/chiuse',
+      ]);
+      const body = { host, profile, timeout_ms: 1500 };
+      if (profile === 'custom') {
+        body.ports = document.getElementById('scan-custom-ports').value.trim();
+      }
+      try {
+        const r = await fetch('/api/scan/ports', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body)
+        });
+        stopProgress();
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) { el.textContent = parsed.error; return; }
+        const j = parsed.data;
+        if (!parsed.ok) { el.textContent = formatApiError(j); return; }
+        renderPortResults(el, j);
+      } catch (e) {
+        stopProgress();
+        el.textContent = t('common.network_error', {detail: e});
+      }
+    }
+
+    function renderChips(containerId, ports) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = ports.slice(0, 12).map(p =>
+        `<span class="chip">${p.port} ${p.service}</span>`
+      ).join('') + (ports.length > 12 ? `<span class="chip">+${ports.length - 12}</span>` : '');
+    }
+
+    async function loadScanProfiles() {
+      const j = await (await fetch('/api/scan/profiles')).json();
+      renderChips('scan-standard-chips', j.profiles.standard.ports);
+      renderChips('plant-industrial-chips', j.profiles.industrial.ports);
+    }
+
+    function renderIndustrialDevice(device) {
+      const ports = (device.open_ports || []).filter(p => p.open).map(p => `${p.port} ${p.service}`).join(', ');
+      const closed = (device.open_ports || []).filter(p => !p.open).map(p => p.port).join(', ');
+      return `<div class="device-block">
+        <div class="title">${device.name || device.model || device.host}</div>
+        <div class="device-meta">${device.host || 'n/a'} · ${device.mac || 'MAC n/d'} · ${device.subnet_mask || device.netmask || 'mask n/d'}</div>
+        <div class="device-meta">${device.firmware ? 'FW ' + device.firmware + ' · ' : ''}${device.serial ? 'SN ' + device.serial + ' · ' : ''}${device.source || ''}</div>
+        <div class="device-meta">${ports ? '<span class="port-open">Aperte: ' + ports + '</span>' : 'Nessuna porta gestione aperta'}${closed ? ' · chiuse: ' + closed : ''}</div>
+      </div>`;
+    }
+
+    async function runPlantScan() {
+      const msg = document.getElementById('plant-msg');
+      const host = normalizeHost(document.getElementById('plant-host').value);
+      const weintekEl = document.getElementById('plant-weintek');
+      const ewonEl = document.getElementById('plant-ewon');
+      const portsEl = document.getElementById('plant-ports-results');
+      const scanBtn = document.getElementById('plant-scan');
+      const controller = beginScan('plant-stop');
+      scanBtn.disabled = true;
+      msg.textContent = host
+        ? t('plant.scan_with_host')
+        : t('plant.scan_lan');
+      weintekEl.textContent = t('plant.weintek_running');
+      ewonEl.textContent = t('plant.ewon_running');
+      portsEl.textContent = host ? t('plant.ports_running') : t('plant.ports_hint');
+      try {
+        const params = new URLSearchParams({
+          timeout_seconds: String(scenarioDefaults.industrial_timeout_seconds || 4),
+          include_port_profile: host ? 'true' : 'false',
+        });
+        if (host) params.set('host', host);
+        const r = await fetch(`/api/discover/industrial?${params}`, { signal: controller.signal });
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) {
+          msg.textContent = parsed.error;
+          weintekEl.textContent = '';
+          ewonEl.textContent = '';
+          portsEl.textContent = '';
+          return;
+        }
+        const j = parsed.data;
+        if (!parsed.ok) {
+          const err = formatApiError(j);
+          msg.textContent = err;
+          weintekEl.textContent = '';
+          ewonEl.textContent = '';
+          portsEl.textContent = '';
+          return;
+        }
+        const weintek = (j.weintek && j.weintek.devices) || [];
+        const ewon = (j.ewon && j.ewon.devices) || [];
+        const rows = [
+          ...weintek.map(d => ({
+            vendor: 'Weintek',
+            name: d.name || '',
+            host: d.host || '',
+            mac: d.mac || '',
+            subnet_mask: d.subnet_mask || '',
+            firmware: d.firmware || '',
+            open_ports: (d.open_ports || []).filter(p => p.open).map(p => p.port).join(';'),
+            source: d.source || '',
+          })),
+          ...ewon.map(d => ({
+            vendor: 'eWON',
+            name: d.model || '',
+            host: d.host || '',
+            mac: d.mac || '',
+            serial: d.serial || '',
+            firmware: d.firmware || '',
+            open_ports: (d.open_ports || []).filter(p => p.open).map(p => p.port).join(';'),
+            source: d.source || '',
+          })),
+        ];
+        cacheScan('plant', j, rows);
+        weintekEl.innerHTML = weintek.length
+          ? weintek.map(renderIndustrialDevice).join('')
+          : '<div class="sub">' + t('plant.no_weintek') + '</div>';
+        ewonEl.innerHTML = ewon.length
+          ? ewon.map(renderIndustrialDevice).join('')
+          : '<div class="sub">' + t('plant.no_ewon') + '</div>';
+        if (j.port_scan) {
+          renderPortResults(portsEl, j.port_scan);
+          if (j.modbus) portsEl.innerHTML += renderModbusBlock(j.modbus);
+        } else if (!host) {
+          portsEl.innerHTML = '<div class="sub">' + t('plant.no_target') + '</div>';
+        }
+        const portsSuffix = host && j.port_scan
+          ? t('plant.ports_suffix', { count: j.port_scan.open_count || 0, host })
+          : '';
+        msg.textContent = t('plant.result_summary', {
+          count: weintek.length + ewon.length,
+          ports: portsSuffix,
+        });
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          msg.textContent = t('common.scan_aborted');
+          weintekEl.textContent = t('common.interrupted_short');
+          ewonEl.textContent = '';
+          portsEl.textContent = '';
+        } else {
+          msg.textContent = t('common.network_error', {detail: e});
+        }
+      } finally {
+        scanBtn.disabled = false;
+        endScan('plant-stop');
+      }
+    }
+    wireStopButton('plant-stop', () => {
+      document.getElementById('plant-msg').textContent = t('common.scan_aborted');
+      document.getElementById('plant-weintek').textContent = t('common.interrupted_short');
+      document.getElementById('plant-ewon').textContent = '';
+      document.getElementById('plant-ports-results').textContent = '';
+    });
+
+    document.getElementById('plant-scan').onclick = () => runPlantScan();
+    document.getElementById('plant-use-gateway').onclick = () => {
+      const gw = statusData && statusData.ip && statusData.ip.gateway;
+      if (gw) document.getElementById('plant-host').value = gw;
+    };
+
+    async function loadOuiTable() {
+      const msg = document.getElementById('oui-msg');
+      const body = document.getElementById('oui-table-body');
+      const search = document.getElementById('oui-search').value.trim();
+      try {
+        const params = search ? `?search=${encodeURIComponent(search)}&limit=200` : '?limit=200';
+        const r = await fetch(`/api/discover/oui${params}`);
+        const j = await r.json();
+        if (!r.ok) {
+          msg.textContent = formatApiError(j);
+          return;
+        }
+        const entries = j.entries || [];
+        const counts = j.counts || {};
+        msg.textContent = `OUI: ${counts.total_unique || entries.length} voci (${counts.learned || 0} apprese, ${counts.system || 0} sistema, ${counts.bundled || 0} bundle).`;
+        body.innerHTML = entries.length
+          ? entries.map(row => `<tr><td>${row.prefix}</td><td>${row.vendor}</td><td>${row.source}</td></tr>`).join('')
+          : '<tr><td colspan="3">Nessuna voce trovata</td></tr>';
+      } catch (e) {
+        msg.textContent = t('discover.oui_load_error', {detail: e});
+      }
+    }
+
+    document.getElementById('oui-refresh').onclick = () => loadOuiTable();
+    document.getElementById('oui-reload-db').onclick = async () => {
+      const msg = document.getElementById('oui-msg');
+      msg.textContent = 'Ricarico database IEEE...';
+      const r = await fetch('/api/discover/oui/refresh', { method: 'POST' });
+      const j = await r.json();
+      msg.textContent = r.ok ? 'Database OUI ricaricato.' : formatApiError(j);
+      if (r.ok) loadOuiTable();
+    };
+    document.getElementById('oui-search').addEventListener('input', () => {
+      clearTimeout(window._ouiSearchTimer);
+      window._ouiSearchTimer = setTimeout(loadOuiTable, 250);
+    });
+
+    document.getElementById('scan-standard-run').onclick = () => runPortScan('standard', 'scan-standard-results');
+    document.getElementById('scan-custom-run').onclick = () => runPortScan('custom', 'scan-custom-results');
+    document.getElementById('scan-use-gateway').onclick = () => {
+      const gw = statusData && statusData.ip && statusData.ip.gateway;
+      if (gw) document.getElementById('scan-host').value = gw;
+    };
+
+    function renderNetworkResults(data) {
+      const el = document.getElementById('network-check-results');
+      let html = '';
+      (data.lookups || []).forEach(l => {
+        const ok = l.ok ? 'ok' : 'bad';
+        const val = l.addresses && l.addresses.length ? l.addresses.join(', ') : (l.error || 'FAIL');
+        html += `<div class="${ok}">DNS ${l.hostname} → ${val}</div>`;
+      });
+      (data.dns_servers || []).forEach(s => {
+        const ok = s.ok ? 'ok' : 'bad';
+        html += `<div class="${ok}">Server ${s.server}: ${s.message || (s.resolves ? 'OK' : 'FAIL')}</div>`;
+      });
+      if (data.gateway) {
+        const g = data.gateway;
+        const ping = g.ping_reachable ? `OK ${Math.round(g.ping_rtt_ms)}ms` : 'FAIL';
+        html += `<div class="${g.ping_reachable ? 'ok' : 'bad'}">` + t('scan.gateway_ping', {gateway: g.gateway, status: ping}) + '</div>';
+        (g.open_ports || []).forEach(p => {
+          html += `<div class="open">GW ${p.port} ${p.service} OPEN</div>`;
+        });
+      }
+      el.innerHTML = html || '<div class="sub">' + t('common.no_results') + '</div>';
+    }
+
+    document.getElementById('network-check-run').onclick = async () => {
+      const hostname = document.getElementById('dns-hostname').value.trim();
+      const hostnames = hostname ? [hostname] : [];
+      const el = document.getElementById('network-check-results');
+      const stopProgress = startProgressFeedback(el, [
+        'Verifica server DNS',
+        hostname ? `Risoluzione ${hostname}` : 'Skip risoluzione hostname',
+        'Ping gateway e porte rapide',
+      ]);
+      try {
+        const r = await fetch('/api/network/check', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ hostnames, include_gateway: true })
+        });
+        stopProgress();
+        const j = await r.json();
+        if (!r.ok) { el.textContent = formatApiError(j); return; }
+        renderNetworkResults(j);
+      } catch (e) {
+        stopProgress();
+        el.textContent = t('common.network_error', {detail: e});
+      }
+    };
+
+    document.getElementById('dns-lookup-run').onclick = async () => {
+      const hostname = document.getElementById('dns-hostname').value.trim();
+      const el = document.getElementById('network-check-results');
+      if (!hostname) {
+        el.textContent = 'Inserisci un hostname.';
+        return;
+      }
+      const stopProgress = startProgressFeedback(el, [`Risoluzione DNS ${hostname}`]);
+      try {
+        const r = await fetch('/api/network/dns?hostname=' + encodeURIComponent(hostname));
+        stopProgress();
+        const j = await r.json();
+        renderNetworkResults({ lookups: [j], dns_servers: [], gateway: null });
+      } catch (e) {
+        stopProgress();
+        el.textContent = t('common.network_error', {detail: e});
+      }
+    };
+
+    function fieldInputId(key) {
+      return 'cfg-' + key.replace(/\./g, '-');
+    }
+
+    function renderConfigField(field, value) {
+      const id = fieldInputId(field.key);
+      const help = `<p class="field-help">${field.help}</p>`;
+      if (field.type === 'bool') {
+        return `<div class="field field-check"><input type="checkbox" id="${id}" data-key="${field.key}" ${value ? 'checked' : ''}><div><label for="${id}">${field.label}</label>${help}</div></div>`;
+      }
+      if (field.type === 'select') {
+        const opts = (field.options || []).map(opt => {
+          const label = selectOptionLabel(field, opt);
+          return `<option value="${opt}" ${String(value) === opt ? 'selected' : ''}>${label}</option>`;
+        }).join('');
+        return `<div class="field"><label for="${id}">${field.label}</label>${help}<select id="${id}" data-key="${field.key}">${opts}</select></div>`;
+      }
+      const inputType = field.key.includes('password') ? 'text' : (field.type === 'int' || field.type === 'float' ? 'number' : 'text');
+      const step = field.type === 'float' ? 'any' : '1';
+      const val = value == null ? '' : String(value);
+      return `<div class="field"><label for="${id}">${field.label}</label>${help}<input id="${id}" data-key="${field.key}" type="${inputType}" ${field.type === 'int' || field.type === 'float' ? `step="${step}"` : ''} value="${val.replace(/"/g, '&quot;')}"></div>`;
+    }
+
+    function normalizeSectionFilter(filter) {
+      if (!filter) return null;
+      return new Set(Array.isArray(filter) ? filter : [filter]);
+    }
+
+    function sectionMatches(sectionId, includeFilter, excludeFilter) {
+      if (includeFilter && !includeFilter.has(sectionId)) return false;
+      if (excludeFilter && excludeFilter.has(sectionId)) return false;
+      return true;
+    }
+
+    function selectOptionLabel(field, opt) {
+      if (field.key === 'discovery.scenario') {
+        const key = `scenario.${opt}`;
+        const label = t(key);
+        return label !== key ? label : opt;
+      }
+      if (field.key === 'ui.locale') {
+        const entry = localeCatalog.find(item => item.code === opt);
+        return entry ? entry.name : opt;
+      }
+      if (field.key === 'ui.theme') {
+        const entry = themeCatalog.find(item => item.id === opt);
+        return entry ? entry.name : opt;
+      }
+      return opt;
+    }
+
+    function renderConfigForm(containerId, sectionFilter=null, sectionExclude=null, options={}) {
+      const el = document.getElementById(containerId);
+      if (!configSchema.length) { el.innerHTML = '<div class="sub">' + t('common.loading') + '</div>'; return; }
+      const include = normalizeSectionFilter(sectionFilter);
+      const exclude = normalizeSectionFilter(sectionExclude);
+      const hideTitles = Boolean(options.hideSectionTitles);
+      el.innerHTML = configSchema
+        .filter(section => sectionMatches(section.id, include, exclude))
+        .map(section => {
+          const fields = (section.fields || []).map(field => renderConfigField(field, configValues[field.key])).join('');
+          return hideTitles ? fields : `<div class="section-title">${section.title}</div>${fields}`;
+        }).join('');
+    }
+
+    function collectConfigValues(containerId) {
+      const values = {...configValues};
+      document.querySelectorAll(`#${containerId} [data-key]`).forEach(node => {
+        const key = node.getAttribute('data-key');
+        if (!key) return;
+        if (node.type === 'checkbox') values[key] = node.checked;
+        else if (node.type === 'number') values[key] = node.value === '' ? '' : Number(node.value);
+        else values[key] = node.value;
+      });
+      return values;
+    }
+
+    function collectAllConfigValues() {
+      let values = {...configValues};
+      for (const containerId of ['config-quick-form', 'config-form', 'hotspot-form']) {
+        document.querySelectorAll(`#${containerId} [data-key]`).forEach(node => {
+          const key = node.getAttribute('data-key');
+          if (!key) return;
+          if (node.type === 'checkbox') values[key] = node.checked;
+          else if (node.type === 'number') values[key] = node.value === '' ? '' : Number(node.value);
+          else values[key] = node.value;
+        });
+      }
+      return values;
+    }
+
+    async function renderHotspotStatusPanel() {
+      try {
+        const j = await (await fetch('/api/hotspot/status')).json();
+        const auth = j.open_network ? 'Rete aperta (nessuna password)' : (j.password_hint || 'WPA2');
+        document.getElementById('hotspot-status-panel').innerHTML = [
+          row(t('common.status'), j.active ? t('common.active') : t('common.inactive'), j.active ? 'ok' : 'bad'),
+          row('SSID', j.ssid || 'n/a'),
+          row('URL', j.web_url || 'n/a'),
+          row('Auth', auth),
+          row('Interfaccia', [j.interface, j.interface_mode, j.operstate].filter(Boolean).join(' · ') || 'n/a'),
+          row(t('common.note'), j.message || ''),
+        ].join('');
+      } catch (e) {
+        document.getElementById('hotspot-status-panel').innerHTML = row(t('common.status'), 'n/d', 'bad');
+      }
+    }
+
+    document.getElementById('hotspot-restart').onclick = async () => {
+      const msg = document.getElementById('hotspot-msg');
+      msg.textContent = 'Riavvio hotspot...';
+      const r = await fetch('/api/hotspot/restart', {method: 'POST'});
+      const parsed = await parseJsonResponse(r);
+      if (parsed.error) { msg.textContent = parsed.error; return; }
+      const j = parsed.data;
+      msg.textContent = j.active ? 'Hotspot attivo.' : (j.message || 'Hotspot non attivo');
+      renderHotspotStatusPanel();
+      loadStatus();
+    };
+
+    async function loadConfigForm(preferredLocale) {
+      const localeParam = preferredLocale ? `?locale=${encodeURIComponent(preferredLocale)}` : '';
+      const schemaResp = await fetch('/api/config/schema' + localeParam);
+      const schemaJson = await schemaResp.json();
+      configSchema = schemaJson.sections || [];
+      const valuesResp = await fetch('/api/config/values');
+      const valuesJson = await valuesResp.json();
+      configValues = valuesJson.values || {};
+      document.getElementById('yaml').value = valuesJson.yaml || '';
+      try {
+        const [locResp, scenResp] = await Promise.all([
+          fetch('/api/locale'),
+          fetch('/api/scenarios'),
+        ]);
+        if (locResp.ok) {
+          const locJson = await locResp.json();
+          localeCatalog = locJson.locales || [];
+        }
+        if (scenResp.ok) {
+          const scenJson = await scenResp.json();
+          scenarioCatalog = scenJson.scenarios || [];
+          scenarioMeta = scenarioCatalog.find(item => item.id === configValues['discovery.scenario']) || scenarioMeta;
+        }
+        const themesResp = await fetch('/api/themes');
+        if (themesResp.ok) {
+          const themesJson = await themesResp.json();
+          themeCatalog = themesJson.themes_list || [];
+        }
+      } catch (e) {
+        console.warn('config catalogs load failed', e);
+      }
+      renderConfigForm('config-quick-form', ['profile', 'appearance'], null, {hideSectionTitles: true});
+      renderConfigForm('config-form', null, ['hotspot', 'profile', 'appearance']);
+      renderConfigForm('hotspot-form', 'hotspot');
+      wireAppearancePreview();
+      renderHotspotStatusPanel();
+    }
+
+    let appearancePreviewWired = false;
+
+    async function previewTheme(themeId) {
+      if (!themeId) return;
+      activeThemeId = themeId;
+      try {
+        const themesJson = await (await fetch('/api/themes')).json();
+        const theme = (themesJson.themes || {})[themeId];
+        if (theme) applyTheme(theme);
+      } catch (e) {
+        console.warn('theme preview failed', e);
+      }
+    }
+
+    function wireAppearancePreview() {
+      if (appearancePreviewWired) return;
+      appearancePreviewWired = true;
+      for (const containerId of ['config-quick-form', 'config-form']) {
+        const container = document.getElementById(containerId);
+        if (!container) continue;
+        container.addEventListener('change', (ev) => {
+          const target = ev.target;
+          if (!target || !target.getAttribute) return;
+          if (target.getAttribute('data-key') === 'ui.theme') {
+            previewTheme(target.value);
+          }
+        });
+      }
+    }
+
+    async function applyLocaleBundle(code) {
+      if (!code) return;
+      activeLocale = code;
+      document.documentElement.lang = code;
+      try {
+        const [locResp, themesResp] = await Promise.all([
+          fetch(`/api/locale/${code}`),
+          fetch('/api/themes'),
+        ]);
+        if (locResp.ok) localeStrings = await locResp.json();
+        const themesJson = await themesResp.json();
+        const theme = (themesJson.themes || {})[activeThemeId];
+        if (theme) applyTheme(theme);
+      } catch (e) {
+        console.warn('locale apply failed', e);
+      }
+      applyNavLabels();
+      applyStaticI18n();
+      const titleEl = document.getElementById('app-title');
+      if (titleEl) titleEl.textContent = t('app.title');
+      document.title = t('app.title');
+    }
+
+    document.getElementById('config-save').onclick = async () => {
+      const msg = document.getElementById('config-msg');
+      const btn = document.getElementById('config-save');
+      btn.disabled = true;
+      msg.textContent = t('common.saving');
+      try {
+        const values = collectAllConfigValues();
+        const r = await fetch('/api/config/values', {
+          method: 'PUT', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({values})
+        });
+        const parsed = await parseJsonResponse(r);
+        if (parsed.error) {
+          msg.textContent = parsed.error;
+          return;
+        }
+        if (!r.ok) {
+          msg.textContent = formatApiError(parsed.data || parsed);
+          return;
+        }
+        const savedLocale = values['ui.locale'];
+        if (savedLocale) await applyLocaleBundle(String(savedLocale));
+        msg.textContent = t('common.saved_restart');
+        await loadConfigForm(savedLocale ? String(savedLocale) : null);
+        fetch('/api/services/restart', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({services: (parsed.data || {}).restart_services || ['ndp', 'ndp-hotspot']}),
+        }).catch(() => {});
+        setTimeout(() => { loadVersion(); loadStatus(); }, 2500);
+      } catch (e) {
+        msg.textContent = t('common.network_error', {detail: e});
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    document.getElementById('hotspot-save').onclick = async () => {
+      const msg = document.getElementById('hotspot-msg');
+      msg.textContent = t('common.saving');
+      const values = collectConfigValues('hotspot-form');
+      const r = await fetch('/api/config/values', {
+        method: 'PUT', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({values})
+      });
+      const j = await r.json();
+      if (!r.ok) { msg.textContent = formatApiError(j); return; }
+      const hr = await fetch('/api/hotspot/restart', {method:'POST'});
+      const hj = await hr.json();
+      msg.textContent = hr.ok ? 'Hotspot aggiornato.' : formatApiError(hj);
+      loadHotspot(); renderHotspotStatusPanel();
+    };
+
+    document.getElementById('config-export').onclick = async () => {
+      const yaml = document.getElementById('yaml').value || (await (await fetch('/api/config')).json()).yaml;
+      const blob = new Blob([yaml], {type: 'text/yaml'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ndp-config.yaml';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+
+    document.getElementById('config-email').onclick = async () => {
+      const yaml = document.getElementById('yaml').value || (await (await fetch('/api/config')).json()).yaml;
+      const subject = encodeURIComponent('NDP — backup config.yaml');
+      const body = encodeURIComponent('Backup configurazione NDP\n\n' + yaml);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    };
+
+    document.getElementById('config-import').onchange = async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      document.getElementById('yaml').value = text;
+      const msg = document.getElementById('config-msg');
+      const r = await fetch('/api/config', {
+        method: 'PUT', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({yaml: text})
+      });
+      const j = await r.json();
+      msg.textContent = r.ok ? 'Import completato.' : formatApiError(j);
+      if (r.ok) loadConfigForm();
+      ev.target.value = '';
+    };
+
+    document.getElementById('reload').onclick = () => { loadConfigForm(); loadStatus(); };
+    async function loadConfig() { await loadConfigForm(); }
+
+    function resetShutdownConfirm() {
+      if (shutdownUiLocked) return;
+      shutdownConfirmPending = false;
+      const btn = document.getElementById('power-shutdown');
+      const cancelBtn = document.getElementById('power-shutdown-cancel');
+      const hint = document.getElementById('power-hint');
+      const msg = document.getElementById('power-msg');
+      const statusEl = document.getElementById('power-status');
+      btn.disabled = false;
+      btn.textContent = t('power.shutdown_btn');
+      cancelBtn.style.display = 'none';
+      if (hint) {
+        hint.style.display = '';
+        hint.textContent = t('power.phone_hint');
+      }
+      if (msg) {
+        msg.textContent = '';
+        msg.className = 'sub';
+      }
+      if (statusEl) statusEl.textContent = '';
+    }
+
+    document.getElementById('power-shutdown-cancel').onclick = () => resetShutdownConfirm();
+
+    document.getElementById('power-shutdown').onclick = () => {
+      const msg = document.getElementById('power-msg');
+      const statusEl = document.getElementById('power-status');
+      const btn = document.getElementById('power-shutdown');
+      const cancelBtn = document.getElementById('power-shutdown-cancel');
+      const hint = document.getElementById('power-hint');
+
+      if (!shutdownConfirmPending) {
+        shutdownConfirmPending = true;
+        btn.textContent = t('power.confirm_btn');
+        cancelBtn.style.display = 'inline-flex';
+        if (hint) hint.textContent = t('power.confirm_hint');
+        msg.textContent = '';
+        msg.className = 'sub';
+        if (statusEl) statusEl.textContent = '';
+        return;
+      }
+
+      btn.disabled = true;
+      cancelBtn.style.display = 'none';
+      shutdownConfirmPending = false;
+      showShutdownPhoneMessage();
+      fetch('/api/system/shutdown', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({confirm: true}),
+        keepalive: true,
+      }).catch(() => {});
+    };
+
+    document.getElementById('save').onclick = async () => {
+      const msgEl = document.getElementById('msg');
+      const r = await fetch('/api/config', {
+        method: 'PUT', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({yaml: document.getElementById('yaml').value})
+      });
+      const j = await r.json();
+      msgEl.textContent = r.ok ? t('common.yaml_saved') : formatApiError(j);
+      msgEl.className = r.ok ? 'ok' : 'bad';
+      if (r.ok) loadConfigForm();
+    };
+
+    loadVersion(); loadConfig(); loadStatus(); pollDiscover(); startDiscPoll(); loadScanProfiles(); loadOuiTable();
+    activateNavGroup('monitor', 'status');
+    applyPanelFromUrl();
+    statusPollTimer = setInterval(loadStatus, 5000);
+  </script>
+</body>
+</html>

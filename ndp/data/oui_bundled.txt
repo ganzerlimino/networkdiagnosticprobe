@@ -1,0 +1,20 @@
+# Industrial / OT vendors bundled for offline lookup
+00:05:F5	HMS Industrial Networks / eWON SA
+00:1E:C0	HMS Industrial Networks
+00:90:E8	Weintek Laboratory Inc.
+00:0E:6D	Mitsubishi Electric Corporation
+00:00:BC	Rockwell Automation
+00:1D:9C	Rockwell Automation
+00:1C:0E	Siemens AG
+08:00:06	Siemens AG
+00:0E:8C	Siemens AG
+00:1B:1B	Phoenix Contact GmbH & Co. KG
+00:60:6E	Schneider Electric
+00:80:F4	Schneider Electric
+00:17:85	Hirschmann Automation and Control GmbH
+00:0A:F7	B&R Industrial Automation GmbH
+00:60:E8	Beckhoff Automation GmbH
+00:01:05	Beckhoff Automation GmbH
+00:0A:35	Espressif Inc.
+00:1E:67	Hikvision Digital Technology Co.,Ltd.
+C0:56:E3	Hangzhou Hikvision Digital Technology Co.,Ltd.

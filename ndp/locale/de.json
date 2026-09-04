@@ -1,0 +1,650 @@
+{
+  "_meta": {
+    "locale": "de",
+    "name": "Deutsch",
+    "version": 3,
+    "fallback": "en"
+  },
+  "app": {
+    "title": "Network Diagnostic Probe"
+  },
+  "nav": {
+    "monitor": "Monitor",
+    "lan": "LAN",
+    "ot": "OT",
+    "sistema": "System",
+    "status": "Status",
+    "ping": "Ping",
+    "mtu": "MTU",
+    "discover": "Discover",
+    "passive": "Sniff",
+    "scan": "Scan",
+    "plant": "Anlage",
+    "mikrotik": "MikroTik",
+    "cameras": "Kameras",
+    "nas": "NAS",
+    "printers": "Drucker",
+    "hotspot": "Hotspot",
+    "config": "Config",
+    "power": "Herunterfahren"
+  },
+  "actions": {
+    "scan": "Scannen",
+    "stop": "Stopp",
+    "save": "Speichern",
+    "export_json": "JSON",
+    "export_csv": "CSV",
+    "use_gateway": "Gateway verwenden",
+    "reload": "Neu laden",
+    "start": "Start",
+    "continue": "Weiter",
+    "skip": "Überspringen",
+    "cancel": "Abbrechen",
+    "reset": "Reset",
+    "report_status": "📧 Statusbericht",
+    "report_full": "📧 Vollbericht",
+    "report_ping": "📧 Ping-Bericht",
+    "export_yaml": "YAML exportieren",
+    "email_backup": "📧 Backup per E-Mail",
+    "import": "Importieren",
+    "restart_hotspot": "Hotspot neu starten",
+    "shutdown": "Raspberry Pi herunterfahren",
+    "skip_verify": "Prüfung überspringen",
+    "report_discover": "📧 Discover-Bericht",
+    "report_ports": "📧 Port-Bericht",
+    "report_dns": "📧 DNS-Bericht"
+  },
+  "appearance": {
+    "locale": "Oberflächensprache",
+    "locale_help": "Sprache wählen und speichern; eigene Dateien unter /etc/ndp/locale/.",
+    "theme": "Farbschema",
+    "theme_help": "Web-UI und TFT-Display (ndp für TFT neu starten)."
+  },
+  "scenario": {
+    "label": "Szenario-Profil",
+    "help": "Discovery-Timeout-Voreinstellungen (Anlage / Retail / Büro).",
+    "impianto": "OT-Anlage",
+    "retail": "Retail",
+    "ufficio": "Büro",
+    "impianto_desc": "Lange Timeouts, Fokus auf OT und Industrieports.",
+    "retail_desc": "Ausgewogen für POS, Fiskaldrucker und Kameras.",
+    "ufficio_desc": "Kurze Timeouts für Büro-LAN und IT-Dienste."
+  },
+  "common": {
+    "status": "Status",
+    "note": "Hinweis",
+    "auth": "Auth",
+    "active": "Aktiv",
+    "inactive": "Aus",
+    "open_network": "offenes Netz",
+    "na": "k.A.",
+    "loading": "Laden...",
+    "completed": "Abgeschlossen.",
+    "saving": "Speichern...",
+    "saved_restart": "Gespeichert. Dienste werden neu gestartet...",
+    "network_error": "Netzwerkfehler: {detail}",
+    "scan_aborted": "Scan abgebrochen.",
+    "no_results": "Keine Ergebnisse.",
+    "no_hosts": "Keine Hosts",
+    "in_progress": "In Bearbeitung...",
+    "up": "UP",
+    "down": "DOWN",
+    "fail": "FAIL",
+    "ok": "OK",
+    "samples": "Samples",
+    "speed_mbps": "{value} Mbit/s",
+    "uptime_s": "{value} s",
+    "temp_c": "{value} °C",
+    "confirm_shutdown": "Raspberry Pi und alle NDP-Dienste herunterfahren?",
+    "shutdown_sent": "Herunterfahren angefordert...",
+    "shutdown_timeout": "Timeout beim Herunterfahren. TFT-Display prüfen.",
+    "yaml_saved": "Gespeichert.",
+    "import_ok": "Importiert.",
+    "error": "Fehler",
+    "interrupted_short": "Abgebrochen.",
+    "waiting": "Warten…",
+    "waiting_status": "Warten",
+    "unavailable": "nicht verfügbar",
+    "scanning": "Scan läuft...",
+    "ellipsis": "...",
+    "devices_found": "{count} Gerät(e) gefunden.",
+    "cameras_found": "{count} Kamera(s) gefunden.",
+    "nas_found": "{count} NAS gefunden.",
+    "export_run_first": "Zuerst einen Scan ausführen.",
+    "export_no_csv": "Keine Zeilen für CSV-Export.",
+    "connected_tag": "VERBUNDEN · ",
+    "source": "Quelle",
+    "device": "Gerät",
+    "protocol": "Protokoll",
+    "port_label": "Port",
+    "model": "Modell",
+    "description": "Beschreibung",
+    "summary": "Zusammenfassung",
+    "no_response": "keine Antwort",
+    "invalid_json_response": "Keine JSON-Antwort vom Server",
+    "server_error": "Serverfehler ({status}): {detail}"
+  },
+  "status": {
+    "hotspot": "Telefon-Hotspot",
+    "link": "Link",
+    "network": "Netzwerk",
+    "switch": "Switch",
+    "system": "System",
+    "hostname": "Hostname",
+    "uptime": "Laufzeit",
+    "temp": "Temp",
+    "velocity": "Geschwindigkeit",
+    "gateway": "Gateway",
+    "dns": "DNS",
+    "mac": "MAC",
+    "ip": "IP",
+    "ssid": "SSID",
+    "url": "URL",
+    "lldp_hint": "LLDP am Switch aktivieren und <code>systemctl status lldpd</code> auf dem Pi prüfen.",
+    "summary": "Übersicht",
+    "lldp_cdp": "LLDP / CDP",
+    "mndp": "MNDP"
+  },
+  "ping": {
+    "live_title": "Live-Ping (bis zu 3 Hosts)",
+    "live_help": "Pings laufen parallel. Diagramm wird in Echtzeit aktualisiert.",
+    "host1_ph": "Host 1 (z.B. 8.8.8.8)",
+    "host2_ph": "Host 2 (optional)",
+    "host3_ph": "Host 3 (optional)",
+    "live_start": "Live-Diagramm starten",
+    "live_stop": "Diagramm stoppen",
+    "suite_run": "Vollständige Suite",
+    "results_title": "Letzte Ergebnisse",
+    "suite_help": "<strong>Vollständige Suite</strong> sendet ICMP an 8.8.8.8, 1.1.1.1, bis zu 4 Config-Hosts, optionalen Adhoc-Host und — falls ausgefüllt — die 3 Felder oben. Alle Pings über <strong>eth0</strong> parallel (Anzahl/Timeout aus Config).",
+    "enter_host": "Mindestens einen Host eingeben.",
+    "live_starting": "Live-Ping wird gestartet...",
+    "live_active": "Live-Ping aktiv...",
+    "live_done": "Live-Ping abgeschlossen.",
+    "live_stopped": "Live-Ping gestoppt.",
+    "live_interrupted": "Live-Ping unterbrochen.",
+    "chart_interrupted": "Diagrammverbindung unterbrochen.",
+    "suite_running": "Suite läuft...",
+    "host_leg": "Host {index}"
+  },
+  "mtu": {
+    "title": "MTU-Pfad-Erkennung",
+    "help": "Dekrementeller Test ab 1500 mit DF-Ping (keine Fragmentierung). Nützlich für Site-to-Site-VPN.",
+    "host_ph": "z.B. Gateway oder VPN-Peer-IP",
+    "start": "MTU-Test starten",
+    "stop": "Stopp",
+    "enter_host": "Host eingeben.",
+    "running": "MTU-Test läuft (ab 1500)...",
+    "done": "Test abgeschlossen.",
+    "no_mtu": "Keine gültige MTU gefunden.",
+    "interrupted": "MTU-Testverbindung unterbrochen.",
+    "max_mtu": "Max. MTU: <strong>{mtu}</strong> zu {host}",
+    "remote_host": "Remote-Host"
+  },
+  "discover": {
+    "wizard_title": "Up/Down-Assistent",
+    "arp_title": "Schneller ARP-Scan",
+    "services_title": "LAN-Dienste (mDNS / SSDP / L2)",
+    "services_help": "mDNS, SSDP und passive FDP/EDP/LLTD-Erkennung (Ethertype).",
+    "oui_title": "MAC-Hersteller (OUI)",
+    "oui_help": "OUI-Lookup aus IEEE-Datenbank, OT-Bundle und ARP-Scan-Einträgen.",
+    "oui_search_ph": "z.B. Weintek, 00:90:E8, HMS",
+    "oui_refresh": "Tabelle aktualisieren",
+    "start_wizard": "Assistent starten",
+    "scan_network": "Netz scannen",
+    "arp_progress": [
+      "ARP-Scan vorbereiten",
+      "Subnetz eth0 abfragen",
+      "Host-Antworten sammeln",
+      "OUI-Hersteller-Lookup"
+    ],
+    "services_progress": [
+      "mDNS-Browse",
+      "SSDP M-SEARCH",
+      "L2-Ethertype-Probe"
+    ],
+    "skip_verify": "Wiedereinsteck-Prüfung überspringen",
+    "report": "📧 Discover-Bericht",
+    "oui_search_label": "OUI suchen",
+    "oui_auto_refresh": "Tabelle nach ARP-Scan aktualisieren",
+    "oui_reload_db": "IEEE-Datenbank neu laden",
+    "no_services": "Keine Dienste gefunden",
+    "oui_load_error": "OUI-Ladefehler: {detail}",
+    "no_l2probe_detected": "Keine FDP/EDP/LLTD-Frames erkannt",
+    "oui_reloaded": "OUI-Datenbank neu geladen.",
+    "oui_summary": "OUI: {total} Einträge ({learned} gelernt, {system} System, {bundled} Bundle).",
+    "oui_none": "Keine Einträge gefunden"
+  },
+  "passive": {
+    "title": "Passives Sniff (Übersicht)",
+    "help": "Übersicht erkannter L2/L3-Protokolle: STP/LACP/VLAN/IGMP, FDP/EDP/LLTD, mDNS, SSDP, DHCP Option 82, SNMP. Phasen laufen <strong>parallel</strong>: Dauer ≈ eingestellte Sekunden (nicht die Summe).",
+    "seconds": "Hörzeit (s)",
+    "snmp_ph": "leer = Gateway",
+    "run": "Sniff starten",
+    "run_full": "Passive Prüfung starten",
+    "listen_seconds": "Hörzeit (s)",
+    "snmp_host": "SNMP-Host",
+    "use_gateway_snmp": "Gateway für SNMP verwenden",
+    "sniff_aborted": "Sniff abgebrochen.",
+    "section_summary": "Protokoll-Zusammenfassung",
+    "section_l2": "Passives L2",
+    "section_services": "mDNS / SSDP",
+    "section_dhcp": "DHCP Option 82",
+    "section_snmp": "SNMP",
+    "no_protocols": "Keine Protokolle erkannt",
+    "no_frames": "Keine Frames",
+    "no_l2probe": "Keine FDP/EDP/LLTD-Frames",
+    "no_option82": "Kein Option 82",
+    "snmp_skipped": "SNMP nicht ausgeführt",
+    "done_msg": "Sniff abgeschlossen in {duration}s (eingestellt {seconds}s).",
+    "progress_l2": "L2 + DHCP Sniff ({seconds}s, parallel)",
+    "progress_mdns": "mDNS und SSDP",
+    "progress_l2probe": "FDP/EDP/LLTD Ethertype-Probe",
+    "progress_snmp_host": "SNMP auf {host}",
+    "progress_snmp_gw": "SNMP (Gateway falls gesetzt)"
+  },
+  "mikrotik": {
+    "title": "MikroTik (MNDP)",
+    "help": "Aktive UDP/5678-Abfrage + Antworten. Switch-Karte zeigt nur das verbundene Gerät (Gateway MAC/IP).",
+    "seconds": "Hörzeit (s)",
+    "scan": "MikroTik scannen",
+    "listen_seconds": "Hörzeit (s)",
+    "scanning": "MNDP-Scan ({seconds}s)...",
+    "none_found": "Kein MikroTik erkannt. Prüfen Sie MNDP und ob Router im selben VLAN/L2 sind.",
+    "port_suffix": " · Port {port}"
+  },
+  "plant": {
+    "title": "OT-Anlage",
+    "help": "LAN-Broadcast-Discovery (Weintek, eWON) und optional industrielle Ports auf Ziel-IP.",
+    "host_ph": "SPS / HMI / Gateway — leer = nur LAN-Discovery",
+    "scan": "Anlage scannen",
+    "weintek_section": "LAN-Discovery — Weintek HMI",
+    "ewon_section": "LAN-Discovery — eWON",
+    "ports_section": "OT-Ports auf Ziel",
+    "modbus_identified": "Modbus identifiziert",
+    "modbus_open_only": "Port 502 offen (Identify nicht verfügbar)",
+    "scan_lan": "LAN-Discovery (Weintek, eWON)...",
+    "scan_with_host": "LAN-Discovery + OT-Ports auf Ziel...",
+    "weintek_running": "Weintek-Discovery...",
+    "ewon_running": "eWON-Discovery...",
+    "ports_running": "OT-Ports auf Ziel scannen...",
+    "ports_hint": "Ziel-IP für Modbus, OPC UA, S7… setzen",
+    "no_target": "Keine Ziel-IP: Gateway oder SPS-IP für Portscan setzen.",
+    "no_weintek": "Kein Weintek-HMI erkannt (UDP 59999/60000, 10275, 20249).",
+    "no_ewon": "Kein eWON-Gateway erkannt (IPCONF/1507, HMS OUI).",
+    "result_summary": "{count} OT-Gerät(e) im LAN{ports}",
+    "ports_suffix": " · {count} offene Ports auf {host}",
+    "target_ip": "Ziel-IP"
+  },
+  "cameras": {
+    "title": "IP-Kameras",
+    "help": "ONVIF, Hikvision SADP (UDP/37020), Dahua DHDiscover (UDP/37810), mDNS und SSDP/UPnP.",
+    "scan": "Kameras scannen",
+    "scan_full": "Kameras scannen",
+    "scanning": "Kameras werden gescannt...",
+    "none_found": "Keine Kameras erkannt."
+  },
+  "nas": {
+    "title": "NAS",
+    "help": "Synology (9997), QNAP (7777), ASUSTOR (8888/8889), ReadyNAS RAIDar (22081), WS-Discovery, mDNS und SSDP.",
+    "scan": "NAS scannen",
+    "scanning": "NAS wird gescannt...",
+    "none_found": "Kein NAS erkannt."
+  },
+  "printers": {
+    "title": "Netzwerkdrucker",
+    "help": "Epson ENPC UDP/3289 (Retail/Fiskal) und Zebra Link-OS UDP/4201 (Industrie-Etiketten).",
+    "scan": "Drucker scannen",
+    "none_found": "Keine Drucker erkannt. ENPC (Epson) oder Zebra-Discovery auf dem Drucker prüfen.",
+    "progress_epson": "Epson ENPC UDP/3289 Probe",
+    "progress_zebra": "Zebra Link-OS UDP/4201 Probe",
+    "progress_collect": "Druckergeräte sammeln"
+  },
+  "scan": {
+    "target_title": "Ziel",
+    "host_ph": "Host-IP (z.B. 192.168.1.50)",
+    "ot_hint": "Für Weintek, eWON und Modbus/OPC-UA-Ports <strong>OT → Anlage</strong> verwenden.",
+    "standard_title": "Standard-Ports",
+    "standard_help": "SSH, HTTP/S, SMB, RDP, DNS, LDAP, SNMP…",
+    "custom_title": "Eigene Ports",
+    "custom_ph": "Z.B. 80,443,502,4840,11740",
+    "dns_title": "DNS und Gateway",
+    "dns_ph": "Aufzulösender Hostname (optional)",
+    "run_ports": "Ports scannen",
+    "run_dns": "Netzwerk-Check",
+    "network_check": "DNS + Gateway prüfen",
+    "scan_standard": "Standardports scannen",
+    "scan_custom": "Benutzerdefinierte Ports scannen",
+    "dns_only": "Nur DNS-Auflösung",
+    "no_mgmt_ports": "Keine Management-Ports offen",
+    "verify_dns": "DNS-Server prüfen",
+    "gateway_ping": "Gateway-Ping und Schnellports",
+    "open_header": "{host} · {open} offen / {total} ({ms} ms)",
+    "progress_connect": "Verbindung zu {host}",
+    "progress_profile": "Profil {label} scannen (TCP connect)",
+    "progress_collect": "Offene/geschlossene Ports sammeln",
+    "dns_progress_verify": "DNS-Server prüfen",
+    "dns_progress_resolve": "Auflösung {hostname}",
+    "dns_progress_skip": "Hostname-Auflösung überspringen",
+    "dns_progress_gateway": "Gateway-Ping und schnelle Ports",
+    "ports_open_prefix": "Offen: {ports}",
+    "no_mgmt_ports_inline": "Keine Management-Ports offen",
+    "ports_closed_suffix": " · geschlossen: {closed}"
+  },
+  "hotspot": {
+    "status_title": "Hotspot-Status",
+    "settings_title": "Wi-Fi-Einstellungen",
+    "settings_help": "Passwort und NDP-XXXX-Netzwerkparameter ändern. Nach dem Speichern Hotspot neu starten.",
+    "save": "Hotspot speichern",
+    "save_restart": "Speichern und Hotspot neu starten",
+    "restarting": "Hotspot wird neu gestartet...",
+    "active": "Hotspot aktiv.",
+    "inactive_msg": "Hotspot nicht aktiv",
+    "interface": "Schnittstelle",
+    "open_auth": "Offenes Netz (kein Passwort)"
+  },
+  "power": {
+    "title": "System herunterfahren",
+    "help": "Stoppt NDP und Wi-Fi-Hotspot sicher und fährt den Raspberry Pi herunter.",
+    "phone_hint": "Nach der Bestätigung auf das Probe-Display schauen — dort erscheint das Herunterfahren.",
+    "confirm_hint": "Erneut «Herunterfahren bestätigen» tippen oder Abbrechen.",
+    "confirm_btn": "Herunterfahren bestätigen",
+    "check_display": "NDP-Display für ordnungsgemäßes Herunterfahren prüfen",
+    "shutdown_btn": "NDP ausschalten"
+  },
+  "config": {
+    "guided_title": "Geführte Konfiguration",
+    "guided_help": "Jedes Feld hat eine Erklärung. Export / E-Mail für Backups verwenden.",
+    "quick_title": "Sprache und Scan-Profil",
+    "quick_help": "Wichtigste Einstellungen vor Ort. Unten auf der Seite speichern.",
+    "save": "Konfiguration speichern",
+    "yaml_title": "Erweitertes YAML",
+    "yaml_help": "Direkte Dateibearbeitung (Formularspeicherung entfernt Kommentare).",
+    "save_yaml": "YAML speichern",
+    "import_label": "Importieren",
+    "sections": {
+      "network": "Probe-Netzwerk",
+      "ui": "TFT-Display",
+      "web": "Web-UI",
+      "hotspot": "Telefon-Hotspot",
+      "ping": "Ping",
+      "discovery": "Discover",
+      "appearance": "Erscheinungsbild",
+      "profile": "Scan-Profil",
+      "logging": "Log",
+      "console": "Konsole"
+    },
+    "fields": {
+      "interface": {
+        "label": "Überwachte Schnittstelle",
+        "help": "Meist eth0 (Diagnosekabel)."
+      },
+      "poll_interval_link_up": {
+        "label": "Polling Link UP (s)",
+        "help": "Aktualisierung bei verbundenem Kabel."
+      },
+      "poll_interval_link_down": {
+        "label": "Polling Link DOWN (s)",
+        "help": "Aktualisierung bei getrenntem Kabel."
+      },
+      "lldp.cache_ttl_seconds": {
+        "label": "LLDP-Cache (s)",
+        "help": "Gültigkeit LLDP/CDP-Daten."
+      },
+      "ui.enabled": {
+        "label": "TFT-Display aktiv",
+        "help": "Automatische Bildschirmrotation."
+      },
+      "ui.framebuffer": {
+        "label": "Framebuffer",
+        "help": "Linux-TFT-Gerät (z.B. /dev/fb1)."
+      },
+      "ui.auto_cycle_seconds": {
+        "label": "Bildschirmrotation (s)",
+        "help": "0 = deaktiviert."
+      },
+      "ui.input": {
+        "label": "Lokale Eingabe",
+        "help": "none = nur Telefon."
+      },
+      "ui.hint_edge": {
+        "label": "Tasten-Hinweis",
+        "help": "none empfohlen bei input none."
+      },
+      "ui.backlight_enabled": {
+        "label": "Hintergrundbeleuchtung",
+        "help": "GPIO-Backlight beim Start."
+      },
+      "web.enabled": {
+        "label": "Web-UI aktiv",
+        "help": "Mobile Oberfläche auf HTTP-Port."
+      },
+      "web.host": {
+        "label": "Listen-Host",
+        "help": "0.0.0.0 = alle Schnittstellen."
+      },
+      "web.port": {
+        "label": "HTTP-Port",
+        "help": "Standard 8080."
+      },
+      "wifi_hotspot.enabled": {
+        "label": "Hotspot aktiv",
+        "help": "Erstellt NDP-XXXX-Netz für Telefon."
+      },
+      "wifi_hotspot.ssid_prefix": {
+        "label": "SSID-Präfix",
+        "help": "Suffix = letzte 4 Wi-Fi-MAC-Ziffern."
+      },
+      "wifi_hotspot.password": {
+        "label": "WPA2-Passwort",
+        "help": "Mind. 8 Zeichen. Leer = offenes Netz (nicht empfohlen)."
+      },
+      "wifi_hotspot.interface": {
+        "label": "Wi-Fi-Schnittstelle",
+        "help": "Meist wlan0."
+      },
+      "wifi_hotspot.ip": {
+        "label": "Hotspot-IP",
+        "help": "Telefon-URL: http://<ip>:8080/"
+      },
+      "wifi_hotspot.channel": {
+        "label": "Wi-Fi-Kanal",
+        "help": "2,4-GHz-Kanal (z.B. 6)."
+      },
+      "wifi_hotspot.country": {
+        "label": "Regulierungsland",
+        "help": "ISO-Code (z.B. DE)."
+      },
+      "ping.count": {
+        "label": "ICMP-Pakete",
+        "help": "Ping-Anzahl pro Ziel."
+      },
+      "ping.timeout_seconds": {
+        "label": "Ping-Timeout (s)",
+        "help": "Timeout pro Host."
+      },
+      "ping.packet_size": {
+        "label": "Paketgröße (Byte)",
+        "help": "ICMP-Payload (-s). Standard 56."
+      },
+      "discovery.disconnect_wait_seconds": {
+        "label": "Trenn-Wartezeit (s)",
+        "help": "Discover Up/Down-Assistent."
+      },
+      "discovery.flush_arp_before_second_scan": {
+        "label": "ARP leeren",
+        "help": "Cache vor 2. Scan leeren."
+      },
+      "discovery.verify_replug": {
+        "label": "Wiedereinstecken prüfen",
+        "help": "Letzter Up/Down-Schritt."
+      },
+      "discovery.mndp_listen_seconds": {
+        "label": "MNDP-Hörzeit (s)",
+        "help": "MNDP-Dauer für Status und MikroTik-Tab."
+      },
+      "discovery.passive_listen_seconds": {
+        "label": "Standard passives Sniff (s)",
+        "help": "Standarddauer Passive-Check-Tab."
+      },
+      "discovery.scenario": {
+        "label": "Szenario-Profil",
+        "help": "Discovery-Timeout-Voreinstellungen."
+      },
+      "ui.locale": {
+        "label": "Oberflächensprache",
+        "help": "Sprache wählen und speichern; ndp ggf. neu starten."
+      },
+      "ui.theme": {
+        "label": "Farbschema",
+        "help": "Sofortige Web-UI-Vorschau; speichern zum Behalten. Eigene Themes in /etc/ndp/locale/themes.json. TFT: speichern und ndp neu starten."
+      },
+      "logging.level": {
+        "label": "Log-Level",
+        "help": "DEBUG, INFO, WARNING, ERROR."
+      },
+      "console.enabled": {
+        "label": "Konsolenausgabe",
+        "help": "Periodische Zusammenfassung im Journal."
+      },
+      "console.refresh_seconds": {
+        "label": "Konsolen-Refresh (s)",
+        "help": "Intervall Konsolenausgabe."
+      }
+    }
+  },
+  "tft": {
+    "screens": {
+      "home": "Home",
+      "switch": "Switch",
+      "network": "Netzwerk",
+      "ping": "Ping",
+      "system": "System",
+      "discover": "Discover"
+    },
+    "shutdown_title": "HERUNTERFAHREN",
+    "shutdown_message": "Herunterfahren...",
+    "shutdown_stopping": "Dienste werden gestoppt...",
+    "shutdown_poweroff": "System wird ausgeschaltet...",
+    "shutdown_warn1": "Strom nicht",
+    "shutdown_warn2": "trennen",
+    "link_down": "Link down",
+    "plug_cable": "Kabel anschließen",
+    "no_neighbor": "Kein Nachbar",
+    "waiting": "warten",
+    "no_ip": "Keine IP-Adresse",
+    "ping_running": "Ping läuft...",
+    "run_from_phone": "Vom Telefon starten :{port}",
+    "repeat": "○ wiederholen",
+    "run_ping": "○ Ping starten",
+    "ndp_ready": "NDP bereit",
+    "discover_screen": "Discover-Bildschirm",
+    "updown_phone": "Nur Telefon",
+    "updown_cli": "oder CLI:",
+    "hotspot_client_ok": "Tel: verbunden",
+    "hotspot_client_none": "Tel: fehlt",
+    "hotspot_client_multi": "Tel: {count} Ger.",
+    "hotspot_ap_off": "Tel: AP aus",
+    "labels": {
+      "link": "Link",
+      "host": "Host",
+      "ip": "IP",
+      "mac": "MAC",
+      "proto": "Proto",
+      "switch": "Switch",
+      "port": "Port",
+      "vlan": "VLAN",
+      "gw": "GW",
+      "dns": "DNS",
+      "up": "Up",
+      "temp": "Temp",
+      "if": "IF",
+      "adhoc": "Adhoc"
+    },
+    "splash_loading": "NDP startet…",
+    "splash_ready": "Bereit",
+    "splash_init_error": "Initialisierungsfehler",
+    "splash_collecting": "Netzwerkdaten sammeln…",
+    "wizard": {
+      "title": "Up/Down-Scan",
+      "start_encoder": "Klick Assistent starten",
+      "start_phone": "○ Assistent starten",
+      "hint_unplug1": "1 Gerät abstecken",
+      "hint_unplug2": "um es im Netz zu finden",
+      "retry_encoder": "Klick wiederholen",
+      "retry_phone": "○ wiederholen",
+      "error_label": "Fehler:",
+      "continue_encoder": "Klick weiter",
+      "continue_phone": "○ weiter",
+      "skip_encoder": " ↻ skip",
+      "skip_phone": "  ▶ skip",
+      "scanning": "Scan läuft...",
+      "countdown": "Warten {seconds}s",
+      "prompt_idle": "Up/Down-Assistent starten, um ein Gerät durch Abstecken zu finden.",
+      "prompt_wait_unplug": "Gerät abstecken, dann Weiter tippen.",
+      "prompt_verify_replug": "Gerät wieder anschließen. Weiter zum Prüfen oder Überspringen.",
+      "prompt_continue": "Weiter tippen zum Fortfahren.",
+      "prompt_done": "Assistent abgeschlossen.",
+      "prompt_error": "Ein Fehler ist aufgetreten. Assistent neu starten.",
+      "prompt_in_progress": "Assistent läuft...",
+      "prompt_countdown": "Netzwerk warten ({seconds}s)...",
+      "start_log": "Assistent startet...",
+      "cancelled": "Abgebrochen."
+    }
+  },
+  "report": {
+    "subject_status": "NDP — Netzwerkstatus",
+    "subject_ping": "NDP — Ping",
+    "subject_discover": "NDP — Discover",
+    "subject_scan": "NDP — Port-Scan",
+    "subject_network": "NDP — DNS/Gateway",
+    "subject_full": "NDP — Vollständiger Bericht",
+    "title": "Network Diagnostic Probe",
+    "version": "Version {version}",
+    "generated": "Erstellt: {timestamp}",
+    "sec_link": "=== LINK ===",
+    "sec_network": "=== NETZ ===",
+    "sec_switch": "=== SWITCH / LLDP ===",
+    "sec_system": "=== SYSTEM ===",
+    "sec_ping": "=== PING ===",
+    "sec_discover": "=== DISCOVER UP/DOWN ===",
+    "sec_scan": "=== PORT SCAN ===",
+    "sec_dns": "=== DNS / GATEWAY ===",
+    "link_status": "Status: {status}",
+    "link_mac": "MAC: {value}",
+    "link_speed": "Geschwindigkeit: {value} Mbps",
+    "link_speed_na": "Geschwindigkeit: n/a",
+    "no_address": "Keine IP-Adresse",
+    "gateway": "Gateway: {value}",
+    "dns_servers": "DNS: {value}",
+    "protocol": "Protokoll: {value}",
+    "switch_name": "Switch: {value}",
+    "port": "Port: {value}",
+    "vlan": "VLAN: {value}",
+    "waiting": "Warten",
+    "hostname": "Hostname: {value}",
+    "uptime": "Uptime: {value} s",
+    "temperature": "Temperatur: {value} °C",
+    "interface": "Schnittstelle: {value}",
+    "ping_running": "Läuft...",
+    "no_ping": "Keine gespeicherten Ping-Ergebnisse.",
+    "adhoc_host": "Konfigurierter Ad-hoc-Host: {host}",
+    "last_run": "Letzter Lauf: {timestamp}",
+    "no_wizard": "Kein Assistent in dieser Sitzung abgeschlossen.",
+    "no_scan": "Kein gespeicherter Port-Scan.",
+    "host": "Host: {value}",
+    "profile": "Profil: {value}",
+    "open_ports_count": "Offene Ports: {open} / {total}",
+    "no_open_ports": "(keine offenen Ports im Profil)",
+    "no_network_check": "Kein gespeicherter DNS/Gateway-Check.",
+    "lookup_ok": "{hostname} -> {addresses}",
+    "lookup_fail": "{hostname} FAIL ({error})",
+    "dns_server": "DNS {server}: {status}",
+    "gateway_ping": "Gateway {gateway} ping: {status}",
+    "gateway_ports": "  Offene Ports: {ports}",
+    "truncated": "...(gekürzt)",
+    "status_up": "UP",
+    "status_down": "DOWN",
+    "status_ok": "OK",
+    "status_fail": "FAIL"
+  }
+}

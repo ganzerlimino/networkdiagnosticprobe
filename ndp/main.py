@@ -7,13 +7,21 @@ import json
 import logging
 import signal
 import sys
+import threading
 import time
 from pathlib import Path
 
 from ndp import __version__
+from ndp.cli.discover import add_discover_subparser, run_discover_command
+from ndp.cli.parser_common import add_config_argument
+from ndp.cli.hotspot import add_hotspot_subparser, run_hotspot_command
+from ndp.cli.test_display import add_test_subparser, run_test_command
+from ndp.cli.theme import add_theme_subparser, run_theme_command
 from ndp.console import render_status
 from ndp.core.config import load_config
 from ndp.core.engine import ProbeEngine
+from ndp.core.ping_state import PingSuiteState
+from ndp.core.state import ProbeState
 
 logger = logging.getLogger(__name__)
 _STOP_REQUESTED = False
@@ -45,9 +53,75 @@ def run_once(config_path: Path | None, as_json: bool) -> int:
     return 0
 
 
+def run_web_only(config_path: Path | None) -> int:
+    config = load_config(config_path)
+    _configure_logging(config.log_level)
+
+    from ndp.network.hotspot import maintain_hotspot, start_hotspot_watchdog
+    from ndp.web.server import resolve_config_path, start_web_server
+
+    if config.wifi_hotspot_enabled:
+        maintain_hotspot(config)
+
+    engine = ProbeEngine(config)
+    lock = threading.Lock()
+    state = engine.refresh()
+    stop_event = threading.Event()
+
+    if config.wifi_hotspot_enabled:
+        start_hotspot_watchdog(config, stop_event)
+
+    def get_state() -> ProbeState:
+        with lock:
+            return state
+
+    config_file = config.source_path or resolve_config_path(config_path)
+
+    def _set_ping(suite: PingSuiteState) -> None:
+        nonlocal state
+        with lock:
+            state.ping = suite
+
+    def _apply_mndp_connected(device: dict[str, object]) -> None:
+        nonlocal state
+        with lock:
+            engine.apply_mndp_device(device)
+            state = engine.state
+
+    start_web_server(
+        config,
+        config_file,
+        get_state,
+        on_ping_complete=_set_ping,
+        on_mndp_connected=_apply_mndp_connected,
+    )
+
+    signal.signal(signal.SIGTERM, _handle_signal)
+    signal.signal(signal.SIGINT, _handle_signal)
+
+    logger.info("NDP %s web-only on %s:%s", __version__, config.web_host, config.web_port)
+    while not _STOP_REQUESTED:
+        with lock:
+            state = engine.refresh()
+        time.sleep(engine.poll_interval())
+
+    stop_event.set()
+    logger.info("NDP stopped")
+    return 0
+
+
 def run_service(config_path: Path | None) -> int:
     config = load_config(config_path)
     _configure_logging(config.log_level)
+
+    if config.ui_enabled:
+        from ndp.ui.app import run_ui
+
+        logger.info("NDP %s UI mode on %s", __version__, config.ui_framebuffer)
+        return run_ui(config)
+
+    if config.web_enabled:
+        return run_web_only(config_path)
 
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
@@ -72,7 +146,7 @@ def run_service(config_path: Path | None) -> int:
                 last_console_print = now
 
         if config.web_enabled:
-            logger.debug("Web UI enabled but not yet implemented in v0.1")
+            logger.debug("Web UI runs with the Pygame UI or web-only service loop")
 
         time.sleep(engine.poll_interval())
 
@@ -86,21 +160,23 @@ def build_parser() -> argparse.ArgumentParser:
         description="Network Diagnostic Probe service",
     )
     parser.add_argument("--version", action="version", version=f"ndp {__version__}")
-    parser.add_argument(
-        "--config",
-        type=Path,
-        help="Path to config YAML (default: /etc/ndp/config.yaml or bundled default)",
-    )
+    add_config_argument(parser)
     parser.add_argument(
         "--once",
         action="store_true",
-        help="Collect status once and exit",
+        help="Collect probe status once and exit",
     )
     parser.add_argument(
         "--json",
         action="store_true",
-        help="Emit JSON output (use with --once)",
+        help="Emit JSON output (with --once or discover)",
     )
+
+    subparsers = parser.add_subparsers(dest="command")
+    add_discover_subparser(subparsers)
+    add_hotspot_subparser(subparsers)
+    add_test_subparser(subparsers)
+    add_theme_subparser(subparsers)
     return parser
 
 
@@ -108,9 +184,25 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    if args.command == "discover":
+        return run_discover_command(args, getattr(args, "config", None))
+
+    if args.command == "hotspot":
+        return run_hotspot_command(args, getattr(args, "config", None))
+
+    if args.command == "test":
+        return run_test_command(args, getattr(args, "config", None))
+
+    if args.command == "theme":
+        return run_theme_command(args)
+
     if args.once:
-        return run_once(args.config, args.json)
-    return run_service(args.config)
+        return run_once(getattr(args, "config", None), args.json)
+
+    if args.command is not None:
+        parser.error(f"Unknown command: {args.command}")
+
+    return run_service(getattr(args, "config", None))
 
 
 if __name__ == "__main__":

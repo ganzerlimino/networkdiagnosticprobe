@@ -1,14 +1,17 @@
 [Unit]
 Description=Network Diagnostic Probe
 Documentation=https://github.com/networkdiagnosticprobe/networkdiagnosticprobe
-After=network-online.target lldpd.service
-Wants=network-online.target lldpd.service
+After=network-online.target lldpd.service ndp-hotspot.service
+Wants=network-online.target lldpd.service ndp-hotspot.service
 
 [Service]
 Type=simple
 User=root
 Group=root
 Environment=PYTHONUNBUFFERED=1
+Environment=SDL_VIDEODRIVER=dummy
+Environment=SDL_FBDEV=/dev/fb1
+Environment=SDL_MOUSE=0
 ExecStart=/opt/ndp/venv/bin/ndp --config /etc/ndp/config.yaml
 Restart=always
 RestartSec=3
