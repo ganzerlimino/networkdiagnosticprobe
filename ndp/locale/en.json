@@ -207,7 +207,7 @@
       "discovery.passive_listen_seconds": { "label": "Default passive sniff (s)", "help": "Default Passive check tab duration." },
       "discovery.scenario": { "label": "Scenario profile", "help": "Discovery timeout presets (plant/retail/office)." },
       "ui.locale": { "label": "UI language", "help": "Choose language and save; restart ndp if needed." },
-      "ui.theme": { "label": "Color theme", "help": "Instant preview on Web UI; save to persist. TFT: save and restart ndp." },
+      "ui.theme": { "label": "Color theme", "help": "Instant Web UI preview; save to persist. Custom themes in /etc/ndp/locale/themes.json. TFT: save and restart ndp." },
       "logging.level": { "label": "Log level", "help": "DEBUG, INFO, WARNING, ERROR." },
       "console.enabled": { "label": "Console output", "help": "Periodic summary on journal." },
       "console.refresh_seconds": { "label": "Console refresh (s)", "help": "Console print interval." }

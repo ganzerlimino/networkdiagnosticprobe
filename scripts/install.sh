@@ -140,6 +140,7 @@ fi
 echo "==> Installing ndp CLI symlink"
 install -d -m 0755 /usr/local/bin
 ln -sf "${NDP_ROOT}/venv/bin/ndp" /usr/local/bin/ndp
+install -m 0755 "${REPO_DIR}/scripts/ndp-doctor.sh" /usr/local/bin/ndp-doctor
 
 echo "==> Installing configuration"
 install -d -m 0755 "${NDP_CONFIG_DIR}"
@@ -161,7 +162,21 @@ fi
 
 echo "==> Installing locale and scenario presets"
 install -d -m 0755 "${NDP_CONFIG_DIR}/locale" "${NDP_CONFIG_DIR}/scenarios"
-install -m 0644 "${NDP_ROOT}/ndp/locale/"*.json "${NDP_CONFIG_DIR}/locale/"
+for locale_file in "${NDP_ROOT}/ndp/locale/"*.json; do
+  base="$(basename "${locale_file}")"
+  if [[ "${base}" == "themes.json" ]]; then
+    if [[ ! -f "${NDP_CONFIG_DIR}/locale/themes.json" ]]; then
+      install -m 0644 "${locale_file}" "${NDP_CONFIG_DIR}/locale/"
+    else
+      echo "Keeping existing ${NDP_CONFIG_DIR}/locale/themes.json (custom themes)"
+      if ! python3 -m json.tool "${NDP_CONFIG_DIR}/locale/themes.json" >/dev/null 2>&1; then
+        echo "WARNING: ${NDP_CONFIG_DIR}/locale/themes.json is invalid JSON — fix or remove it" >&2
+      fi
+    fi
+  else
+    install -m 0644 "${locale_file}" "${NDP_CONFIG_DIR}/locale/"
+  fi
+done
 install -m 0644 "${NDP_ROOT}/ndp/scenarios/profiles.yaml" "${NDP_CONFIG_DIR}/scenarios/profiles.yaml"
 
 echo "==> Enabling lldpd"

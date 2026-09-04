@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 _BUNDLED_DIR = Path(__file__).resolve().parent
 _SYSTEM_LOCALE_DIR = Path("/etc/ndp/locale")
@@ -129,8 +132,11 @@ def load_themes_catalog() -> dict[str, Any]:
     catalog = _load_json(bundled_path)
     system_path = _SYSTEM_LOCALE_DIR / "themes.json"
     if system_path.is_file():
-        overlay = _load_json(system_path)
-        catalog = _merge_themes_catalog(catalog, overlay)
+        try:
+            overlay = _load_json(system_path)
+            catalog = _merge_themes_catalog(catalog, overlay)
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            logger.warning("Invalid custom themes file %s (%s); using bundled catalog", system_path, exc)
     return catalog
 
 

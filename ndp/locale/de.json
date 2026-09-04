@@ -206,7 +206,7 @@
       "discovery.passive_listen_seconds": { "label": "Standard passives Sniff (s)", "help": "Standarddauer Passive-Check-Tab." },
       "discovery.scenario": { "label": "Szenario-Profil", "help": "Discovery-Timeout-Voreinstellungen." },
       "ui.locale": { "label": "Oberflächensprache", "help": "Sprache wählen und speichern; ndp ggf. neu starten." },
-      "ui.theme": { "label": "Farbschema", "help": "Sofortige Vorschau in der Web-UI; speichern zum Behalten. TFT: speichern und ndp neu starten." },
+      "ui.theme": { "label": "Farbschema", "help": "Sofortige Web-UI-Vorschau; speichern zum Behalten. Eigene Themes in /etc/ndp/locale/themes.json. TFT: speichern und ndp neu starten." },
       "logging.level": { "label": "Log-Level", "help": "DEBUG, INFO, WARNING, ERROR." },
       "console.enabled": { "label": "Konsolenausgabe", "help": "Periodische Zusammenfassung im Journal." },
       "console.refresh_seconds": { "label": "Konsolen-Refresh (s)", "help": "Intervall Konsolenausgabe." }
