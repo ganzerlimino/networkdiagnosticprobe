@@ -174,6 +174,8 @@ for locale_file in "${NDP_ROOT}/ndp/locale/"*.json; do
         echo "WARNING: ${NDP_CONFIG_DIR}/locale/themes.json is invalid JSON — fix or remove it" >&2
       fi
     fi
+  elif [[ "${base}" == "themes.schema.json" ]]; then
+    : # installed below (not a UI locale)
   else
     install -m 0644 "${locale_file}" "${NDP_CONFIG_DIR}/locale/"
   fi

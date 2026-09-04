@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
 from ndp.locale.loader import (
     list_locales,
     load_locale,
@@ -39,6 +45,25 @@ def test_list_locales_includes_de() -> None:
 def test_load_locale_de_has_plant_title() -> None:
     locale = load_locale("de")
     assert locale["nav"]["plant"] == "Anlage"
+
+
+def test_list_locales_excludes_theme_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import json
+
+    system_dir = tmp_path / "locale"
+    system_dir.mkdir()
+    for code, name in (("it", "Italiano"), ("en", "English"), ("de", "Deutsch")):
+        (system_dir / f"{code}.json").write_text(
+            json.dumps({"_meta": {"locale": code, "name": name}}),
+            encoding="utf-8",
+        )
+    (system_dir / "themes.bundled.json").write_text('{"version": 1, "themes": {}}', encoding="utf-8")
+    (system_dir / "themes.schema.json").write_text('{"title": "schema"}', encoding="utf-8")
+    monkeypatch.setattr("ndp.locale.loader._SYSTEM_LOCALE_DIR", system_dir)
+    monkeypatch.setattr("ndp.locale.loader._BUNDLED_DIR", tmp_path / "empty-bundled")
+
+    codes = {entry["code"] for entry in list_locales()}
+    assert codes == {"it", "en", "de"}
 
 
 def test_translate_config_field_dotted_key() -> None:

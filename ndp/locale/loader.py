@@ -15,6 +15,29 @@ _BUNDLED_DIR = Path(__file__).resolve().parent
 _SYSTEM_LOCALE_DIR = Path("/etc/ndp/locale")
 _INSTALL_ROOT = Path(os.environ.get("NDP_INSTALL_ROOT", "/opt/ndp"))
 _BUILTIN_LOCALES = ("it", "en")
+_NON_LOCALE_JSON_STEMS = frozenset({"themes", "themes.bundled", "themes.schema"})
+
+
+def _locale_meta(path: Path) -> dict[str, Any] | None:
+    """Return _meta only for real UI locale bundles (it.json, en.json, …)."""
+    try:
+        data = _load_json(path)
+    except (OSError, json.JSONDecodeError, ValueError):
+        return None
+    meta = data.get("_meta")
+    if not isinstance(meta, dict):
+        return None
+    locale_code = str(meta.get("locale", "")).strip().lower()
+    if not locale_code:
+        return None
+    return meta
+
+
+def _is_locale_bundle_file(path: Path) -> bool:
+    stem = path.stem.lower()
+    if stem in _NON_LOCALE_JSON_STEMS or stem.startswith("themes."):
+        return False
+    return _locale_meta(path) is not None
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -58,16 +81,13 @@ def list_locales() -> list[dict[str, str]]:
         if not directory.is_dir():
             continue
         for path in sorted(directory.glob("*.json")):
-            if path.name == "themes.json":
+            if not _is_locale_bundle_file(path):
                 continue
             code = path.stem.lower()
             if code in seen:
                 continue
             seen.add(code)
-            try:
-                meta = _load_json(path).get("_meta", {})
-            except (OSError, json.JSONDecodeError, ValueError):
-                meta = {}
+            meta = _locale_meta(path) or {}
             entries.append(
                 {
                     "code": code,
@@ -79,7 +99,7 @@ def list_locales() -> list[dict[str, str]]:
 
 def load_locale(code: str = "it") -> dict[str, Any]:
     path = _locale_path(code)
-    if path is None:
+    if path is None or not _is_locale_bundle_file(path):
         path = _BUNDLED_DIR / "it.json"
     locale = _load_json(path)
     fallback = str(locale.get("_meta", {}).get("fallback", "en"))
