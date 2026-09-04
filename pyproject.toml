@@ -27,7 +27,14 @@ where = ["."]
 include = ["ndp*"]
 
 [tool.setuptools.package-data]
-ndp = ["config/*.yaml", "web/*.html", "web/manifest.webmanifest", "web/static/**/*"]
+ndp = [
+    "config/*.yaml",
+    "locale/*.json",
+    "scenarios/*.yaml",
+    "web/*.html",
+    "web/manifest.webmanifest",
+    "web/static/**/*",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

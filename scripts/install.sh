@@ -165,10 +165,11 @@ install -d -m 0755 "${NDP_CONFIG_DIR}/locale" "${NDP_CONFIG_DIR}/scenarios"
 for locale_file in "${NDP_ROOT}/ndp/locale/"*.json; do
   base="$(basename "${locale_file}")"
   if [[ "${base}" == "themes.json" ]]; then
+    install -m 0644 "${locale_file}" "${NDP_CONFIG_DIR}/locale/themes.bundled.json"
     if [[ ! -f "${NDP_CONFIG_DIR}/locale/themes.json" ]]; then
       install -m 0644 "${locale_file}" "${NDP_CONFIG_DIR}/locale/"
     else
-      echo "Keeping existing ${NDP_CONFIG_DIR}/locale/themes.json (custom themes)"
+      echo "Keeping existing ${NDP_CONFIG_DIR}/locale/themes.json (merged at runtime with themes.bundled.json)"
       if ! python3 -m json.tool "${NDP_CONFIG_DIR}/locale/themes.json" >/dev/null 2>&1; then
         echo "WARNING: ${NDP_CONFIG_DIR}/locale/themes.json is invalid JSON — fix or remove it" >&2
       fi

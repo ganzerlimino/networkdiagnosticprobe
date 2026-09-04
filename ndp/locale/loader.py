@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 _BUNDLED_DIR = Path(__file__).resolve().parent
 _SYSTEM_LOCALE_DIR = Path("/etc/ndp/locale")
+_INSTALL_ROOT = Path(os.environ.get("NDP_INSTALL_ROOT", "/opt/ndp"))
 _BUILTIN_LOCALES = ("it", "en")
 
 
@@ -125,19 +127,44 @@ def translate_config_field(
     return fallback or f"config.fields.{field_key}.{part}"
 
 
+def _themes_catalog_base_paths() -> tuple[Path, ...]:
+    """Search order: install tree (rsync), pip package, system locale dir."""
+    return (
+        _INSTALL_ROOT / "ndp" / "locale" / "themes.json",
+        _BUNDLED_DIR / "themes.json",
+    )
+
+
 def load_themes_catalog() -> dict[str, Any]:
-    bundled_path = _BUNDLED_DIR / "themes.json"
-    if not bundled_path.is_file():
-        raise FileNotFoundError("themes.json not found")
-    catalog = _load_json(bundled_path)
     system_path = _SYSTEM_LOCALE_DIR / "themes.json"
+    base: dict[str, Any] | None = None
+
+    for path in _themes_catalog_base_paths():
+        if not path.is_file():
+            continue
+        try:
+            base = _load_json(path)
+            break
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            logger.warning("Skipping unreadable themes catalog %s (%s)", path, exc)
+
+    if base is None:
+        if system_path.is_file():
+            try:
+                return _load_json(system_path)
+            except (OSError, json.JSONDecodeError, ValueError) as exc:
+                logger.warning("Invalid custom themes file %s (%s)", system_path, exc)
+        raise FileNotFoundError(
+            "themes.json not found (checked /opt/ndp, package locale, /etc/ndp/locale)"
+        )
+
     if system_path.is_file():
         try:
             overlay = _load_json(system_path)
-            catalog = _merge_themes_catalog(catalog, overlay)
+            return _merge_themes_catalog(base, overlay)
         except (OSError, json.JSONDecodeError, ValueError) as exc:
-            logger.warning("Invalid custom themes file %s (%s); using bundled catalog", system_path, exc)
-    return catalog
+            logger.warning("Invalid custom themes file %s (%s); using base catalog", system_path, exc)
+    return base
 
 
 def _merge_themes_catalog(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
