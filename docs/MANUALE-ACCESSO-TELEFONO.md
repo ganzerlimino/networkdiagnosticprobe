@@ -1,5 +1,7 @@
 # NDP — Accesso dal telefono
 
+**Versione NDP:** 0.23.1
+
 Guida rapida per controllare il probe dal browser del cellulare (Stato, Ping, Discover, Scan, Config).
 
 ---

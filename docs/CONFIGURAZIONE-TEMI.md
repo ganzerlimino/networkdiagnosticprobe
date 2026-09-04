@@ -275,4 +275,4 @@ config.yaml: ui.theme ──► ID tema attivo
 
 ---
 
-*Documento relativo a NDP v0.22+. Per installazione e accesso telefono vedi `docs/MANUALE-ACCESSO-TELEFONO.md`.*
+*Documento relativo a NDP v0.23.1. Manuale Word: `docs/NDP-MANUALE-COMPLETO.docx`. Per accesso telefono vedi `docs/MANUALE-ACCESSO-TELEFONO.md`.*
