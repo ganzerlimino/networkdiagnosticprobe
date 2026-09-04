@@ -37,6 +37,11 @@ NDP include **5 temi predefiniti**. Puoi aggiungere temi **custom** (es. azienda
 
 ## 3. Struttura del file `themes.json`
 
+**Schema di riferimento (campo per campo):** [`docs/themes.schema.json`](themes.schema.json)  
+Apri quello file in un editor con supporto JSON Schema (VS Code, Cursor) per vedere descrizione e tipo di ogni voce mentre modifichi il tema.
+
+Dopo `install.sh` una copia è anche in `/etc/ndp/locale/themes.schema.json`.
+
 ```json
 {
   "version": 1,
@@ -160,7 +165,15 @@ Colori come array **RGB** `[R, G, B]` con valori interi **0–255**.
 
 ## 8. Esempio: tema aziendale
 
-File di esempio nel repository: `docs/examples/themes-aziendale.example.json`
+File di esempio nel repository: `docs/examples/themes-aziendale.example.json` (include `"$schema"` verso lo schema).
+
+Validazione opzionale con Python:
+
+```bash
+pip install jsonschema
+jsonschema -i docs/examples/themes-aziendale.example.json docs/themes.schema.json
+python3 -m json.tool /etc/ndp/locale/themes.json
+```
 
 ### Passo 1 — Copiare il tema custom
 

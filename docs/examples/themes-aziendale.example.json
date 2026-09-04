@@ -1,4 +1,5 @@
 {
+  "$schema": "../themes.schema.json",
   "default": "aziendale",
   "themes": {
     "aziendale": {
