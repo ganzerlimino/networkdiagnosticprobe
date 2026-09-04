@@ -72,10 +72,23 @@ fi
 
 section "Wi-Fi interface"
 if command -v iw >/dev/null 2>&1; then
-  iw dev wlan0 info 2>/dev/null || echo "wlan0 not available or no driver"
+  IW_OUT="$(iw dev wlan0 info 2>/dev/null || true)"
+  if [[ -n "$IW_OUT" ]]; then
+    echo "$IW_OUT"
+    if echo "$IW_OUT" | grep -q 'type AP'; then
+      echo "OK  wlan0 in AP mode (hotspot)"
+    elif echo "$IW_OUT" | grep -q 'type managed'; then
+      echo "FAIL wlan0 in client (managed) mode — NetworkManager/wpa_supplicant took the interface"
+      echo "     Fix: sudo ndp-hotspot-prestart && sudo ndp hotspot restart && iw dev wlan0 info"
+    fi
+  else
+    echo "wlan0 not available or no driver"
+  fi
 else
   echo "iw not installed"
 fi
+OPER="$(cat /sys/class/net/wlan0/operstate 2>/dev/null || echo unknown)"
+echo "operstate: $OPER"
 
 section "Manual probe (once)"
 if [[ -x "${NDP_ROOT}/venv/bin/ndp" ]]; then
@@ -89,6 +102,9 @@ fi
 
 echo
 echo "Recovery (typical):"
+echo "  sudo ndp-hotspot-prestart"
+echo "  sudo ndp hotspot restart"
+echo "  sudo systemctl restart ndp"
+echo "  iw dev wlan0 info    # expect: type AP"
 echo "  cd /opt/ndp && sudo git pull && sudo ./scripts/install.sh"
-echo "  sudo systemctl restart ndp-hotspot ndp"
-echo "  sudo journalctl -u ndp -f"
+echo "  sudo journalctl -u ndp-hotspot -u ndp -n 30 --no-pager"

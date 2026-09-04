@@ -202,8 +202,22 @@ echo "==> Preparing Wi-Fi hotspot tools (hostapd + dnsmasq)"
 systemctl unmask hostapd dnsmasq 2>/dev/null || true
 systemctl disable --now hostapd.service dnsmasq.service 2>/dev/null || true
 systemctl disable --now wpa_supplicant@wlan0.service 2>/dev/null || true
+install -d -m 0755 /etc/NetworkManager/conf.d
+cat > /etc/NetworkManager/conf.d/ndp-wlan0.conf <<'EOF'
+# NDP owns wlan0 for phone hotspot (AP mode). Do not let NM manage this interface.
+[keyfile]
+unmanaged-devices=interface-name:wlan0
+EOF
+if [[ -f /etc/dhcpcd.conf ]] && ! grep -q '^denyinterfaces wlan0' /etc/dhcpcd.conf; then
+  echo 'denyinterfaces wlan0' >> /etc/dhcpcd.conf
+fi
+if command -v nmcli >/dev/null 2>&1; then
+  nmcli device set wlan0 managed no 2>/dev/null || true
+  systemctl reload NetworkManager 2>/dev/null || true
+fi
 rfkill unblock all 2>/dev/null || true
 rfkill unblock wifi 2>/dev/null || true
+install -m 0755 "${REPO_DIR}/scripts/hotspot-prestart.sh" /usr/local/bin/ndp-hotspot-prestart
 
 echo "==> Installing systemd units"
 install -m 0644 "${NDP_ROOT}/systemd/ndp-hotspot.service" /etc/systemd/system/ndp-hotspot.service

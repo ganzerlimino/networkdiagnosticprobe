@@ -1,15 +1,16 @@
 [Unit]
 Description=NDP Wi-Fi hotspot for phone access
 Documentation=https://github.com/networkdiagnosticprobe/networkdiagnosticprobe
-After=network-pre.target
+After=network-online.target NetworkManager.service
 Before=ndp.service
-Wants=network-pre.target
+Wants=network-pre.target network-online.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/opt/ndp/venv/bin/ndp hotspot start --config /etc/ndp/config.yaml
+ExecStartPre=/usr/local/bin/ndp-hotspot-prestart
+ExecStart=/opt/ndp/venv/bin/ndp hotspot ensure --config /etc/ndp/config.yaml
 ExecStop=/opt/ndp/venv/bin/ndp hotspot stop --config /etc/ndp/config.yaml
 
 [Install]
