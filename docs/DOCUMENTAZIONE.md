@@ -896,8 +896,8 @@ journalctl -u lldpd -f
 ### 14.5 Test automatici (sviluppo)
 
 ```bash
-cd /opt/ndp   # o repo clone
-source venv/bin/activate
+cd ~/networkdiagnosticprobe   # repository git
+source .venv/bin/activate     # oppure: python3 -m venv .venv && pip install -e ".[ui,web,test]"
 pytest -q
 ```
 

@@ -231,6 +231,8 @@ maybe_install_display
 
 echo
 echo "NDP installed successfully."
+echo "  Repo    : edit in ~/networkdiagnosticprobe, then: sudo ./scripts/install.sh"
+echo "  Runtime : ${NDP_ROOT} (copia usata da systemd — non fare git pull lì)"
 echo "  Service : systemctl status ndp"
 echo "  Hotspot : systemctl status ndp-hotspot && ndp hotspot status"
 echo "  Phone   : connect to SSID NDP-XXXX, open http://192.168.50.1:8080/"
