@@ -12,6 +12,12 @@ def test_discovery_session_idle_lines() -> None:
     assert session.is_idle()
 
 
+def test_discovery_session_german_prompt() -> None:
+    session = DiscoveryUISession(NdpConfig(interface="eth0", ui_locale="de"))
+    prompt = session.to_api_dict()["prompt"]
+    assert "Up/Down" in str(prompt)
+
+
 def test_discovery_idle_after_finished_thread() -> None:
     session = DiscoveryUISession(NdpConfig(interface="eth0"))
     session._running = False

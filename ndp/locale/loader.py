@@ -194,7 +194,7 @@ def theme_display_name(theme: dict[str, Any], locale_code: str = "it") -> str:
     name = theme.get("name")
     locale = locale_code.strip().lower().split("-")[0] or "it"
     if isinstance(name, dict):
-        for key in (locale, "it", "en"):
+        for key in dict.fromkeys([locale, "en", "de", "it"]):
             if key in name and name[key]:
                 return str(name[key])
         for value in name.values():

@@ -3,7 +3,7 @@
   "default": "field-dark",
   "themes": {
     "field-dark": {
-      "name": { "it": "Campo scuro", "en": "Field dark" },
+      "name": { "it": "Campo scuro", "en": "Field dark", "de": "Feld dunkel" },
       "color_scheme": "dark",
       "web": {
         "bg": "#0c1220",
@@ -27,7 +27,7 @@
       }
     },
     "industrial-amber": {
-      "name": { "it": "Industriale ambra", "en": "Industrial amber" },
+      "name": { "it": "Industriale ambra", "en": "Industrial amber", "de": "Industrie amber" },
       "color_scheme": "dark",
       "web": {
         "bg": "#1a1408",
@@ -51,7 +51,7 @@
       }
     },
     "high-contrast": {
-      "name": { "it": "Alto contrasto", "en": "High contrast" },
+      "name": { "it": "Alto contrasto", "en": "High contrast", "de": "Hoher Kontrast" },
       "color_scheme": "dark",
       "web": {
         "bg": "#000000",
@@ -75,7 +75,7 @@
       }
     },
     "office-light": {
-      "name": { "it": "Ufficio chiaro", "en": "Office light" },
+      "name": { "it": "Ufficio chiaro", "en": "Office light", "de": "Büro hell" },
       "color_scheme": "light",
       "web": {
         "bg": "#f4f6fa",
@@ -99,7 +99,7 @@
       }
     },
     "night-vision": {
-      "name": { "it": "Visione notturna", "en": "Night vision" },
+      "name": { "it": "Visione notturna", "en": "Night vision", "de": "Nachtsicht" },
       "color_scheme": "dark",
       "web": {
         "bg": "#0a0000",

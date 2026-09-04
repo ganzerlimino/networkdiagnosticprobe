@@ -21,3 +21,17 @@ def test_build_report_all() -> None:
     assert report["subject"] == "NDP — Report completo"
     assert "LINK" in report["body"]
     assert "PING" in report["body"]
+
+
+def test_build_report_english() -> None:
+    state = ProbeState(interface="eth0")
+    report = build_report(state, section="status", version="0.8.0", locale_code="en")
+    assert report["subject"] == "NDP — Network status"
+    assert "No IP address" in report["body"]
+
+
+def test_build_report_german() -> None:
+    state = ProbeState(interface="eth0")
+    report = build_report(state, section="ping", version="0.8.0", locale_code="de")
+    assert report["subject"] == "NDP — Ping"
+    assert "Keine gespeicherten Ping-Ergebnisse" in report["body"]

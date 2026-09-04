@@ -120,7 +120,9 @@
     "model": "Model",
     "description": "Description",
     "summary": "Summary",
-    "no_response": "no response"
+    "no_response": "no response",
+    "invalid_json_response": "Non-JSON response from server",
+    "server_error": "Server error ({status}): {detail}"
   },
   "status": {
     "hotspot": "Phone hotspot",
@@ -206,7 +208,11 @@
     "oui_auto_refresh": "Refresh table after ARP scan",
     "oui_reload_db": "Reload IEEE database",
     "no_services": "No services found",
-    "oui_load_error": "OUI load error: {detail}"
+    "oui_load_error": "OUI load error: {detail}",
+    "no_l2probe_detected": "No FDP/EDP/LLTD frames detected",
+    "oui_reloaded": "OUI database reloaded.",
+    "oui_summary": "OUI: {total} entries ({learned} learned, {system} system, {bundled} bundled).",
+    "oui_none": "No entries found"
   },
   "passive": {
     "title": "Passive sniff (summary)",
@@ -311,7 +317,18 @@
     "dns_only": "DNS lookup only",
     "no_mgmt_ports": "No management ports open",
     "verify_dns": "Verify DNS servers",
-    "gateway_ping": "Gateway ping and quick ports"
+    "gateway_ping": "Gateway ping and quick ports",
+    "open_header": "{host} · {open} open / {total} ({ms} ms)",
+    "progress_connect": "Connecting to {host}",
+    "progress_profile": "Scanning profile {label} (TCP connect)",
+    "progress_collect": "Collecting open/closed ports",
+    "dns_progress_verify": "Verify DNS servers",
+    "dns_progress_resolve": "Resolving {hostname}",
+    "dns_progress_skip": "Skip hostname resolution",
+    "dns_progress_gateway": "Gateway ping and quick ports",
+    "ports_open_prefix": "Open: {ports}",
+    "no_mgmt_ports_inline": "No management ports open",
+    "ports_closed_suffix": " · closed: {closed}"
   },
   "hotspot": {
     "status_title": "Hotspot status",

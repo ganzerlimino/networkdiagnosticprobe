@@ -161,7 +161,7 @@
         <h2 data-i18n="mtu.title">MTU path discovery</h2>
         <p class="sub" data-i18n="mtu.help">Test decrementale da 1500 verso il basso con ping DF (no fragment). Utile per VPN site-to-site.</p>
         <label class="field">
-          <span>Host remoto</span>
+          <span data-i18n="mtu.remote_host">Host remoto</span>
           <input id="mtu-host" data-i18n-placeholder="mtu.host_ph" placeholder="es. gateway o IP peer VPN">
         </label>
         <div class="actions">
@@ -179,24 +179,24 @@
       <div class="card">
         <h2 data-i18n="discover.wizard_title">Wizard Up/Down</h2>
         <div class="phase" id="disc-phase">idle</div>
-        <div class="prompt" id="disc-prompt">Caricamento...</div>
+        <div class="prompt" id="disc-prompt" data-i18n="common.loading">Caricamento...</div>
         <div class="log" id="disc-log"></div>
         <div class="actions">
           <button class="primary" id="disc-start" data-i18n="discover.start_wizard">Avvia wizard</button>
           <button class="secondary" id="disc-continue" disabled data-i18n="actions.continue">Continua</button>
-          <button class="secondary" id="disc-skip" disabled>Salta verifica</button>
-          <button class="danger" id="disc-cancel" disabled>Annulla</button>
+          <button class="secondary" id="disc-skip" disabled data-i18n="discover.skip_verify">Salta verifica</button>
+          <button class="danger" id="disc-cancel" disabled data-i18n="actions.cancel">Annulla</button>
         </div>
         <div id="disc-result" class="log"></div>
         <div class="actions">
-          <button class="secondary" onclick="sendReport('discover')">📧 Report discover</button>
+          <button class="secondary" onclick="sendReport('discover')" data-i18n="discover.report">📧 Report discover</button>
         </div>
       </div>
       <div class="card">
         <h2 data-i18n="discover.arp_title">Scansione rapida ARP</h2>
         <div class="actions">
           <button class="secondary" id="discover-scan" data-i18n="discover.scan_network">Scansiona rete</button>
-          <button class="danger" id="discover-scan-stop" disabled>Ferma</button>
+          <button class="danger" id="discover-scan-stop" disabled data-i18n="actions.stop">Ferma</button>
           <span class="export-group">
             <button class="secondary" id="discover-scan-export-json" disabled>JSON</button>
             <button class="secondary" id="discover-scan-export-csv" disabled>CSV</button>
@@ -209,7 +209,7 @@
         <p class="sub" data-i18n="discover.services_help">mDNS, SSDP e rilevamento passivo FDP/EDP/LLTD (ethertype).</p>
         <div class="actions">
           <button class="secondary" id="discover-services" data-i18n="actions.scan">Scansiona servizi</button>
-          <button class="danger" id="discover-services-stop" disabled>Ferma</button>
+          <button class="danger" id="discover-services-stop" disabled data-i18n="actions.stop">Ferma</button>
           <span class="export-group">
             <button class="secondary" id="discover-services-export-json" disabled>JSON</button>
             <button class="secondary" id="discover-services-export-csv" disabled>CSV</button>
@@ -221,21 +221,21 @@
         <h2 data-i18n="discover.oui_title">Vendor MAC (OUI)</h2>
         <p class="sub" data-i18n="discover.oui_help">Lookup OUI da database IEEE, bundle OT e voci apprese dalle scansioni ARP.</p>
         <label class="field">
-          <span>Cerca vendor o prefisso</span>
+          <span data-i18n="discover.oui_search_label">Cerca vendor o prefisso</span>
           <input id="oui-search" data-i18n-placeholder="discover.oui_search_ph" placeholder="es. Weintek, 00:90:E8, HMS">
         </label>
         <div class="field field-check">
           <input type="checkbox" id="oui-auto-refresh" checked>
-          <label for="oui-auto-refresh">Aggiorna automaticamente dopo scansione ARP</label>
+          <label for="oui-auto-refresh" data-i18n="discover.oui_auto_refresh">Aggiorna automaticamente dopo scansione ARP</label>
         </div>
         <div class="actions">
           <button class="secondary" id="oui-refresh" data-i18n="discover.oui_refresh">Aggiorna tabella</button>
-          <button class="secondary" id="oui-reload-db">Ricarica database OUI</button>
+          <button class="secondary" id="oui-reload-db" data-i18n="discover.oui_reload_db">Ricarica database OUI</button>
         </div>
         <p id="oui-msg" class="sub"></p>
         <div class="oui-scroll">
           <table class="oui-table">
-            <thead><tr><th>OUI</th><th>Vendor</th><th>Fonte</th></tr></thead>
+            <thead><tr><th>OUI</th><th>Vendor</th><th data-i18n="common.source">Fonte</th></tr></thead>
             <tbody id="oui-table-body"></tbody>
           </table>
         </div>
@@ -247,34 +247,34 @@
         <h2 data-i18n="passive.title">Sniff passivo (riepilogo)</h2>
         <p class="sub" data-i18n-html="passive.help">Riepilogo protocolli L2/L3 rilevati: STP/LACP/VLAN/IGMP, FDP/EDP/LLTD, mDNS, SSDP, DHCP Option 82, SNMP. Le fasi girano in <strong>parallelo</strong>: durata effettiva ≈ i secondi impostati (non la somma).</p>
         <label class="field">
-          <span>Durata ascolto (secondi)</span>
+          <span data-i18n="passive.listen_seconds">Durata ascolto (secondi)</span>
           <input id="passive-seconds" type="number" min="1" max="60" value="3">
         </label>
         <label class="field">
-          <span>Host SNMP (opzionale)</span>
+          <span data-i18n="passive.snmp_host">Host SNMP (opzionale)</span>
           <input id="passive-snmp-host" data-i18n-placeholder="passive.snmp_ph" placeholder="vuoto = gateway">
         </label>
         <div class="actions">
           <button class="primary" id="passive-run" data-i18n="passive.run_full">Avvia passive check</button>
-          <button class="danger" id="passive-stop" disabled>Ferma</button>
-          <button class="secondary" id="passive-use-gateway">Usa gateway SNMP</button>
+          <button class="danger" id="passive-stop" disabled data-i18n="actions.stop">Ferma</button>
+          <button class="secondary" id="passive-use-gateway" data-i18n="passive.use_gateway_snmp">Usa gateway SNMP</button>
           <span class="export-group">
             <button class="secondary" id="passive-export-json" disabled>JSON</button>
             <button class="secondary" id="passive-export-csv" disabled>CSV</button>
           </span>
         </div>
         <p id="passive-msg" class="sub"></p>
-        <div class="section-title">Riepilogo protocolli</div>
+        <div class="section-title" data-i18n="passive.section_summary">Riepilogo protocolli</div>
         <div id="passive-summary-results" class="log"></div>
-        <div class="section-title">Frame L2 broadcast</div>
+        <div class="section-title" data-i18n="passive.section_l2">Frame L2 broadcast</div>
         <div id="passive-l2-results" class="log"></div>
-        <div class="section-title">L2 ethertype (FDP/EDP/LLTD)</div>
+        <div class="section-title" data-i18n="passive.section_l2probe">L2 ethertype (FDP/EDP/LLTD)</div>
         <div id="passive-l2probe-results" class="log"></div>
-        <div class="section-title">mDNS / SSDP</div>
+        <div class="section-title" data-i18n="passive.section_services">mDNS / SSDP</div>
         <div id="passive-service-results" class="log"></div>
-        <div class="section-title">DHCP Option 82</div>
+        <div class="section-title" data-i18n="passive.section_dhcp">DHCP Option 82</div>
         <div id="passive-dhcp-results" class="log"></div>
-        <div class="section-title">SNMP probe</div>
+        <div class="section-title" data-i18n="passive.section_snmp">SNMP probe</div>
         <div id="passive-snmp-results" class="log"></div>
       </div>
     </section>
@@ -284,12 +284,12 @@
         <h2 data-i18n="mikrotik.title">MikroTik (MNDP)</h2>
         <p class="sub" data-i18n="mikrotik.help">Probe attivo UDP/5678 + ascolto risposte. La card Switch mostra solo il dispositivo collegato (match MAC/IP gateway).</p>
         <label class="field">
-          <span>Durata ascolto (secondi)</span>
+          <span data-i18n="passive.listen_seconds">Durata ascolto (secondi)</span>
           <input id="mikrotik-seconds" type="number" min="2" max="60" value="6">
         </label>
         <div class="actions">
           <button class="primary" id="mikrotik-scan" data-i18n="mikrotik.scan">Scansiona MikroTik</button>
-          <button class="danger" id="mikrotik-stop" disabled>Ferma</button>
+          <button class="danger" id="mikrotik-stop" disabled data-i18n="actions.stop">Ferma</button>
           <span class="export-group">
             <button class="secondary" id="mikrotik-export-json" disabled>JSON</button>
             <button class="secondary" id="mikrotik-export-csv" disabled>CSV</button>
@@ -306,7 +306,7 @@
         <p class="sub" data-i18n="plant.help">Discovery broadcast in LAN (Weintek, eWON) e, opzionalmente, porte industriali su un IP target.</p>
         <p class="sub" id="plant-scenario-hint"></p>
         <label class="field">
-          <span>IP target (opzionale)</span>
+          <span data-i18n="plant.target_ip">IP target (opzionale)</span>
           <input id="plant-host" data-i18n-placeholder="plant.host_ph" placeholder="PLC / HMI / gateway — vuoto = solo discovery LAN">
         </label>
         <div class="actions">
@@ -335,7 +335,7 @@
         <p class="sub" data-i18n="cameras.help">ONVIF, Hikvision SADP (UDP/37020), Dahua DHDiscover (UDP/37810), mDNS e SSDP/UPnP.</p>
         <div class="actions">
           <button class="primary" id="cameras-scan" data-i18n="cameras.scan_full">Scansiona telecamere</button>
-          <button class="danger" id="cameras-stop" disabled>Ferma</button>
+          <button class="danger" id="cameras-stop" disabled data-i18n="actions.stop">Ferma</button>
           <span class="export-group">
             <button class="secondary" id="cameras-export-json" disabled>JSON</button>
             <button class="secondary" id="cameras-export-csv" disabled>CSV</button>
@@ -352,7 +352,7 @@
         <p class="sub" data-i18n="nas.help">Synology (9997), QNAP (7777), ASUSTOR (8888/8889), ReadyNAS RAIDar (22081), WS-Discovery, mDNS e SSDP.</p>
         <div class="actions">
           <button class="primary" id="nas-scan" data-i18n="nas.scan">Scansiona NAS</button>
-          <button class="danger" id="nas-stop" disabled>Ferma</button>
+          <button class="danger" id="nas-stop" disabled data-i18n="actions.stop">Ferma</button>
           <span class="export-group">
             <button class="secondary" id="nas-export-json" disabled>JSON</button>
             <button class="secondary" id="nas-export-csv" disabled>CSV</button>
@@ -369,7 +369,7 @@
         <p class="sub" data-i18n="printers.help">Epson ENPC UDP/3289 (retail/fiscali) e Zebra Link-OS UDP/4201 (etichette industriali).</p>
         <div class="actions">
           <button class="primary" id="printers-scan" data-i18n="printers.scan">Scansiona stampanti</button>
-          <button class="danger" id="printers-stop" disabled>Ferma</button>
+          <button class="danger" id="printers-stop" disabled data-i18n="actions.stop">Ferma</button>
           <span class="export-group">
             <button class="secondary" id="printers-export-json" disabled>JSON</button>
             <button class="secondary" id="printers-export-csv" disabled>CSV</button>
@@ -385,7 +385,7 @@
         <h2 data-i18n="scan.target_title">Target</h2>
         <input id="scan-host" data-i18n-placeholder="scan.host_ph" placeholder="IP host (es. 192.168.1.50)">
         <div class="actions">
-          <button class="secondary" id="scan-use-gateway">Usa gateway</button>
+          <button class="secondary" id="scan-use-gateway" data-i18n="actions.use_gateway">Usa gateway</button>
         </div>
         <p class="sub" data-i18n-html="scan.ot_hint">Per Weintek, eWON e porte Modbus/OPC UA usa <strong>OT → Impianto</strong>.</p>
       </div>
@@ -395,7 +395,7 @@
         <p class="sub" data-i18n="scan.standard_help">SSH, HTTP/S, SMB, RDP, DNS, LDAP, SNMP…</p>
         <div id="scan-standard-chips" class="chip-list"></div>
         <div class="actions">
-          <button class="primary" id="scan-standard-run">Scansiona standard</button>
+          <button class="primary" id="scan-standard-run" data-i18n="scan.scan_standard">Scansiona standard</button>
         </div>
         <div id="scan-standard-results" class="log"></div>
       </div>
@@ -404,7 +404,7 @@
         <h2 data-i18n="scan.custom_title">Porte custom</h2>
         <input id="scan-custom-ports" data-i18n-placeholder="scan.custom_ph" placeholder="Es. 80,443,502,4840,11740">
         <div class="actions">
-          <button class="primary" id="scan-custom-run">Scansiona custom</button>
+          <button class="primary" id="scan-custom-run" data-i18n="scan.scan_custom">Scansiona custom</button>
         </div>
         <div id="scan-custom-results" class="log"></div>
       </div>
@@ -414,12 +414,12 @@
         <input id="dns-hostname" data-i18n-placeholder="scan.dns_ph" placeholder="Hostname da risolvere (opzionale)">
         <div class="actions">
           <button class="primary" id="network-check-run" data-i18n="scan.network_check">Verifica DNS + gateway</button>
-          <button class="secondary" id="dns-lookup-run">Solo risoluzione</button>
+          <button class="secondary" id="dns-lookup-run" data-i18n="scan.dns_only">Solo risoluzione</button>
         </div>
         <div id="network-check-results" class="log"></div>
         <div class="actions">
-          <button class="secondary" onclick="sendReport('scan')">📧 Report porte</button>
-          <button class="secondary" onclick="sendReport('network')">📧 Report DNS</button>
+          <button class="secondary" onclick="sendReport('scan')" data-i18n="actions.report_ports">📧 Report porte</button>
+          <button class="secondary" onclick="sendReport('network')" data-i18n="actions.report_dns">📧 Report DNS</button>
         </div>
       </div>
     </section>
@@ -567,6 +567,10 @@
       document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
         el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
       });
+      ['leg1', 'leg2', 'leg3'].forEach((id, index) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = t('ping.host_leg', {n: index + 1});
+      });
     }
 
     function applyNavLabels() {
@@ -590,9 +594,14 @@
         hint.textContent = '';
         return;
       }
-      const localeKey = activeLocale === 'en' ? 'en' : 'it';
-      const name = (scenarioMeta.name && scenarioMeta.name[localeKey]) || scenarioMeta.id;
-      const desc = (scenarioMeta.description && scenarioMeta.description[localeKey]) || '';
+      const localeKey = activeLocale.split('-')[0];
+      const scenarioId = scenarioMeta.id || '';
+      const name = (scenarioMeta.name && scenarioMeta.name[localeKey])
+        || t('scenario.' + scenarioId)
+        || scenarioId;
+      const desc = (scenarioMeta.description && scenarioMeta.description[localeKey])
+        || t('scenario.' + scenarioId + '_desc')
+        || '';
       hint.textContent = t('scenario.label') + ': ' + name + (desc ? ' — ' + desc : '');
     }
 
@@ -606,7 +615,8 @@
       return `<div class="sub">${t('plant.modbus_open_only')}${modbus.error ? ' (' + modbus.error + ')' : ''}</div>`;
     }
 
-    function formatApiError(payload, fallback='Errore') {
+    function formatApiError(payload, fallback) {
+      fallback = fallback || t('common.error');
       if (!payload) return fallback;
       const detail = payload.detail ?? payload.message ?? payload.error;
       if (!detail) return fallback;
@@ -634,8 +644,8 @@
           data: null,
           raw: text,
           error: response.ok
-            ? 'Risposta non JSON dal server'
-            : `Errore server (${response.status}): ${snippet.trim()}`
+            ? t('common.invalid_json_response')
+            : t('common.server_error', {status: response.status, detail: snippet.trim()})
         };
       }
     }
@@ -693,7 +703,7 @@
     }
 
     function startProgressFeedback(container, phases) {
-      const steps = Array.isArray(phases) && phases.length ? phases : ['Scansione in corso...'];
+      const steps = Array.isArray(phases) && phases.length ? phases : [t('common.scanning')];
       let phaseIndex = 0;
       const started = Date.now();
       container.innerHTML = '<div class="progress-wrap"><div class="progress-bar"><span></span></div><div class="progress-meta"></div></div>';
@@ -756,9 +766,9 @@
         html += '</div>';
       } else if (primary && primary.message) {
         html += row(t('common.status'), primary.message, 'bad');
-        html += '<div class="sub" style="margin-top:.45rem">Verifica LLDP abilitato sullo switch e <code>systemctl status lldpd</code> sulla Pi.</div>';
+        html += '<div class="sub" style="margin-top:.45rem">' + t('status.lldp_hint') + '</div>';
       } else {
-        html += row(t('common.status'), 'In attesa', 'bad');
+        html += row(t('common.status'), t('common.waiting_status'), 'bad');
       }
 
       if (lldp) html += renderNeighborSource(neighborProtocolLabel(lldp), lldp);
@@ -778,7 +788,7 @@
         return;
       }
       if (!entry.rows.length) {
-        alert('Nessuna riga da esportare in CSV.');
+        alert(t('common.export_no_csv'));
         return;
       }
       downloadText(`ndp-${key}-${stamp}.csv`, rowsToCsv(entry.rows), 'text/csv');
@@ -1199,7 +1209,7 @@
         };
         mtuSource.onerror = () => { msg.textContent = t('mtu.interrupted'); stopMtu(); };
       } catch (e) {
-        msg.textContent = 'Errore rete: ' + e;
+        msg.textContent = t('common.network_error', {detail: e});
       }
     };
 
@@ -1243,7 +1253,7 @@
           stopLive({ message: t('ping.live_interrupted') });
         };
       } catch (e) {
-        msg.textContent = 'Errore rete: ' + e;
+        msg.textContent = t('common.network_error', {detail: e});
       }
     };
 
@@ -1420,7 +1430,7 @@
           })),
         ];
         cacheScan('discover-services', j, rows);
-        el.innerHTML = html || '<div>Nessun servizio trovato</div>';
+        el.innerHTML = html || '<div>' + t('discover.no_services') + '</div>';
       } catch (e) {
         stopProgress();
         if (e.name !== 'AbortError') el.textContent = t('common.network_error', {detail: e});
@@ -1453,12 +1463,12 @@
       const controller = beginScan('passive-stop');
       scanBtn.disabled = true;
       const stopProgress = startProgressFeedback(msg, [
-        `Sniff L2 + DHCP (${seconds}s, parallelo)`,
-        'mDNS e SSDP',
-        'Probe ethertype FDP/EDP/LLTD',
-        snmpHost ? `SNMP su ${snmpHost}` : 'SNMP (gateway se impostato)',
+        t('passive.progress_l2', {seconds}),
+        t('passive.progress_mdns'),
+        t('passive.progress_l2probe'),
+        snmpHost ? t('passive.progress_snmp_host', {host: snmpHost}) : t('passive.progress_snmp_gw'),
       ]);
-      [summaryEl, l2El, l2probeEl, serviceEl, dhcpEl, snmpEl].forEach(el => el.textContent = 'In attesa…');
+      [summaryEl, l2El, l2probeEl, serviceEl, dhcpEl, snmpEl].forEach(el => el.textContent = t('common.waiting'));
       try {
         const params = new URLSearchParams({listen_seconds: String(seconds)});
         if (snmpHost) params.set('snmp_host', snmpHost);
@@ -1472,17 +1482,17 @@
         const summary = j.summary || [];
         summaryEl.innerHTML = summary.length
           ? summary.map(row => `<div class="${row.status === 'detected' || row.status === 'ok' ? 'ok' : 'sub'}">${row.protocol} · ${row.category} · ${row.detail}</div>`).join('')
-          : '<div class="sub">Nessun protocollo rilevato</div>';
+          : '<div class="sub">' + t('passive.no_protocols') + '</div>';
 
         const l2 = (j.l2_passive && j.l2_passive.hits) || [];
         l2El.innerHTML = l2.length
           ? l2.map(hit => `<div class="ok">${hit.protocol}${hit.variant ? ' (' + hit.variant + ')' : ''}: ${hit.frame_count} frame</div>`).join('')
-          : `<div class="sub">${(j.l2_passive && j.l2_passive.message) || 'Nessun frame'}</div>`;
+          : `<div class="sub">${(j.l2_passive && j.l2_passive.message) || t('passive.no_frames')}</div>`;
 
         const l2p = (j.l2_probes && j.l2_probes.hits) || [];
         l2probeEl.innerHTML = l2p.length
           ? l2p.map(hit => `<div class="ok">${hit.protocol} ${hit.ethertype}: ${hit.frame_count} frame</div>`).join('')
-          : '<div class="sub">Nessun frame FDP/EDP/LLTD</div>';
+          : '<div class="sub">' + t('passive.no_l2probe') + '</div>';
 
         const mdns = (j.mdns && j.mdns.services) || [];
         const ssdp = (j.ssdp && j.ssdp.devices) || [];
@@ -1496,15 +1506,15 @@
         const dhcp = (j.dhcp_option82 && j.dhcp_option82.samples) || [];
         dhcpEl.innerHTML = dhcp.length
           ? dhcp.map(s => `<div class="ok">${[s.message_type, s.circuit_id, s.remote_id].filter(Boolean).join(' · ')}</div>`).join('')
-          : `<div class="sub">${(j.dhcp_option82 && j.dhcp_option82.message) || 'Nessun Option 82'}</div>`;
+          : `<div class="sub">${(j.dhcp_option82 && j.dhcp_option82.message) || t('passive.no_option82')}</div>`;
 
         const snmp = j.snmp && j.snmp.result;
         if (snmp && snmp.reachable) {
           snmpEl.innerHTML = `<div class="ok">${snmp.host}:161 · ${snmp.community || 'n/a'}</div>${snmp.sys_descr ? '<div>' + snmp.sys_descr + '</div>' : ''}`;
         } else if (snmp) {
-          snmpEl.innerHTML = `<div class="bad">${snmp.host}:161 · ${snmp.error || 'no response'}</div>`;
+          snmpEl.innerHTML = `<div class="bad">${snmp.host}:161 · ${snmp.error || t('common.no_response')}</div>`;
         } else {
-          snmpEl.innerHTML = `<div class="sub">${(j.snmp && j.snmp.message) || 'SNMP non eseguito'}</div>`;
+          snmpEl.innerHTML = `<div class="sub">${(j.snmp && j.snmp.message) || t('passive.snmp_skipped')}</div>`;
         }
 
         const rows = [
@@ -1539,11 +1549,11 @@
         ];
         cacheScan('passive', j, rows);
         const dur = j.duration_seconds != null ? j.duration_seconds : '?';
-        msg.textContent = `Sniff completato in ${dur}s (impostati ${seconds}s).`;
+        msg.textContent = t('passive.done_msg', {duration: dur, seconds});
       } catch (e) {
         stopProgress();
         if (e.name === 'AbortError') msg.textContent = 'Sniff interrotto.';
-        else msg.textContent = 'Errore rete: ' + e;
+        else msg.textContent = t('common.network_error', {detail: e});
       } finally {
         scanBtn.disabled = false;
         endScan('passive-stop');
@@ -1560,7 +1570,7 @@
       const seconds = Math.min(60, Math.max(2, Number(document.getElementById('mikrotik-seconds').value) || 6));
       const controller = beginScan('mikrotik-stop');
       scanBtn.disabled = true;
-      msg.textContent = `Scansione MNDP (${seconds}s)...`;
+      msg.textContent = t('mikrotik.scanning', {seconds});
       el.textContent = '...';
       try {
         const r = await fetch(`/api/discover/mikrotik?listen_seconds=${seconds}`, { signal: controller.signal });
@@ -1579,23 +1589,23 @@
           connected: d.connected ? 'yes' : 'no',
         })));
         if (!devices.length) {
-          el.innerHTML = '<div class="sub">Nessun MikroTik rilevato. Verifica che MNDP sia abilitato e che i router siano sulla stessa VLAN/L2.</div>';
+          el.innerHTML = '<div class="sub">' + t('mikrotik.none_found') + '</div>';
         } else {
           el.innerHTML = devices.map(d => {
             const cls = d.connected ? 'ok' : '';
             const tag = d.connected ? 'COLLEGATO · ' : '';
-            const port = d.interface ? ` · porta ${d.interface}` : '';
+            const port = d.interface ? t('mikrotik.port_suffix', {port: d.interface}) : '';
             return `<div class="${cls}">${tag}${d.identity || d.board || 'MikroTik'} · ${d.ipv4 || 'n/a'} · ${d.mac || 'n/a'}${port}</div>`;
           }).join('');
         }
-        msg.textContent = `${devices.length} dispositivo/i trovato/i.`;
+        msg.textContent = t('common.devices_found', {count: devices.length});
         await loadStatus();
       } catch (e) {
         if (e.name === 'AbortError') {
           msg.textContent = t('common.scan_aborted');
-          el.textContent = 'Interrotta.';
+          el.textContent = t('common.interrupted_short');
         } else {
-          msg.textContent = 'Errore rete: ' + e;
+          msg.textContent = t('common.network_error', {detail: e});
         }
       } finally {
         scanBtn.disabled = false;
@@ -1604,7 +1614,7 @@
     };
     wireStopButton('mikrotik-stop', () => {
       document.getElementById('mikrotik-msg').textContent = t('common.scan_aborted');
-      document.getElementById('mikrotik-results').textContent = 'Interrotta.';
+      document.getElementById('mikrotik-results').textContent = t('common.interrupted_short');
     });
 
     document.getElementById('cameras-scan').onclick = async () => {
@@ -1613,7 +1623,7 @@
       const scanBtn = document.getElementById('cameras-scan');
       const controller = beginScan('cameras-stop');
       scanBtn.disabled = true;
-      msg.textContent = 'Scansione telecamere...';
+      msg.textContent = t('cameras.scanning');
       el.textContent = '...';
       try {
         const r = await fetch(`/api/discover/cameras?timeout_seconds=${scenarioDefaults.camera_timeout_seconds || 6}`, { signal: controller.signal });
@@ -1633,14 +1643,14 @@
         })));
         el.innerHTML = devices.length
           ? devices.map(d => `<div class="ok">${d.name} · ${d.source} · ${d.host || ''}${d.port ? ':' + d.port : ''} · ${(d.protocols || []).join(', ')}</div>`).join('')
-          : '<div class="sub">Nessuna telecamera rilevata.</div>';
-        msg.textContent = `${devices.length} telecamera/e trovata/e.`;
+          : '<div class="sub">' + t('cameras.none_found') + '</div>';
+        msg.textContent = t('common.cameras_found', {count: devices.length});
       } catch (e) {
         if (e.name === 'AbortError') {
           msg.textContent = t('common.scan_aborted');
-          el.textContent = 'Interrotta.';
+          el.textContent = t('common.interrupted_short');
         } else {
-          msg.textContent = 'Errore rete: ' + e;
+          msg.textContent = t('common.network_error', {detail: e});
         }
       } finally {
         scanBtn.disabled = false;
@@ -1649,7 +1659,7 @@
     };
     wireStopButton('cameras-stop', () => {
       document.getElementById('cameras-msg').textContent = t('common.scan_aborted');
-      document.getElementById('cameras-results').textContent = 'Interrotta.';
+      document.getElementById('cameras-results').textContent = t('common.interrupted_short');
     });
 
     document.getElementById('nas-scan').onclick = async () => {
@@ -1658,7 +1668,7 @@
       const scanBtn = document.getElementById('nas-scan');
       const controller = beginScan('nas-stop');
       scanBtn.disabled = true;
-      msg.textContent = 'Scansione NAS...';
+      msg.textContent = t('nas.scanning');
       el.textContent = '...';
       try {
         const r = await fetch(`/api/discover/nas?timeout_seconds=${scenarioDefaults.nas_timeout_seconds || 6}`, { signal: controller.signal });
@@ -1678,14 +1688,14 @@
         })));
         el.innerHTML = devices.length
           ? devices.map(d => `<div class="ok">${d.name} · ${d.source} · ${d.host || 'n/a'} · ${d.model || ''} ${(d.protocols || []).join(', ')}</div>`).join('')
-          : '<div class="sub">Nessun NAS rilevato.</div>';
-        msg.textContent = `${devices.length} NAS trovato/i.`;
+          : '<div class="sub">' + t('nas.none_found') + '</div>';
+        msg.textContent = t('common.nas_found', {count: devices.length});
       } catch (e) {
         if (e.name === 'AbortError') {
           msg.textContent = t('common.scan_aborted');
-          el.textContent = 'Interrotta.';
+          el.textContent = t('common.interrupted_short');
         } else {
-          msg.textContent = 'Errore rete: ' + e;
+          msg.textContent = t('common.network_error', {detail: e});
         }
       } finally {
         scanBtn.disabled = false;
@@ -1694,7 +1704,7 @@
     };
     wireStopButton('nas-stop', () => {
       document.getElementById('nas-msg').textContent = t('common.scan_aborted');
-      document.getElementById('nas-results').textContent = 'Interrotta.';
+      document.getElementById('nas-results').textContent = t('common.interrupted_short');
     });
 
     document.getElementById('printers-scan').onclick = async () => {
@@ -1704,9 +1714,9 @@
       const controller = beginScan('printers-stop');
       scanBtn.disabled = true;
       const stopProgress = startProgressFeedback(msg, [
-        'Probe Epson ENPC UDP/3289',
-        'Probe Zebra Link-OS UDP/4201',
-        'Raccolta dispositivi stampanti',
+        t('printers.progress_epson'),
+        t('printers.progress_zebra'),
+        t('printers.progress_collect'),
       ]);
       el.textContent = '';
       try {
@@ -1734,15 +1744,15 @@
               const extra = [d.model, d.hostname, d.mac].filter(Boolean).join(' · ');
               return `<div class="ok">${tag} · ${d.name} · ${d.source} · ${d.host || 'n/a'}${extra ? ' · ' + extra : ''}</div>`;
             }).join('')
-          : '<div class="sub">Nessuna stampante rilevata. Verifica ENPC (Epson) o discovery Zebra abilitati sulla stampante.</div>';
+          : '<div class="sub">' + t('printers.none_found') + '</div>';
         msg.textContent = `${devices.length} stampante/i trovata/e (Epson ${j.epson_count || 0}, Zebra ${j.zebra_count || 0}).`;
       } catch (e) {
         stopProgress();
         if (e.name === 'AbortError') {
           msg.textContent = t('common.scan_aborted');
-          el.textContent = 'Interrotta.';
+          el.textContent = t('common.interrupted_short');
         } else {
-          msg.textContent = 'Errore rete: ' + e;
+          msg.textContent = t('common.network_error', {detail: e});
         }
       } finally {
         scanBtn.disabled = false;
@@ -1751,11 +1761,11 @@
     };
     wireStopButton('printers-stop', () => {
       document.getElementById('printers-msg').textContent = t('common.scan_aborted');
-      document.getElementById('printers-results').textContent = 'Interrotta.';
+      document.getElementById('printers-results').textContent = t('common.interrupted_short');
     });
 
     function renderPortResults(el, data) {
-      if (!data || !data.entries) { el.innerHTML = '<div class="sub">Nessun risultato</div>'; return; }
+      if (!data || !data.entries) { el.innerHTML = '<div class="sub">' + t('common.no_results') + '</div>'; return; }
       const open = data.open_ports || [];
       const header = `<div class="ok">${data.host} · ${open.length} aperte / ${data.scanned_count} (${Math.round(data.duration_ms)} ms)</div>`;
       const lines = data.entries.map(e => {
@@ -1908,11 +1918,11 @@
       } catch (e) {
         if (e.name === 'AbortError') {
           msg.textContent = t('common.scan_aborted');
-          weintekEl.textContent = 'Interrotta.';
+          weintekEl.textContent = t('common.interrupted_short');
           ewonEl.textContent = '';
           portsEl.textContent = '';
         } else {
-          msg.textContent = 'Errore rete: ' + e;
+          msg.textContent = t('common.network_error', {detail: e});
         }
       } finally {
         scanBtn.disabled = false;
@@ -1921,7 +1931,7 @@
     }
     wireStopButton('plant-stop', () => {
       document.getElementById('plant-msg').textContent = t('common.scan_aborted');
-      document.getElementById('plant-weintek').textContent = 'Interrotta.';
+      document.getElementById('plant-weintek').textContent = t('common.interrupted_short');
       document.getElementById('plant-ewon').textContent = '';
       document.getElementById('plant-ports-results').textContent = '';
     });
@@ -1951,7 +1961,7 @@
           ? entries.map(row => `<tr><td>${row.prefix}</td><td>${row.vendor}</td><td>${row.source}</td></tr>`).join('')
           : '<tr><td colspan="3">Nessuna voce trovata</td></tr>';
       } catch (e) {
-        msg.textContent = 'Errore caricamento OUI: ' + e;
+        msg.textContent = t('discover.oui_load_error', {detail: e});
       }
     }
 
@@ -1991,12 +2001,12 @@
       if (data.gateway) {
         const g = data.gateway;
         const ping = g.ping_reachable ? `OK ${Math.round(g.ping_rtt_ms)}ms` : 'FAIL';
-        html += `<div class="${g.ping_reachable ? 'ok' : 'bad'}">Gateway ${g.gateway} ping: ${ping}</div>`;
+        html += `<div class="${g.ping_reachable ? 'ok' : 'bad'}">` + t('scan.gateway_ping', {gateway: g.gateway, status: ping}) + '</div>';
         (g.open_ports || []).forEach(p => {
           html += `<div class="open">GW ${p.port} ${p.service} OPEN</div>`;
         });
       }
-      el.innerHTML = html || '<div class="sub">Nessun risultato</div>';
+      el.innerHTML = html || '<div class="sub">' + t('common.no_results') + '</div>';
     }
 
     document.getElementById('network-check-run').onclick = async () => {

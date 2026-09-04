@@ -120,7 +120,9 @@
     "model": "Modello",
     "description": "Descrizione",
     "summary": "Riepilogo",
-    "no_response": "nessuna risposta"
+    "no_response": "nessuna risposta",
+    "invalid_json_response": "Risposta non JSON dal server",
+    "server_error": "Errore server ({status}): {detail}"
   },
   "status": {
     "hotspot": "Hotspot telefono",
@@ -206,7 +208,11 @@
     "oui_auto_refresh": "Aggiorna tabella dopo scansione ARP",
     "oui_reload_db": "Ricarica database IEEE",
     "no_services": "Nessun servizio trovato",
-    "oui_load_error": "Errore caricamento OUI: {detail}"
+    "oui_load_error": "Errore caricamento OUI: {detail}",
+    "no_l2probe_detected": "Nessun frame FDP/EDP/LLTD rilevato",
+    "oui_reloaded": "Database OUI ricaricato.",
+    "oui_summary": "OUI: {total} voci ({learned} apprese, {system} sistema, {bundled} bundle).",
+    "oui_none": "Nessuna voce trovata"
   },
   "passive": {
     "title": "Sniff passivo (riepilogo)",
@@ -311,7 +317,18 @@
     "dns_only": "Solo risoluzione DNS",
     "no_mgmt_ports": "Nessuna porta gestione aperta",
     "verify_dns": "Verifica server DNS",
-    "gateway_ping": "Ping gateway e porte rapide"
+    "gateway_ping": "Ping gateway e porte rapide",
+    "open_header": "{host} · {open} aperte / {total} ({ms} ms)",
+    "progress_connect": "Connessione a {host}",
+    "progress_profile": "Scansione profilo {label} (TCP connect)",
+    "progress_collect": "Raccolta porte aperte/chiuse",
+    "dns_progress_verify": "Verifica server DNS",
+    "dns_progress_resolve": "Risoluzione {hostname}",
+    "dns_progress_skip": "Skip risoluzione hostname",
+    "dns_progress_gateway": "Ping gateway e porte rapide",
+    "ports_open_prefix": "Aperte: {ports}",
+    "no_mgmt_ports_inline": "Nessuna porta gestione aperta",
+    "ports_closed_suffix": " · chiuse: {closed}"
   },
   "hotspot": {
     "status_title": "Stato hotspot",

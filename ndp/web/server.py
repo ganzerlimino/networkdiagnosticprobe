@@ -283,6 +283,7 @@ def create_app(
             scan_result=last_scan_result,
             network_diag=last_network_diag,
             version=__version__,
+            locale_code=config.ui_locale,
         )
 
     @app.get("/api/ping")

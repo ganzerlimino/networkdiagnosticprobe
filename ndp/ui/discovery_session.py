@@ -16,6 +16,7 @@ from ndp.discovery.wizard import (
     WizardCancelled,
     WizardPhase,
 )
+from ndp.locale.loader import load_locale, translate
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,13 @@ class DiscoveryUISession:
     _thread: threading.Thread | None = None
     _wizard: UpDownWizard | None = None
     _lock: threading.Lock = field(default_factory=threading.Lock)
+    _locale: dict[str, object] = field(default_factory=dict, repr=False)
+
+    def __post_init__(self) -> None:
+        self._locale = load_locale(self.config.ui_locale)
+
+    def _t(self, key: str, **variables: object) -> str:
+        return translate(self._locale, key, **variables)
 
     @property
     def phase(self) -> WizardPhase:
@@ -73,7 +81,7 @@ class DiscoveryUISession:
         self._lines.clear()
         self._phase = WizardPhase.SCANNING_BASELINE
         self._running = True
-        self._lines.append("Avvio wizard...")
+        self._lines.append(self._t("tft.wizard.start_log"))
         self._notify()
         self._thread = threading.Thread(target=self._run, daemon=True, name="ndp-discovery")
         self._thread.start()
@@ -124,19 +132,19 @@ class DiscoveryUISession:
     def _web_prompt_message_unlocked(self) -> str:
         if self._waiting_for_user:
             if self._phase == WizardPhase.WAIT_UNPLUG:
-                return "Stacca il dispositivo da cercare, poi tocca Continua."
+                return self._t("tft.wizard.prompt_wait_unplug")
             if self._phase == WizardPhase.VERIFY_REPLUG:
-                return "Ricollega il dispositivo. Continua per verificare o Salta."
-            return "Tocca Continua per proseguire."
+                return self._t("tft.wizard.prompt_verify_replug")
+            return self._t("tft.wizard.prompt_continue")
         if self._phase == WizardPhase.DONE and self._result is not None:
-            return "Wizard completato."
+            return self._t("tft.wizard.prompt_done")
         if self._error:
-            return "Si è verificato un errore. Puoi riavviare il wizard."
+            return self._t("tft.wizard.prompt_error")
         if self.is_idle():
-            return "Avvia il wizard Up/Down per trovare un device scollegandolo dalla rete."
+            return self._t("tft.wizard.prompt_idle")
         if self._countdown is not None:
-            return f"Attesa rete ({self._countdown}s)..."
-        return "Wizard in corso..."
+            return self._t("tft.wizard.prompt_countdown", seconds=self._countdown)
+        return self._t("tft.wizard.prompt_in_progress")
 
     def to_api_dict(self) -> dict[str, object]:
         with self._lock:
@@ -164,41 +172,41 @@ class DiscoveryUISession:
         with self._lock:
             if self.is_idle() and self._phase != WizardPhase.DONE:
                 start_hint = (
-                    "Click avvia wizard"
+                    self._t("tft.wizard.start_encoder")
                     if self.config.ui_input == "encoder"
-                    else "○ avvia wizard"
+                    else self._t("tft.wizard.start_phone")
                 )
                 return [
-                    "Up/Down scan",
+                    self._t("tft.wizard.title"),
                     start_hint,
                     "",
-                    "Stacca 1 device",
-                    "per trovarlo in rete",
+                    self._t("tft.wizard.hint_unplug1"),
+                    self._t("tft.wizard.hint_unplug2"),
                 ]
             if self._error:
                 retry_hint = (
-                    "Click riprova"
+                    self._t("tft.wizard.retry_encoder")
                     if self.config.ui_input == "encoder"
-                    else "○ riprova"
+                    else self._t("tft.wizard.retry_phone")
                 )
-                return ["Errore:", self._error[:28], "", retry_hint]
+                return [self._t("tft.wizard.error_label"), self._error[:28], "", retry_hint]
             if self._phase == WizardPhase.DONE and self._result is not None:
                 return compact_diff_lines(self._result.diff)[:7]
             lines = list(self._lines[-6:])
             if self._countdown is not None:
-                lines.append(f"Attesa {self._countdown}s")
+                lines.append(self._t("tft.wizard.countdown", seconds=self._countdown))
             if self._waiting_for_user:
                 if self.config.ui_input == "encoder":
-                    hint = "Click continua"
+                    hint = self._t("tft.wizard.continue_encoder")
                     if self._waiting_allow_skip:
-                        hint += "  ↻ skip"
+                        hint += self._t("tft.wizard.skip_encoder")
                 else:
-                    hint = "○ continua"
+                    hint = self._t("tft.wizard.continue_phone")
                     if self._waiting_allow_skip:
-                        hint += "  ▶ skip"
+                        hint += self._t("tft.wizard.skip_phone")
                 lines.append(hint)
             elif self._running:
-                lines.append("Scansione...")
+                lines.append(self._t("tft.wizard.scanning"))
             return lines[:7]
 
     def _run(self) -> None:
@@ -225,7 +233,7 @@ class DiscoveryUISession:
         except WizardCancelled:
             with self._lock:
                 self._error = None
-                self._lines.append("Annullato.")
+                self._lines.append(self._t("tft.wizard.cancelled"))
                 self._phase = WizardPhase.IDLE
         except Exception as exc:  # pragma: no cover - defensive on device
             logger.exception("Discovery wizard failed")

@@ -297,7 +297,7 @@ class ProbeUI:
 
         with self._lock:
             self._state.ping.running = True
-            self._state.ping.message = "Ping in corso..."
+            self._state.ping.message = tft_text(self.config, "tft.ping_running")
             gateway = self._state.ip.gateway
             self._state.ping.adhoc_host = read_adhoc_host(Path(self.config.ping_adhoc_path))
 
@@ -348,13 +348,17 @@ class ProbeUI:
         worker.start()
 
         splash_start = time.monotonic()
-        status = "Caricamento..."
+        status = tft_text(self.config, "tft.splash_loading")
         while not self._stop.is_set():
             elapsed = time.monotonic() - splash_start
             if warmup_done.is_set():
-                status = "Pronto" if not warmup_error else "Errore init"
+                status = (
+                    tft_text(self.config, "tft.splash_ready")
+                    if not warmup_error
+                    else tft_text(self.config, "tft.splash_init_error")
+                )
             elif elapsed > 0.5:
-                status = "Raccolta dati..."
+                status = tft_text(self.config, "tft.splash_collecting")
 
             if self.config.ui_splash_enabled:
                 draw_splash(

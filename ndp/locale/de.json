@@ -120,7 +120,9 @@
     "model": "Modell",
     "description": "Beschreibung",
     "summary": "Zusammenfassung",
-    "no_response": "keine Antwort"
+    "no_response": "keine Antwort",
+    "invalid_json_response": "Keine JSON-Antwort vom Server",
+    "server_error": "Serverfehler ({status}): {detail}"
   },
   "status": {
     "hotspot": "Telefon-Hotspot",
@@ -206,7 +208,11 @@
     "oui_auto_refresh": "Tabelle nach ARP-Scan aktualisieren",
     "oui_reload_db": "IEEE-Datenbank neu laden",
     "no_services": "Keine Dienste gefunden",
-    "oui_load_error": "OUI-Ladefehler: {detail}"
+    "oui_load_error": "OUI-Ladefehler: {detail}",
+    "no_l2probe_detected": "Keine FDP/EDP/LLTD-Frames erkannt",
+    "oui_reloaded": "OUI-Datenbank neu geladen.",
+    "oui_summary": "OUI: {total} Einträge ({learned} gelernt, {system} System, {bundled} Bundle).",
+    "oui_none": "Keine Einträge gefunden"
   },
   "passive": {
     "title": "Passives Sniff (Übersicht)",
@@ -311,7 +317,18 @@
     "dns_only": "Nur DNS-Auflösung",
     "no_mgmt_ports": "Keine Management-Ports offen",
     "verify_dns": "DNS-Server prüfen",
-    "gateway_ping": "Gateway-Ping und Schnellports"
+    "gateway_ping": "Gateway-Ping und Schnellports",
+    "open_header": "{host} · {open} offen / {total} ({ms} ms)",
+    "progress_connect": "Verbindung zu {host}",
+    "progress_profile": "Profil {label} scannen (TCP connect)",
+    "progress_collect": "Offene/geschlossene Ports sammeln",
+    "dns_progress_verify": "DNS-Server prüfen",
+    "dns_progress_resolve": "Auflösung {hostname}",
+    "dns_progress_skip": "Hostname-Auflösung überspringen",
+    "dns_progress_gateway": "Gateway-Ping und schnelle Ports",
+    "ports_open_prefix": "Offen: {ports}",
+    "no_mgmt_ports_inline": "Keine Management-Ports offen",
+    "ports_closed_suffix": " · geschlossen: {closed}"
   },
   "hotspot": {
     "status_title": "Hotspot-Status",

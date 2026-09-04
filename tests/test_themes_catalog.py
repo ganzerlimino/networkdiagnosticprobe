@@ -19,12 +19,14 @@ def test_list_themes_includes_bundled_field_dark() -> None:
 def test_list_themes_localized_name() -> None:
     themes = {entry["id"]: entry["name"] for entry in list_themes("it")}
     assert themes["field-dark"] == "Campo scuro"
+    de_themes = {entry["id"]: entry["name"] for entry in list_themes("de")}
+    assert de_themes["field-dark"] == "Feld dunkel"
 
 
 def test_theme_display_name_fallback_en() -> None:
     catalog = load_themes_catalog()
     theme = catalog["themes"]["field-dark"]
-    assert theme_display_name(theme, "de") in {"Field dark", "Campo scuro"}
+    assert theme_display_name(theme, "de") == "Feld dunkel"
 
 
 def test_config_schema_theme_options_match_catalog() -> None:
